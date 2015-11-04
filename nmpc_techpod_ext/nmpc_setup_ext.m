@@ -123,8 +123,8 @@ nmpc.set( 'GENERATE_SIMULINK_INTERFACE',    'YES'                   );
 nmpc.set( 'CG_HARDCODE_CONSTRAINT_VALUES',  'YES'                    );
 
 % export
-copyfile('/home/thomas/ACADOtoolkit/external_packages/qpoases', ...
-    '/home/thomas/ACADOtoolkit/interfaces/matlab/techpod_6DoF_nmpc_w2_P_ext/export_nmpc_ext/qpoases')
+copyfile('../acado/external_packages/qpoases', ...
+    'export_nmpc_ext/qpoases')
 nmpc.exportCode( 'export_nmpc_ext' );
 
 cd export_nmpc_ext
