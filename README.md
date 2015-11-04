@@ -14,7 +14,8 @@ Scripts for controller design, simulation, and code generation using ACADOToolki
 6. save the acado path into the root git directory `savepath ../../../ACADOpathdef.m`
 7. change to root git directory and run `addpath(ACADOpathdef)`
 
-## General Instructions (post- initial acado compilation and submodule setup)
+## General Instructions
+(post- initial acado compilation and submodule setup)
 
 1. login as root and run matlab (*tested only with r2014b on ubuntu 14.04*)
 2. change to root git directory and run `addpath(ACADOpathdef)`
