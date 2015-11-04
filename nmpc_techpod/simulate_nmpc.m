@@ -56,7 +56,7 @@ d = 0;
 pp = [n,e,d];
 
 % acado inputs
-input.od    = repmat([Aw2, Bw2, Cw2, Dw2, kiV, wn, we, wd],N+1,1);
+input.od    = repmat([Aw2, Bw2, Cw2, Dw2, kiV],N+1,1);
 
 % X0          = ...
 %     [13*cos(0.0805), 0, 13*sin(0.0805), ... % body velocities
@@ -200,7 +200,7 @@ for k = 1:length(time)
     input.yN    = input.y(end,1:7)';
     
     % generate controls
-    output      = acado_nmpc_w2_step(input);
+    output      = acado_nmpc_step(input);
     U0          = output.u(1,:);
     
     % record info
