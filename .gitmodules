@@ -1,0 +1,3 @@
+[submodule "acado"]
+	path = acado
+	url = https://github.com/acado/acado.git
