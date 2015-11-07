@@ -60,29 +60,11 @@ acadoWorkspace.evGu[lRun1] = acadoWorkspace.state[2];
 return ret;
 }
 
-void evaluateLSQ(const real_t* in, real_t* out)
+void setObjQ1Q2( real_t* const tmpFx, real_t* const tmpObjS, real_t* const tmpQ1, real_t* const tmpQ2 )
 {
-const real_t* xd = in;
-const real_t* u = in + 1;
-
-/* Compute outputs: */
-out[0] = xd[0];
-out[1] = u[0];
-}
-
-void evaluateLSQEndTerm(const real_t* in, real_t* out)
-{
-const real_t* xd = in;
-
-/* Compute outputs: */
-out[0] = xd[0];
-}
-
-void setObjQ1Q2( real_t* const tmpObjS, real_t* const tmpQ1, real_t* const tmpQ2 )
-{
-tmpQ2[0] = +tmpObjS[0];
-tmpQ2[1] = +tmpObjS[1];
-tmpQ1[0] = + tmpQ2[0];
+tmpQ2[0] = + tmpFx[0]*tmpObjS[0] + tmpFx[1]*tmpObjS[2];
+tmpQ2[1] = + tmpFx[0]*tmpObjS[1] + tmpFx[1]*tmpObjS[3];
+tmpQ1[0] = + tmpQ2[0]*tmpFx[0] + tmpQ2[1]*tmpFx[1];
 }
 
 void setObjR1R2( real_t* const tmpObjS, real_t* const tmpR1, real_t* const tmpR2 )
@@ -92,10 +74,10 @@ tmpR2[1] = +tmpObjS[3];
 tmpR1[0] = + tmpR2[1];
 }
 
-void setObjQN1QN2( real_t* const tmpObjSEndTerm, real_t* const tmpQN1, real_t* const tmpQN2 )
+void setObjQN1QN2( real_t* const tmpFx, real_t* const tmpObjSEndTerm, real_t* const tmpQN1, real_t* const tmpQN2 )
 {
-tmpQN2[0] = +tmpObjSEndTerm[0];
-tmpQN1[0] = + tmpQN2[0];
+tmpQN2[0] = + tmpFx[0]*tmpObjSEndTerm[0];
+tmpQN1[0] = + tmpQN2[0]*tmpFx[0];
 }
 
 void evaluateObjective(  )
@@ -110,7 +92,7 @@ evaluateLSQ( acadoWorkspace.objValueIn, acadoWorkspace.objValueOut );
 acadoWorkspace.Dy[runObj * 2] = acadoWorkspace.objValueOut[0];
 acadoWorkspace.Dy[runObj * 2 + 1] = acadoWorkspace.objValueOut[1];
 
-setObjQ1Q2( acadoVariables.W, &(acadoWorkspace.Q1[ runObj ]), &(acadoWorkspace.Q2[ runObj * 2 ]) );
+setObjQ1Q2( &(acadoWorkspace.objValueOut[ 2 ]), acadoVariables.W, &(acadoWorkspace.Q1[ runObj ]), &(acadoWorkspace.Q2[ runObj * 2 ]) );
 
 setObjR1R2( acadoVariables.W, &(acadoWorkspace.R1[ runObj ]), &(acadoWorkspace.R2[ runObj * 2 ]) );
 
@@ -120,7 +102,7 @@ evaluateLSQEndTerm( acadoWorkspace.objValueIn, acadoWorkspace.objValueOut );
 
 acadoWorkspace.DyN[0] = acadoWorkspace.objValueOut[0];
 
-setObjQN1QN2( acadoVariables.WN, acadoWorkspace.QN1, acadoWorkspace.QN2 );
+setObjQN1QN2( &(acadoWorkspace.objValueOut[ 1 ]), acadoVariables.WN, acadoWorkspace.QN1, acadoWorkspace.QN2 );
 
 }
 
