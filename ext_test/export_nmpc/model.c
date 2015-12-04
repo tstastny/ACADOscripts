@@ -64,6 +64,5 @@ void evaluateLSQEndTerm(const real_t* in, real_t* out)
 /* Compute outputs: */
 out[0] = in[0] - in[0]*in[0]*in[0];
 out[1] = 1.0 - 3.0*in[0]*in[0];
-out[2] = 0.0;
 
 }
