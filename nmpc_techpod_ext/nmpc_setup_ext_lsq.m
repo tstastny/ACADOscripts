@@ -78,8 +78,8 @@ ocp.subjectTo( -20*pi/180 <= uA <= 20*pi/180 );
 ocp.subjectTo( -20*pi/180 <= uR <= 20*pi/180 );
 ocp.subjectTo( -60*pi/180 <= phi <= 60*pi/180 );
 ocp.subjectTo( -45*pi/180 <= theta <= 45*pi/180 );
-ocp.subjectTo( -2*pi/180 <= alpha + sv );
-ocp.subjectTo( alpha - sv <= 10*pi/180 );
+ocp.subjectTo( -2*pi/180 <= atan(w/u) + sv );
+ocp.subjectTo( atan(w/u) - sv <= 10*pi/180 );
 ocp.subjectTo( 0 <= sv <= 3*pi/180 );
 
 setNOD(ocp, n_OD);

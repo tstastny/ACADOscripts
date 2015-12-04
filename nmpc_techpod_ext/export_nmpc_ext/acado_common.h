@@ -212,9 +212,6 @@ real_t evGx[ 2250 ];
 /** Matrix of size: 150 x 5 (row major format) */
 real_t evGu[ 750 ];
 
-/** Column vector of size: 48 */
-real_t objAuxVar[ 48 ];
-
 /** Row vector of size: 25 */
 real_t objValueIn[ 25 ];
 
@@ -333,8 +330,6 @@ int integrate( real_t* const rk_eta, int resetIntegrator );
 
 /** An external function for evaluation of symbolic expressions. */
 void rhs(const real_t* in, real_t* out);
-
-/** An external function for evaluation of symbolic expressions. */
 void rhs_jac(const real_t* in, real_t* out);
 
 /** Preparation step of the RTI scheme.
@@ -384,6 +379,12 @@ real_t getKKT(  );
  *  \return Value of the objective function.
  */
 real_t getObjective(  );
+
+/** An external function for evaluation of symbolic expressions. */
+void evaluateLSQ(const real_t* in, real_t* out);
+
+/** An external function for evaluation of symbolic expressions. */
+void evaluateLSQEndTerm(const real_t* in, real_t* out);
 
 
 /* 
