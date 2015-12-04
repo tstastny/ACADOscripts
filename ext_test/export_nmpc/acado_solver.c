@@ -67,11 +67,11 @@ tmpQ2[1] = + tmpFx[0]*tmpObjS[1] + tmpFx[1]*tmpObjS[3];
 tmpQ1[0] = + tmpQ2[0]*tmpFx[0] + tmpQ2[1]*tmpFx[1];
 }
 
-void setObjR1R2( real_t* const tmpObjS, real_t* const tmpR1, real_t* const tmpR2 )
+void setObjR1R2( real_t* const tmpFu, real_t* const tmpObjS, real_t* const tmpR1, real_t* const tmpR2 )
 {
-tmpR2[0] = +tmpObjS[2];
-tmpR2[1] = +tmpObjS[3];
-tmpR1[0] = + tmpR2[1];
+tmpR2[0] = + tmpFu[0]*tmpObjS[0] + tmpFu[1]*tmpObjS[2];
+tmpR2[1] = + tmpFu[0]*tmpObjS[1] + tmpFu[1]*tmpObjS[3];
+tmpR1[0] = + tmpR2[0]*tmpFu[0] + tmpR2[1]*tmpFu[1];
 }
 
 void setObjQN1QN2( real_t* const tmpFx, real_t* const tmpObjSEndTerm, real_t* const tmpQN1, real_t* const tmpQN2 )
@@ -94,7 +94,7 @@ acadoWorkspace.Dy[runObj * 2 + 1] = acadoWorkspace.objValueOut[1];
 
 setObjQ1Q2( &(acadoWorkspace.objValueOut[ 2 ]), acadoVariables.W, &(acadoWorkspace.Q1[ runObj ]), &(acadoWorkspace.Q2[ runObj * 2 ]) );
 
-setObjR1R2( acadoVariables.W, &(acadoWorkspace.R1[ runObj ]), &(acadoWorkspace.R2[ runObj * 2 ]) );
+setObjR1R2( &(acadoWorkspace.objValueOut[ 4 ]), acadoVariables.W, &(acadoWorkspace.R1[ runObj ]), &(acadoWorkspace.R2[ runObj * 2 ]) );
 
 }
 acadoWorkspace.objValueIn[0] = acadoVariables.x[10];

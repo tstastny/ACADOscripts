@@ -291,8 +291,6 @@ int integrate( real_t* const rk_eta, int resetIntegrator );
 
 /** An external function for evaluation of symbolic expressions. */
 void rhs(const real_t* in, real_t* out);
-
-/** An external function for evaluation of symbolic expressions. */
 void rhs_jac(const real_t* in, real_t* out);
 
 /** Preparation step of the RTI scheme.

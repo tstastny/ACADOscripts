@@ -38,6 +38,9 @@ ocp.minimizeLSQEndTerm( QN, 'evaluateLSQEndTerm' );
 ocp.setModel('model', 'rhs', 'rhs_jac');
 ocp.setDimensions( 1, 1, 0, 0);
 
+% outputs
+
+
 % constraints
 ocp.subjectTo( -3 <= u <= 3 );
 

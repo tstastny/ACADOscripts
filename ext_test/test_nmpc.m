@@ -71,6 +71,7 @@ end
 figure('color','w');
 subplot(2,1,1); hold on; grid on;
 plot(time,X_rec);
+ylabel('x')
 subplot(2,1,2); hold on; grid on;
 plot(time,U_rec);
-
+ylabel('u')

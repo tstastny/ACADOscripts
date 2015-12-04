@@ -25,6 +25,8 @@ DifferentialState d;            %   (local position down)       [m]
 
 DifferentialState dummy;        %   (dummy slack state)         [~]
 
+DifferentialState intg_lon;     %   (longitudinal integrator)   [rad*s]
+DifferentialState intg_lat;     %   (lateral integrator)        [rad*s]
 DifferentialState intg_V;       %   (integral of airspeed)      [m]
 
 DifferentialState x_w2_uT;      %   (throtte w2)                [~]
@@ -49,25 +51,9 @@ OnlineData Dw2;
 
 OnlineData kiV;
 
-% intermediate states
-V       = sqrt(u^2+v^2+w^2);
-beta    = asin(v/V);
-alpha   = atan(w/u);
-
-% state error output
-e_V     = V_cmd - V;
-e_theta = theta_cmd - theta;
-e_phi   = phi_cmd - phi;
-e_beta  = beta_cmd - beta;
-
-y = [ e_V + intg_V; e_theta; e_phi; e_beta; p; q; r ];
-
-% % MIXED SENSITIVITY LOOP SHAPING ------------------------------------------
-z_w2_uT = Cw2*x_w2_uT + Dw2*uT;
-z_w2_uE = Cw2*x_w2_uE + Dw2*uE;
-z_w2_uA = Cw2*x_w2_uA + Dw2*uA;
-z_w2_uR = Cw2*x_w2_uR + Dw2*uR;
-z_w2_sv = Cw2*x_w2_sv + Dw2*sv;
+OnlineData wn;
+OnlineData we;
+OnlineData wd;
 
 % OPTIMAL CONTROL PROBLEM -------------------------------------------------
 
