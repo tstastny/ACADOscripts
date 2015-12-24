@@ -128,6 +128,6 @@ copyfile('../acado/external_packages/qpoases', ...
 nmpc.exportCode( 'export_nmpc_ext' );
 
 cd export_nmpc_ext
-make_acado_solver('../acado_nmpc_ext_step')
+make_acado_solver('../acado_nmpc_ext_step', 'model.c')
 cd ..
 

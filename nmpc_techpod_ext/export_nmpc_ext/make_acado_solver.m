@@ -23,10 +23,10 @@
 %    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 %    
 
-function make_acado_solver( name )
+function make_acado_solver( name, extern )
 
 	% Output file name, and also function name
-	if (nargin == 1)
+	if (nargin > 0)
 		fileOut = name;
 	else
 		fileOut = 'acado_solver';
@@ -56,8 +56,10 @@ function make_acado_solver( name )
 		'CGRoot/acado_integrator.c ' ...
 		'CGRoot/acado_auxiliary_functions.c ' ...
 		'CGRoot/acado_qpoases_interface.cpp ' ...
-        'CGRoot/model.c ' ...
 		];
+	if (nargin > 1)
+		CGSources = [CGSources extern];
+	end
 		
 	% Adding additional linker flags for Linux
 	ldFlags = '';
