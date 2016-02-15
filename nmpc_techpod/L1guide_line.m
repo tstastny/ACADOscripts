@@ -78,7 +78,7 @@ LL_lon          = rr_lon - [pp_dd_d * aa_bb_lon_unit(2)/aa_bb_lon_unit(1), 0];
 etalon = atan2(V(3),V_lat) - atan2(LL_lon(2),LL_lon(1));
 if etalon>pi, etalon=etalon-2*pi; end;
 if etalon<-pi, etalon=etalon+2*pi; end;
-etalon = atan(etalon);
+% etalon = atan(etalon);
 
 % calculate the L1 gain (following [2]) */
 KL1_lon     = 4 * L1d_lon * L1d_lon;

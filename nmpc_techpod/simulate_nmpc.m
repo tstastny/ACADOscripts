@@ -108,7 +108,7 @@ tg0 = 30;
 tg01 = 0.8;
 tg12 = 0;
 tg23 = 0.3;
-wdmax = -5;
+wdmax = 5;
 wdmin = wd;
 
 for k = 1:length(time)

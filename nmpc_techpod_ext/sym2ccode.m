@@ -11,7 +11,6 @@ syms q;            %    (pitch rate)                [rad/s]
 syms r;            %    (yaw rate)                  [rad/s]   
 syms phi;          %    (roll angle)                [rad] 
 syms theta;        %    (pitch angle)               [rad]  
-syms psi;          %    (yaw angle)                 [rad]   
 
 syms dummy;        %    (dummy slack state)         [~]
 
@@ -214,5 +213,5 @@ y = subs( y, [states ctrls onlinedata dstbs], ins );
 ccode(frhs,'file','ext_rhs_.c');
 ccode(Jrhs,'file','ext_Jrhs_.c');
 ccode([ objectives; Jobj_x; Jobj_u ],'file','ext_lsq_obj_.c');
-ccode([ y; Jobj_x ],'file','ext_lsq_obj_N_.c');
+ccode([ y; Jobj_x(1:n_Y*n_X) ],'file','ext_lsq_obj_N_.c');
 
