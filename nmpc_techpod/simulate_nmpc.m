@@ -45,9 +45,9 @@ Cw2 = -127;
 Dw2 = 16;
 
 % wind
-wn=0;%1.5;
-we=0;%-2;
-wd=0;
+wn=1.5;
+we=-2;
+wd=1;
 
 % states
 n = 0;
@@ -92,7 +92,7 @@ input.WN    = diag(Q_output);
 
 % simulation
 T0      = 0;
-Tf      = 50;
+Tf      = 60;
 Ts      = 0.05;
 time    = T0:Ts:Tf;
 KKT_MPC = []; INFO_MPC = []; controls_MPC = [];
@@ -150,30 +150,28 @@ for k = 1:length(time)
         
     elseif paths(pth_idx).type == 1
         
-        [theta_cmd, phi_cmd, etalon, etalat, p_travel] = ...
+        [theta_cmd, phi_cmd, etalon, etalat] = ...
             L1guide_spiral(simout(10:12), d_states(10:12), ...
             paths(pth_idx).cc, paths(pth_idx).R, paths(pth_idx).ldir, paths(pth_idx).xi0, paths(pth_idx).gam, ...
             L1p_lon, L1d_lon, intg_lon, ...
             L1p_lat, L1d_lat, intg_lat,...
-            theta_cmd_min, theta_cmd_max, phi_cmd_min, phi_cmd_max);
+            theta_cmd_min, theta_cmd_max, phi_cmd_min, phi_cmd_max, paths(pth_idx).deltaxi);
         
-        if ~passed_xi0
-            xik = atan2(simout(11) - paths(pth_idx).cc(2), simout(10) - paths(pth_idx).cc(1));
-            deltaxik = xik - paths(pth_idx).xi0;
-            if paths(pth_idx).ldir>0 && paths(pth_idx).xi0>xik
-                deltaxik = deltaxik + 2*pi;
-            elseif paths(pth_idx).ldir<0 && xik>paths(pth_idx).xi0
-                deltaxik = deltaxik - 2*pi;
-            end
-            if deltaxik > pi, deltaxik = deltaxik - 2*pi; end;
-            if deltaxik < -pi, deltaxik = deltaxik + 2*pi; end;
-            passed_xi0 = paths(pth_idx).ldir * deltaxik >= 0;
-        end
-        if paths(pth_idx).ldir * p_travel > paths(pth_idx).deltaxi - 10*pi/180 && passed_xi0 && pth_idx<length(paths)
+        bb = paths(pth_idx).cc + paths(pth_idx).R * ...
+            [cos(paths(pth_idx).xi0 + paths(pth_idx).ldir * paths(pth_idx).deltaxi), ...
+            sin(paths(pth_idx).xi0 + paths(pth_idx).ldir * paths(pth_idx).deltaxi), ...
+            -tan(paths(pth_idx).gam) * paths(pth_idx).deltaxi];
+        
+        xiend = paths(pth_idx).xi0 + paths(pth_idx).ldir * (paths(pth_idx).deltaxi + pi/2);
+        
+        v_bb = [cos(xiend), sin(xiend), -sin(paths(pth_idx).gam)];
+        
+        if norm(bb - pp) < 10 && ...
+                norm(cross(v_bb, d_states(10:12))) / norm(v_bb) / norm(d_states(10:12)) < 30*pi/180 && ...
+                pth_idx<length(paths)
             pth_idx = pth_idx + 1;
-            passed_xi0 = false;
         end
-        
+       
     else
         
         theta_cmd = 0; phi_cmd = 0; etalon = 0; etalat = 0;

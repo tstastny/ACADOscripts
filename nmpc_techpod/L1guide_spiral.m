@@ -1,6 +1,6 @@
-function [gamma_cmd,phi_cmd,etalon,etalat,p_travel] = L1guide_spiral(pp,V,cc,R,ldir,xi0,gamsp,...
+function [gamma_cmd,phi_cmd,etalon,etalat] = L1guide_spiral(pp,V,cc,R,ldir,xi0,gamsp,...
     L1p_lon,L1d_lon,intg_lon,L1p_lat,L1d_lat,intg_lat,...
-    gamma_cmd_min,gamma_cmd_max,phi_cmd_min,phi_cmd_max)
+    gamma_cmd_min,gamma_cmd_max,phi_cmd_min,phi_cmd_max,dxi)
 
 % velocities
 V_lat = sqrt(sum(V(1:2).^2));
@@ -58,7 +58,7 @@ if etalat<-pi, etalat=etalat+2*pi; end;
 
 % --- longitudinal plane ---
 
-% spiral angular position
+% spiral angular position: [0,2*pi)
 xi = atan2(cc_pp_e,cc_pp_n);
 delta_xi = xi-xi0;
 if ldir>0 && xi0>xi
@@ -67,19 +67,35 @@ elseif ldir<0 && xi>xi0
     delta_xi = delta_xi - 2*pi;
 end
 
-% root spiral height for current angle
-dsxi0 = -delta_xi*ldir*R*tan(gamsp);
-
-% round to nearest spiral leg
+% closest point on nearest spiral leg
 if gamsp==0
-    d0 = dsxi0;
+    dd_d_sp = cc(3);
 else
-    d0 = round(max((dsxi0-pp(3))/2/pi/R/tan(gamsp),0))*-2*pi*R*tan(gamsp) + dsxi0;
+    % spiral height delta for current angle
+    delta_d_xi = -delta_xi*ldir*R*tan(gamsp);
+    
+    % end spiral altitude change
+    delta_d_sp_end  = -dxi*R*tan(gamsp);
+    
+    % nearest spiral leg
+    delta_d_k = round( (pp(3) - (cc(3) + delta_d_xi)) / (2*pi*R*tan(gamsp)) ) * 2*pi*R*tan(gamsp);
+    delta_d_end_k = round( (delta_d_sp_end - (cc(3) + delta_d_xi)) / (2*pi*R*tan(gamsp)) ) * 2*pi*R*tan(gamsp);
+
+    % check
+    if delta_d_k*sign(gamsp) > 0
+        delta_d_k = 0;
+    elseif abs(delta_d_k)-abs(delta_d_end_k) > 0
+        delta_d_k = sign(delta_d_k) * min(abs(delta_d_k), abs(delta_d_end_k));
+    end
+    
+    % closest point on nearest spiral leg
+    delta_d_sp = delta_d_k + delta_d_xi;
+    dd_d_sp = cc(3) + delta_d_sp;
 end
 
 % calculate longitudinal track error
 aa_bb_lon_unit  = [cos(gamsp), -sin(gamsp)];
-pp_dd_d         = d0 + cc(3) - pp(3);
+pp_dd_d         = dd_d_sp - pp(3);
 xtrackerr_lon   = pp_dd_d/aa_bb_lon_unit(1);
 
 % calculate the L1 length required for the desired period
@@ -110,8 +126,10 @@ etalonPI    = etalon*KL1_lon + intg_lon;
 etalatPI    = etalat*KL1_lat + intg_lat;
 
 % guidance commands lateral_accel = K_L1 * ground_speed / L1_ratio * sin(eta);
-gamma_cmd   = atan2(V_lon*etalonPI,L1R_lon*g);
-phi_cmd     = atan2(V_lat*etalatPI,L1R_lat*g);
+gamma_cmd   = atan(V_lon*etalonPI/L1R_lon/g);
+phi_cmd     = atan(V_lat*etalatPI/L1R_lat/g);
+% gamma_cmd   = gamma_cmd_max * 2/pi * atan(V_lon*etalonPI/L1R_lon/g / (gamma_cmd_max * 2/pi) * 1.2);
+% phi_cmd     = phi_cmd_max * 2/pi * atan(V_lat*etalatPI/L1R_lat/g / (phi_cmd_max * 2/pi));
 
 % saturation
 if gamma_cmd > gamma_cmd_max
@@ -125,6 +143,4 @@ elseif phi_cmd < phi_cmd_min
     phi_cmd = phi_cmd_min;
 end
 
-% calculate p travel
-p_travel    = delta_xi;
 

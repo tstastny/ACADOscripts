@@ -89,8 +89,10 @@ etalonPI    = etalon*KL1_lon + intg_lon;
 etalatPI    = etalat*KL1_lat + intg_lat;
 
 % guidance commands lateral_accel = K_L1 * ground_speed / L1_ratio * sin(eta);
-gamma_cmd   = atan2(V_lon*etalonPI,L1R_lon*g);
-phi_cmd     = atan2(V_lat*etalatPI,L1R_lat*g);
+gamma_cmd   = atan(V_lon*etalonPI/L1R_lon/g);
+phi_cmd     = atan(V_lat*etalatPI/L1R_lat/g);
+% gamma_cmd   = gamma_cmd_max * 2/pi * atan(V_lon*etalonPI/L1R_lon/g / (gamma_cmd_max * 2/pi));
+% phi_cmd     = phi_cmd_max * 2/pi * atan(V_lat*etalatPI/L1R_lat/g / (phi_cmd_max * 2/pi));
 
 % saturation
 if gamma_cmd > gamma_cmd_max

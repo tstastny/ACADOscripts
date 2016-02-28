@@ -11,7 +11,7 @@ paths(1).R       = 40;
 paths(1).ldir    = 1;
 paths(1).gam     = 10*pi/180;
 paths(1).xi0     = -90*pi/180;
-paths(1).deltaxi = 270*pi/180;
+paths(1).deltaxi = 400*pi/180;
 paths(1).cc      = [0, 60, 0];
 
 lab = 30;
