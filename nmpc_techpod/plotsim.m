@@ -9,6 +9,7 @@ plot(time',X_rec(:,1)); ylabel('V [m/s]');
 subplot(3,1,2); hold on; grid on;
 plot(time',X_rec(:,2)*r2d); ylabel('\beta [deg]');
 subplot(3,1,3); hold on; grid on;
+plot(time',10*ones(length(X_rec(:,3)),1),'--k'); % AoA constr.
 plot(time',X_rec(:,3)*r2d); ylabel('\alpha [deg]');
 xlabel('t [s]')
 
@@ -47,7 +48,8 @@ maxdr = max(U_rec(:,4));
 rangedr = maxdr-mindr;
 
 subplot(4,1,1); hold on; grid on;
-plot(time',U_rec(:,1)); ylabel('\delta_T [~]'); ylim([0,1]);
+plot(time',U_rec(:,1),'--k');
+plot(time',X_rec(:,13)); ylabel('\delta_T [~]'); ylim([0,1]);
 subplot(4,1,2); hold on; grid on;
 plot(time',U_rec(:,2)*r2d); ylabel('\delta_E [deg]'); ylim([(minde-rangede*0.1)*r2d-eps,(maxde+rangede*0.1)*r2d+eps]);
 subplot(4,1,3); hold on; grid on;
@@ -59,9 +61,10 @@ xlabel('t [s]')
 figure('color','w','name','aux');
 
 subplot(3,1,1); hold on; grid on;
-plot(time',U_rec(:,5)*r2d); ylabel('\alpha_{slack} [deg]'); ylim([0,2*1.1])
+% plot(time',U_rec(:,5)*r2d); ylabel('\alpha_{slack} [deg]'); ylim([0,5])
+plot(time',U_rec(:,5)); ylabel('V_{slack} [m/s]'); 
 subplot(3,1,2); hold on; grid on;
-plot(time',X_rec(:,13)); ylabel('intg_V');
+plot(time',X_rec(:,14)); ylabel('intg_V');
 subplot(3,1,3); hold on; grid on;
 plot(time',tsolve'*1E3); ylabel('T_{solve} [ms]'); ylim([0,max(tsolve)*1E3*1.1]);
 xlabel('t [s]')
@@ -87,17 +90,17 @@ subplot(5,1,1:4); hold on; grid on;
 ltset=1000;
 for k = 1:length(paths)
 
-    if paths(k).type == 0
-        plot3([paths(k).aa(2) paths(k).bb(2)], ...
-            [paths(k).aa(1) paths(k).bb(1)], ...
-            -[paths(k).aa(3) paths(k).bb(3)],'--m','linewidth',2);
-    elseif paths(k).type == 1
-        tset = linspace(paths(k).xi0, ...
-            paths(k).xi0 + paths(k).deltaxi * paths(k).ldir, ...
+    if paths(k).pparam1 == 0
+        plot3([paths(k).pparam3 paths(k).pparam6], ...
+            [paths(k).pparam2 paths(k).pparam5], ...
+            -[paths(k).pparam4 paths(k).pparam7],'--m','linewidth',2);
+    elseif paths(k).pparam1 == 1
+        tset = linspace(paths(k).pparam8, ...
+            paths(k).pparam8 + paths(k).pparam9 * paths(k).pparam6, ...
             ltset)';
-        r = repmat(paths(k).cc,ltset,1) + ...
-            [paths(k).R * cos(tset), paths(k).R * sin(tset), ...
-            -paths(k).ldir * (tset-tset(1)) * paths(k).R * tan(paths(k).gam)];
+        r = repmat([paths(k).pparam2,paths(k).pparam3,paths(k).pparam4],ltset,1) + ...
+            [paths(k).pparam5 * cos(tset), paths(k).pparam5 * sin(tset), ...
+            -paths(k).pparam6 * (tset-tset(1)) * paths(k).pparam5 * tan(paths(k).pparam7)];
         plot3(r(:,2),r(:,1),-r(:,3),'--m','linewidth',2)
     end
     

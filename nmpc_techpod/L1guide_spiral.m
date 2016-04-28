@@ -142,5 +142,3 @@ if phi_cmd > phi_cmd_max
 elseif phi_cmd < phi_cmd_min
     phi_cmd = phi_cmd_min;
 end
-
-
