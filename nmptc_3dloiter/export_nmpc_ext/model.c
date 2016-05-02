@@ -1,0 +1,243 @@
+#include "acado_common.h"
+#include <math.h>
+#include <string.h>
+
+void rhs( const real_t *in, real_t *out ){
+
+/* optimized intermediate calculations */
+
+const double t2 = in[0]-in[10];
+const double t3 = in[1]-in[11];
+const double t4 = t2*t2;
+const double t5 = t3*t3;
+const double t6 = t4+t5;
+const double t7 = sqrt(t6);
+const double t8 = t7+1.0/1.0E2;
+const double t9 = 1.0/t8;
+const double t10 = cos(in[4]);
+const double t11 = cos(in[5]);
+const double t12 = in[8]*t10*t11;
+const double t13 = in[18]+t12;
+const double t14 = sin(in[5]);
+const double t15 = in[8]*t10*t14;
+const double t16 = in[19]+t15;
+
+/* rhs */
+
+out[0] = t13;
+out[1] = t16;
+out[2] = in[20]-in[8]*sin(in[4]);
+out[3] = in[6];
+out[4] = in[7];
+out[5] = (tan(in[3])*(9.81E2/1.0E2))/in[8];
+
+}
+
+void rhs_eval( real_t *in, real_t *out ){
+
+/* optimized intermediate calculations */
+
+const double t2 = in[0]-in[10];
+const double t3 = in[1]-in[11];
+const double t4 = t2*t2;
+const double t5 = t3*t3;
+const double t6 = t4+t5;
+const double t7 = sqrt(t6);
+const double t8 = t7+1.0/1.0E2;
+const double t9 = 1.0/t8;
+const double t10 = cos(in[4]);
+const double t11 = cos(in[5]);
+const double t12 = in[8]*t10*t11;
+const double t13 = in[18]+t12;
+const double t14 = sin(in[5]);
+const double t15 = in[8]*t10*t14;
+const double t16 = in[19]+t15;
+
+/* rhs */
+
+out[0] = t13;
+out[1] = t16;
+out[2] = in[20]-in[8]*sin(in[4]);
+out[3] = in[6];
+out[4] = in[7];
+out[5] = (tan(in[3])*(9.81E2/1.0E2))/in[8];
+
+}
+
+void rhs_jac( const real_t *in, real_t *out ){
+
+/* rhs_jac */
+ 
+double f_Delta_m[ACADO_NX];
+double f_Delta_p[ACADO_NX];
+double in_Delta[ACADO_NX+ACADO_NU+ACADO_NOD];
+memcpy(in_Delta, in, sizeof(in_Delta));
+const double Delta = 0.00001;
+const double Delta2 = 2.0 * Delta;
+ 
+int i;
+int j;
+for (i = 0; i < (ACADO_NX+ACADO_NU); i=i+1) {
+ 
+    in_Delta[i] = in[i] - Delta;
+    rhs_eval( in_Delta, f_Delta_m );
+    in_Delta[i] = in[i] + Delta;
+    rhs_eval( in_Delta, f_Delta_p );
+    in_Delta[i] = in[i];
+ 
+    for (j = 0; j < ACADO_NX; j=j+1) {
+        out[j*(ACADO_NX+ACADO_NU)+i] = (f_Delta_p[j] - f_Delta_m[j]) / Delta2;
+    }
+ 
+}
+
+}
+
+void lsq_obj_eval( real_t *in, real_t *out ){
+
+/* optimized intermediate calculations */
+
+const double t2 = in[0]-in[10];
+const double t3 = in[1]-in[11];
+const double t4 = t2*t2;
+const double t5 = t3*t3;
+const double t6 = t4+t5;
+const double t7 = sqrt(t6);
+const double t8 = t7+1.0/1.0E2;
+const double t9 = 1.0/t8;
+const double t10 = cos(in[4]);
+
+const double vdn = -in[14]*t3*t9;
+const double vde = in[14]*t2*t9;
+
+const double t11 = vde*(-in[0]+in[10]+in[13]*t2*t9)-vdn*(-in[1]+in[11]+in[13]*t3*t9);
+const double t12 = in[2]-in[12];
+const double t13 = t12*t12;
+const double t14 = cos(in[5]);
+const double t15 = in[8]*t10*t14;
+const double t16 = in[18]+t15;
+const double t17 = sin(in[5]);
+const double t18 = in[8]*t10*t17;
+const double t19 = in[19]+t18;
+const double t20 = sin(in[4]);
+const double t21 = in[20]-in[8]*t20;
+
+/* tracked expressions */
+
+double e_chi = atan2(vde, vdn)-atan2(t19, t16);
+if (e_chi>3.14159265359) e_chi = e_chi - 6.28318530718;
+if (e_chi<-3.14159265359) e_chi = e_chi + 6.28318530718;
+
+/* outputs */
+
+out[0] = sqrt(t13*(vde*vde)+t13*(vdn*vdn)+t11*t11);
+out[1] = asin(t21*1.0/sqrt(t16*t16+t19*t19+t21*t21));
+out[2] = e_chi;
+out[3] = in[6];
+out[4] = in[7];
+
+}
+
+void evaluateLSQ( const real_t *in, real_t *out ){
+
+double in_Delta[ACADO_NX+ACADO_NU+ACADO_NOD];
+memcpy(in_Delta, in, sizeof(in_Delta));
+lsq_obj_eval( in_Delta, out );
+ 
+/* lsq_obj jacobians */
+ 
+double f_Delta_m[ACADO_NY];
+double f_Delta_p[ACADO_NY];
+const double Delta = 0.00001;
+const double Delta2 = 2.0 * Delta;
+ 
+int i;
+int j;
+for (i = 0; i < ACADO_NX; i=i+1) {
+ 
+    in_Delta[i] = in[i] - Delta;
+    lsq_obj_eval( in_Delta, f_Delta_m );
+    in_Delta[i] = in[i] + Delta;
+    lsq_obj_eval( in_Delta, f_Delta_p );
+    in_Delta[i] = in[i];
+ 
+    for (j = 0; j < ACADO_NY; j=j+1) {
+        out[ACADO_NY+j*ACADO_NX+i] = (f_Delta_p[j] - f_Delta_m[j]) / Delta2;
+    }
+ 
+}
+ 
+for (i = 0; i < ACADO_NU; i=i+1) {
+ 
+    in_Delta[i+ACADO_NX] = in[i+ACADO_NX] - Delta;
+    lsq_obj_eval( in_Delta, f_Delta_m );
+    in_Delta[i+ACADO_NX] = in[i+ACADO_NX] + Delta;
+    lsq_obj_eval( in_Delta, f_Delta_p );
+    in_Delta[i+ACADO_NX] = in[i+ACADO_NX];
+ 
+    for (j = 0; j < ACADO_NY; j=j+1) {
+        out[ACADO_NY+ACADO_NY*ACADO_NX+j*ACADO_NU+i] = (f_Delta_p[j] - f_Delta_m[j]) / Delta2;
+    }
+ 
+}
+
+}
+
+void lsq_objN_eval( real_t *in, real_t *out ){
+
+/* optimized intermediate calculations */
+
+const double t2 = in[0]-in[10];
+const double t3 = in[1]-in[11];
+const double t4 = t2*t2;
+const double t5 = t3*t3;
+const double t6 = t4+t5;
+const double t7 = sqrt(t6);
+const double t8 = t7+1.0/1.0E2;
+const double t9 = 1.0/t8;
+const double t10 = cos(in[4]);
+
+const double vdn = -in[14]*t3*t9;
+const double vde = in[14]*t2*t9;
+
+const double t11 = vde*(-in[0]+in[10]+in[13]*t2*t9)-vdn*(-in[1]+in[11]+in[13]*t3*t9);
+const double t12 = in[2]-in[12];
+const double t13 = t12*t12;
+
+/* outputs */
+
+out[0] = sqrt(t13*(vde*vde)+t13*(vdn*vdn)+t11*t11);
+
+}
+
+void evaluateLSQEndTerm( const real_t *in, real_t *out ){
+
+double in_Delta[ACADO_NX+ACADO_NU+ACADO_NOD];
+memcpy(in_Delta, in, sizeof(in_Delta));
+lsq_objN_eval( in_Delta, out );
+ 
+/* lsq_objN jacobians */
+ 
+double f_Delta_m[ACADO_NYN];
+double f_Delta_p[ACADO_NYN];
+const double Delta = 0.00001;
+const double Delta2 = 2.0 * Delta;
+ 
+int i;
+int j;
+for (i = 0; i < ACADO_NX; i=i+1) {
+ 
+    in_Delta[i] = in[i] - Delta;
+    lsq_objN_eval( in_Delta, f_Delta_m );
+    in_Delta[i] = in[i] + Delta;
+    lsq_objN_eval( in_Delta, f_Delta_p );
+    in_Delta[i] = in[i];
+ 
+    for (j = 0; j < ACADO_NYN; j=j+1) {
+        out[ACADO_NYN+j*ACADO_NX+i] = (f_Delta_p[j] - f_Delta_m[j]) / Delta2;
+    }
+ 
+}
+
+}
+
