@@ -59,8 +59,10 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     DifferentialState mu;
     DifferentialState gamma;
     DifferentialState xi;
-    Control mu_dot;
-    Control gamma_dot;
+    DifferentialState mu_dot;
+    DifferentialState gamma_dot;
+    Control mu_cmd;
+    Control gamma_cmd;
     OnlineData V; 
     OnlineData pparam1; 
     OnlineData pparam2; 
@@ -74,6 +76,10 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OnlineData wn; 
     OnlineData we; 
     OnlineData wd; 
+    OnlineData k_mu; 
+    OnlineData k_gamma; 
+    OnlineData k_mu_dot; 
+    OnlineData k_gamma_dot; 
     BMatrix acadodata_M1;
     acadodata_M1.read( "nmpc_ext_data_acadodata_M1.txt" );
     BMatrix acadodata_M2;
@@ -81,13 +87,15 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OCP ocp1(0, 3, 30);
     ocp1.minimizeLSQ(acadodata_M1, "evaluateLSQ");
     ocp1.minimizeLSQEndTerm(acadodata_M2, "evaluateLSQEndTerm");
-    ocp1.subjectTo((-5.235988E-01) <= mu <= 3.000000E+01);
+    ocp1.subjectTo((-6.108652E-01) <= mu <= 3.500000E+01);
     ocp1.subjectTo((-2.617994E-01) <= gamma <= 2.617994E-01);
-    ocp1.setNOD( 13 );
+    ocp1.subjectTo((-6.108652E-01) <= mu_cmd <= 6.108652E-01);
+    ocp1.subjectTo((-2.617994E-01) <= gamma_cmd <= 2.617994E-01);
+    ocp1.setNOD( 17 );
     ocp1.setNP( 0 );
     ocp1.setNU( 2 );
     ocp1.setModel( "model", "rhs", "rhs_jac" );
-    ocp1.setDimensions( 0, 6, 0, 0, 0, 2, 13, 0 );
+    ocp1.setDimensions( 0, 8, 0, 0, 0, 2, 17, 0 );
 
 
     OCPexport ExportModule1( ocp1 );

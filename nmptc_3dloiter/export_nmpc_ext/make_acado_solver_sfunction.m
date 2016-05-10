@@ -28,13 +28,13 @@
 
 % Dimensions
 acado_N   = 30;
-acado_NX  = 6;
+acado_NX  = 8;
 acado_NDX = 0;
 acado_NXA = 0;
 acado_NU  = 2;
-acado_NOD = 13;
-acado_NY  = 5;
-acado_NYN = 1;
+acado_NOD = 17;
+acado_NY  = 7;
+acado_NYN = 3;
 
 acado_QP_SOLVER                   = 'QPOASES';
 acado_INITIAL_STATE_FIXED         = 1;

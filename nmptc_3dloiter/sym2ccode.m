@@ -14,11 +14,13 @@ idx_atan2s_last = idx_atan2s;
 syms n;             %   (north local position)      [m]
 syms e;             %   (east local position)       [m]
 syms d;             %   (down local position)       [m]             
-syms mu;            %   (roll angle)                [rad] 
-syms gamma;         %   (pitch angle)               [rad]  
+syms mu;            %   (bank angle)                [rad] 
+syms gamma;         %   (flight path angle)         [rad]
 syms xi;            %   (yaw angle)                 [rad]
+syms mu_dot;        %   (bank angle rate)           [rad/s]
+syms gamma_dot;     %   (flight path angle rate)    [rad/s]
 
-states  = [n,e,d,mu,gamma,xi];
+states  = [n,e,d,mu,gamma,xi,mu_dot,gamma_dot];
 n_X     = length(states);
 
 assume(states,'real');
@@ -28,10 +30,10 @@ assumeAlso(mu > -pi);
 assumeAlso(mu < pi);
 
 % CONTROLS ////////////////////////////////////////////////////////////////
-syms mu_dot;        % (commanded bank angle)        [rad]
-syms gamma_dot;     % (commanded fpa)               [rad]
+syms mu_cmd;        % (commanded bank angle)        [rad]
+syms gamma_cmd;     % (commanded fpa)               [rad]
 
-ctrls   = [mu_dot,gamma_dot];
+ctrls   = [mu_cmd,gamma_cmd];
 n_U     = length(ctrls);
 
 assume(ctrls,'real');
@@ -50,90 +52,184 @@ syms pparam9;   %   --      dxi
 syms wn;
 syms we;
 syms wd;
+syms k_mu;
+syms k_gamma;
+syms k_mu_dot;
+syms k_gamma_dot;
 
 onlinedata  = [V,...
     pparam1,pparam2,pparam3,pparam4,pparam5,pparam6,pparam7,pparam8,pparam9,...
-    wn,we,wd];
+    wn,we,wd,...
+    k_mu,k_gamma,k_mu_dot,k_gamma_dot];
 n_OD        = length(onlinedata);
 
 assume(onlinedata,'real');
 
 % /////////////////////////////////////////////////////////////////////////
 % STATE DIFFERENTIALS /////////////////////////////////////////////////////
-n_dot       = V * cos(gamma) * cos(xi) + wn;
-e_dot       = V * cos(gamma) * sin(xi) + we;
-d_dot       = -V * sin(gamma) + wd;
-xi_dot      = 9.81 * tan(mu) / V;
+n_dot           = V * cos(gamma) * cos(xi) + wn;
+e_dot           = V * cos(gamma) * sin(xi) + we;
+d_dot           = -V * sin(gamma) + wd;
+mu_dot_dot      = ( (mu_cmd - mu) * k_mu - mu_dot ) * k_mu_dot;
+gamma_dot_dot   = ( (gamma_cmd - gamma) * k_gamma - gamma_dot ) * k_gamma_dot;
+xi_dot          = 9.81 * tan(mu) / V;
 
 % /////////////////////////////////////////////////////////////////////////
-% AUGMENTED GUIDANpparam3 LOGIC ////////////////////////////////////////////////
+% AUGMENTED GUIDANCE LOGIC ////////////////////////////////////////////////
 
 % calculate closest point on loiter circle
-cpn = n - pparam2;
-cpe = e - pparam3;
-norm_cp = sqrt( cpn^2 + cpe^2 );
-cpn_u = cpn / (norm_cp + 0.01);
-cpe_u = cpe / (norm_cp + 0.01);
-cdn = pparam5 * cpn_u;
-cde = pparam5 * cpe_u;
-dn = n + cdn - cpn;
-de = e + cde - cpe;
-dd = pparam4;
+cp_n = n - pparam2;
+cp_e = e - pparam3;
+norm_cp = sqrt( cp_n^2 + cp_e^2 );
+cp_n_unit_expr = cp_n / (norm_cp + 0.01);
+cp_e_unit_expr = cp_e / (norm_cp + 0.01);
+
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+cp_n_unit	= sym('cp_n_unit','real');
+tracked_expr(idx_tracked_expr, :) = [cp_n_unit, cp_n_unit_expr];
+
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+cp_e_unit	= sym('cp_e_unit','real');
+tracked_expr(idx_tracked_expr, :) = [cp_e_unit, cp_e_unit_expr];
+
+cd_n = pparam5 * cp_n_unit;
+cd_e = pparam5 * cp_e_unit;
+d_n = n + cd_n - cp_n;
+d_e = e + cd_e - cp_e;
+
+% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+% begin manual input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+% % // variable definitions
+% % const double pparam_cc_d = XX;
+% % const double pparam_R = XX;
+% % const double pparam_ldir = XX;
+% % const double pparam_gam_sp = XX;
+% % const double pparam_xi0 = XX;
+% % const double pparam_dxi = XX;
+% % 
+% % // spiral angular position: [0,2*pi)
+% % const double xi_sp = atan2(cp_e_unit, cp_n_unit);
+% % double delta_xi = xi_sp-pparam_xi0;
+% % 
+% % if (pparam_ldir > 0.0 && pparam_xi0 > xi_sp) {
+% %     
+% %     delta_xi = delta_xi + 6.28318530718;
+% % 
+% % } else if (pparam_ldir<0.0 && xi_sp>pparam_xi0) {
+% %     
+% %     delta_xi = delta_xi - 6.28318530718;
+% % 
+% % }
+% % 
+% % // closest point on nearest spiral leg and tangent down component
+% % double d_d;
+% % double Td_d;
+% % double Gamma_d;
+% % 
+% % if (fabs(pparam_gam_sp) < 0.001) {
+% % 
+% %     d_d = pparam_cc_d;
+% %     Td_d = 0.0;
+% %     Gamma_d = 0.0;
+% % 
+% % } else {
+% % 
+% %     const double Rtangam = pparam_R * tan(pparam_gam_sp);
+% % 
+% %     // spiral height delta for current angle
+% %     const double delta_d_xi = -delta_xi * pparam_ldir * Rtangam;
+% % 
+% %     // end spiral altitude change
+% %     const double delta_d_sp_end = -pparam_dxi * Rtangam;
+% % 
+% %     // nearest spiral leg
+% %     double delta_d_k = round( (in[2] - (pparam_cc_d + delta_d_xi)) / (6.28318530718*Rtangam) ) * 6.28318530718*Rtangam;
+% %     const double delta_d_end_k  = round( (delta_d_sp_end - (pparam_cc_d + delta_d_xi)) / (6.28318530718*Rtangam) ) * 6.28318530718*Rtangam;
+% % 
+% %     // check
+% %     if (delta_d_k * pparam_gam_sp > 0.0) { //NOTE: gam is actually being used for its sign, but writing a sign operator doesnt make a difference here
+% % 
+% %         delta_d_k = 0.0;
+% %     
+% %     } else if (fabs(delta_d_k) > fabs(delta_d_end_k) ) {
+% %     
+% %         delta_d_k = (delta_d_k < 0.0) ? -fabs(delta_d_end_k) : fabs(delta_d_end_k);
+% %     
+% %     }
+% % 
+% %     // closest point on nearest spiral leg
+% %     const double delta_d_sp = delta_d_k + delta_d_xi;
+% %     d_d = pparam_cc_d + delta_d_sp;
+% %     Td_d = -asin(pparam_gam_sp);
+% %     Gamma_d = pparam_gam_sp;
+% % }
+
+% end manual input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+% manual output !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+d_d = sym('d_d','real');
+Td_d = sym('Td_d','real');
+Gamma_d = sym('Gamma_d','real');
+% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 % calculate tangent
-vdn_expr = pparam6*-cpe_u;
-vde_expr = pparam6*cpn_u;
+Td_n_expr = pparam6*-cp_e_unit;
+Td_e_expr = pparam6*cp_n_unit;
 
 % | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
 idx_tracked_expr = idx_tracked_expr + 1;
-vdn	= sym('vdn','real');
-tracked_expr(idx_tracked_expr, :) = [vdn, vdn_expr];
+Td_n = sym('Td_n','real');
+tracked_expr(idx_tracked_expr, :) = [Td_n, Td_n_expr];
 
 % | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
 idx_tracked_expr = idx_tracked_expr + 1;
-vde	= sym('vde','real');
-tracked_expr(idx_tracked_expr, :) = [vde, vde_expr];     
-
-vdd = 0;
+Td_e = sym('Td_e','real');
+tracked_expr(idx_tracked_expr, :) = [Td_e, Td_e_expr];     
 
 % track position error
-pdn = dn - n;
-pde = de - e;
-pdd = dd - d;
-cx = vde*pdd - pde*vdd;
-cy = -(vdn*pdd - pdn*vdd);
-cz = vdn*pde - pdn*vde;
+pd_n = d_n - n;
+pd_e = d_e - e;
+pd_d = d_d - d;
+cx = Td_e * pd_d - pd_e * Td_d;
+cy = -(Td_n * pd_d - pd_n * Td_d);
+cz = Td_n * pd_e - pd_n * Td_e;
 et = sqrt( cx^2 + cy^2 + cz^2 );
 
-% xi/gamma desired
-Gamma_d = -asin(vdd);
-chi_d_expr = atan2(vde,vdn);
-
-% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
-FaR_expr = chi_d_expr;
-findandreplace_atan2s
-for i = idx_atan2s_last:idx_atan2s-1
-    idx_tracked_expr = idx_tracked_expr + 1;
-    tracked_expr(idx_tracked_expr,:) = [atan2s(i),atan2_args(i,1)];
-    idx_tracked_expr = idx_tracked_expr + 1;
-    tracked_expr(idx_tracked_expr,:) = [0,atan2_args(i,2)];
-end
-idx_atan2s_last = idx_atan2s;                    
-
-idx_tracked_expr = idx_tracked_expr + 1;
-syms chi_d;
-tracked_expr(idx_tracked_expr, :) = [chi_d, FaR_expr];
-
-
-% ground referenpparam3d angles
+% ground speed
 V_g = sqrt(n_dot^2 + e_dot^2 + d_dot^2);
 
-% IF ( d_dot/V_g > 1, 1...elseif < -1, -1...elseif V_g == 0, 0 )
-Gamma = -asin(d_dot/V_g);
-chi_expr = atan2(e_dot,n_dot);
+sin_d_dot_V_g_expr = d_dot/V_g;
+% double V_g = sqrt(t10*t10+t12*t12+t14*t14);
+% if (V_g < 0.01) V_g = 0.01;
+% 
+% double sin_d_dot_V_g = t14*1.0/V_g;
+% if (sin_d_dot_V_g > 1.0) {
+%     sin_d_dot_V_g = 1.0;
+% } else if (sin_d_dot_V_g < -1.0) {
+%     sin_d_dot_V_g = -1.0;
+% }
 
 % | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
-FaR_expr = chi_expr;
+idx_tracked_expr = idx_tracked_expr + 1;
+sin_d_dot_V_g = sym('sin_d_dot_V_g','real');
+tracked_expr(idx_tracked_expr, :) = [sin_d_dot_V_g, sin_d_dot_V_g_expr];     
+
+Gamma = -asin(sin_d_dot_V_g);
+
+% Gamma error
+e_Gamma = Gamma_d - Gamma;
+
+% chi error
+e_chi_expr = atan2(Td_e,Td_n) - atan2(e_dot,n_dot);
+% if (e_chi>3.14159265359) e_chi = e_chi - 6.28318530718;
+% if (e_chi<-3.14159265359) e_chi = e_chi + 6.28318530718;
+
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+FaR_expr = e_chi_expr;
 findandreplace_atan2s
 for i = idx_atan2s_last:idx_atan2s-1
     idx_tracked_expr = idx_tracked_expr + 1;
@@ -144,8 +240,8 @@ end
 idx_atan2s_last = idx_atan2s;                    
 
 idx_tracked_expr = idx_tracked_expr + 1;
-syms chi;
-tracked_expr(idx_tracked_expr, :) = [chi, FaR_expr];
+syms e_chi;
+tracked_expr(idx_tracked_expr, :) = [e_chi, FaR_expr];
 
 % /////////////////////////////////////////////////////////////////////////
 % /////////////////////////////////////////////////////////////////////////
@@ -158,11 +254,11 @@ for i = 1:n_X
 end
 
 % state output
-y   = [ et ];
+y   = [ et; mu_dot; gamma_dot ];
 n_Y = length(y);
 
 % ctrl output
-z   = [ Gamma_d-Gamma; chi_d-chi; mu_dot; gamma_dot ];
+z   = [ e_Gamma; e_chi; mu_cmd; gamma_cmd ];
 n_Z = length(z);
 
 % lsq objective functions

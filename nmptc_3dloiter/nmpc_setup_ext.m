@@ -17,10 +17,12 @@ DifferentialState d;        % (down)                    [m]
 DifferentialState mu;       % (bank angle)              [rad]
 DifferentialState gamma;    % (flight path angle, fpa)  [rad]
 DifferentialState xi;       % (heading angle)           [rad]
+DifferentialState mu_dot;
+DifferentialState gamma_dot;
 
 % CONTROLS - - - - - - -
-Control mu_dot;            % (commanded bank angle)     [rad]
-Control gamma_dot;         % (commanded fpa)            [rad]
+Control mu_cmd;         % (commanded bank angle)     [rad]
+Control gamma_cmd;      % (commanded fpa)            [rad]
 
 % ONLINE DATA - - - - - -
 OnlineData V;           % (airspeed)            [m/s]
@@ -39,15 +41,20 @@ OnlineData wn;          % (northing wind)       [m/s]
 OnlineData we;          % (easting wind)        [m/s]
 OnlineData wd;          % (down wind)           [m/s]
 
+OnlineData k_mu;
+OnlineData k_gamma;
+OnlineData k_mu_dot;
+OnlineData k_gamma_dot;
+
 
 % OPTIMAL CONTROL PROBLEM -------------------------------------------------
 
 % lengths
 n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
-n_Y = 1;                    % outputs
+n_Y = 3;                    % outputs
 n_Z = 4;                    % objectives
-n_OD = 13;
+n_OD = 17;                  % onlinedata
 
 Q = eye(n_Y+n_Z,n_Y+n_Z);
 Q = acado.BMatrix(Q);
@@ -68,8 +75,10 @@ ocp.minimizeLSQEndTerm( QN, 'evaluateLSQEndTerm' );
 ocp.setModel('model', 'rhs', 'rhs_jac');
 ocp.setDimensions( n_X, n_U, n_OD, 0 );
 
-ocp.subjectTo( -30*pi/180 <= mu <= 30 );
+ocp.subjectTo( -35*pi/180 <= mu <= 35 );
 ocp.subjectTo( -15*pi/180 <= gamma <= 15*pi/180 );
+ocp.subjectTo( -35*pi/180 <= mu_cmd <= 35*pi/180 );
+ocp.subjectTo( -15*pi/180 <= gamma_cmd <= 15*pi/180 );
 
 setNOD(ocp, n_OD);
 
