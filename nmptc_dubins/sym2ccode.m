@@ -11,29 +11,24 @@ idx_atan2s = 1;
 idx_atan2s_last = idx_atan2s;
 
 % STATES //////////////////////////////////////////////////////////////////
-syms n;             %   (north local position)      [m]
-syms e;             %   (east local position)       [m]
-syms d;             %   (down local position)       [m]             
-syms mu;            %   (bank angle)                [rad] 
-syms gamma;         %   (flight path angle)         [rad]
-syms xi;            %   (yaw angle)                 [rad]
-syms mu_dot;        %   (bank angle rate)           [rad/s]
-syms gamma_dot;     %   (flight path angle rate)    [rad/s]
+syms n;            % (northing)
+syms e;            % (easting)
+syms d;            % (down)
+syms xi;           % (heading angle)
+syms intg_e_t;     % (integral of track error)
+syms intg_e_Gamma; % (integral of GR flight path angle error)
+syms intg_e_chi;   % (integral of course error)
 
-states  = [n,e,d,mu,gamma,xi,mu_dot,gamma_dot];
+states  = [n,e,d,xi,intg_e_t,intg_e_Gamma,intg_e_chi];
 n_X     = length(states);
 
 assume(states,'real');
-assumeAlso(gamma > -pi/2);
-assumeAlso(gamma < pi/2);
-assumeAlso(mu > -pi);
-assumeAlso(mu < pi);
 
 % CONTROLS ////////////////////////////////////////////////////////////////
-syms mu_cmd;        % (commanded bank angle)        [rad]
-syms gamma_cmd;     % (commanded fpa)               [rad]
+syms mu_r;        % (commanded bank angle)        [rad]
+syms gamma_r;     % (commanded fpa)               [rad]
 
-ctrls   = [mu_cmd,gamma_cmd];
+ctrls   = [mu_r,gamma_r];
 n_U     = length(ctrls);
 
 assume(ctrls,'real');
@@ -61,29 +56,27 @@ syms pparam9_next;   %   --      dxi
 syms wn;
 syms we;
 syms wd;
-syms k_mu;
-syms k_gamma;
-syms k_mu_dot;
-syms k_gamma_dot;
+syms mu_r_prev;
+syms gamma_r_prev;
 
 onlinedata  = [V,...
     pparam1,pparam2,pparam3,pparam4,pparam5,pparam6,pparam7,pparam8,pparam9,...
     pparam1_next,pparam2_next,pparam3_next,pparam4_next,pparam5_next,pparam6_next,pparam7_next,pparam8_next,pparam9_next,...
     wn,we,wd,...
-    k_mu,k_gamma,k_mu_dot,k_gamma_dot];
+    mu_r_prev,gamma_r_prev];
 n_OD        = length(onlinedata);
 
 assume(onlinedata,'real');
 
 % /////////////////////////////////////////////////////////////////////////
 % STATE DIFFERENTIALS /////////////////////////////////////////////////////
-n_dot           = V * cos(gamma) * cos(xi) + wn;
-e_dot           = V * cos(gamma) * sin(xi) + we;
-d_dot           = -V * sin(gamma) + wd;
-mu_dot_dot      = ( (mu_cmd - mu) * k_mu - mu_dot ) * k_mu_dot;
-gamma_dot_dot   = ( (gamma_cmd - gamma) * k_gamma - gamma_dot ) * k_gamma_dot;
-xi_dot          = 9.81 * tan(mu) / V;
-
+n_dot           = V * cos(gamma_r) * cos(xi) + wn;
+e_dot           = V * cos(gamma_r) * sin(xi) + we;
+d_dot           = -V * sin(gamma_r) + wd;
+xi_dot          = 9.81 * tan(mu_r) / V;
+% intg_e_t_dot
+% intg_e_Gamma_dot
+% intg_e_chi_dot
 % /////////////////////////////////////////////////////////////////////////
 % AUGMENTED GUIDANCE LOGIC ////////////////////////////////////////////////
 
@@ -112,7 +105,7 @@ pd_d = d_d - d;
 cx = Td_e * pd_d - pd_e * Td_d;
 cy = -(Td_n * pd_d - pd_n * Td_d);
 cz = Td_n * pd_e - pd_n * Td_e;
-et = sqrt( cx^2 + cy^2 + cz^2 );
+e_t = sqrt( cx^2 + cy^2 + cz^2 );
 
 % ground speed
 V_g = sqrt(n_dot^2 + e_dot^2 + d_dot^2);
@@ -121,7 +114,7 @@ sin_d_dot_V_g_expr = d_dot/V_g;
 % double V_g = sqrt(...);
 % if (V_g < 0.01) V_g = 0.01;
 % 
-% double sin_d_dot_V_g = t14*1.0/V_g;
+% double sin_d_dot_V_g = (...)*1.0/V_g;
 % if (sin_d_dot_V_g > 1.0) sin_d_dot_V_g = 1.0;
 % if (sin_d_dot_V_g < -1.0) sin_d_dot_V_g = -1.0;
 
@@ -155,6 +148,11 @@ idx_tracked_expr = idx_tracked_expr + 1;
 syms e_chi;
 tracked_expr(idx_tracked_expr, :) = [e_chi, FaR_expr];
 
+% more state diffs
+intg_e_t_dot = e_t;
+intg_e_Gamma_dot = e_Gamma;
+intg_e_chi_dot = e_chi;
+
 % /////////////////////////////////////////////////////////////////////////
 % /////////////////////////////////////////////////////////////////////////
 % /////////////////////////////////////////////////////////////////////////
@@ -166,11 +164,11 @@ for i = 1:n_X
 end
 
 % state output
-y   = [ et; mu_dot; gamma_dot ];
+y   = [ e_t; e_Gamma; e_chi; intg_e_t; intg_e_Gamma; intg_e_chi; mu_r; gamma_r; mu_r-mu_r_prev; gamma_r-gamma_r_prev ];
 n_Y = length(y);
 
 % ctrl output
-z   = [ e_Gamma; e_chi; mu_cmd; gamma_cmd ];
+z   = [];
 n_Z = length(z);
 
 % lsq objective functions

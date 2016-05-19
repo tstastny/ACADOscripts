@@ -1,8 +1,0 @@
-A=1/10;
-M=10;
-w2=0.5;
-num=[1/A w2*1/A*1/M];
-den=[1 w2*1/A];
-W2c=tf(num,den)
-bode(W2c); grid on;
-[aw2,bw2,cw2,dw2] = tf2ss(num,den)

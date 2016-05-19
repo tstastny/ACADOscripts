@@ -1,4 +1,4 @@
-function [d_states, simout, cost] = uav3DoF(time, states, ctrls, wn, we, wd, V, PD_gains, pparams)
+function [d_states, simout, cost] = uav3DoF(time, states, ctrls, wn, we, wd, V, dyn, pparams)
 
 % state defines
 n = states(1);
@@ -11,13 +11,13 @@ mu_dot = states(7);
 gamma_dot = states(8);
 
 % control defines
-mu_cmd = ctrls(1);
-gamma_cmd = ctrls(2);
+mu_r = ctrls(1);
+gamma_r = ctrls(2);
 
-Kp_mu = PD_gains(1);
-Kd_mu = PD_gains(2);
-Kp_gamma = PD_gains(3);
-Kd_gamma = PD_gains(4);
+omega_n_mu = dyn(1);
+zeta_mu = dyn(2);
+omega_n_gamma = dyn(3);
+zeta_gamma = dyn(4);
 
 % differentials
 d_states(1) = V * cos(gamma) * cos(xi) + wn;
@@ -26,8 +26,8 @@ d_states(3) = -V * sin(gamma) + wd;
 d_states(4) = mu_dot;
 d_states(5) = gamma_dot;
 d_states(6) = 9.81 * tan(mu) / V;
-d_states(7) = ( (mu_cmd - mu) * Kp_mu - mu_dot ) * Kd_mu;
-d_states(8) = ( (gamma_cmd - gamma) * Kp_gamma - gamma_dot ) * Kd_gamma;
+d_states(7) = omega_n_mu * (omega_n_mu * (mu_r - mu) - 2 * zeta_mu * mu_dot);
+d_states(8) = omega_n_gamma * (omega_n_gamma * (gamma_r - gamma) - 2 * zeta_gamma * gamma_dot);
 
 % output
 simout(1) = n;

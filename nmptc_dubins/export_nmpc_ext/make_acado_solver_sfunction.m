@@ -28,17 +28,17 @@
 
 % Dimensions
 acado_N   = 30;
-acado_NX  = 8;
+acado_NX  = 7;
 acado_NDX = 0;
 acado_NXA = 0;
 acado_NU  = 2;
-acado_NOD = 26;
-acado_NY  = 7;
-acado_NYN = 3;
+acado_NOD = 24;
+acado_NY  = 10;
+acado_NYN = 10;
 
 acado_QP_SOLVER                   = 'QPOASES';
 acado_INITIAL_STATE_FIXED         = 1;
-acado_WEIGHTING_MATRICES_TYPE     = 1;
+acado_WEIGHTING_MATRICES_TYPE     = 2;
 acado_HARDCODED_CONSTRAINT_VALUES = 1;
 acado_USE_ARRIVAL_COST            = 0;
 acado_COMPUTE_COVARIANCE_MATRIX   = 0;

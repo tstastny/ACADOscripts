@@ -56,13 +56,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     DifferentialState n;
     DifferentialState e;
     DifferentialState d;
-    DifferentialState mu;
-    DifferentialState gamma;
     DifferentialState xi;
-    DifferentialState mu_dot;
-    DifferentialState gamma_dot;
-    Control mu_cmd;
-    Control gamma_cmd;
+    DifferentialState intg_e_t;
+    DifferentialState intg_e_Gamma;
+    DifferentialState intg_e_chi;
+    Control mu_r;
+    Control gamma_r;
     OnlineData V; 
     OnlineData pparam1; 
     OnlineData pparam2; 
@@ -85,10 +84,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OnlineData wn; 
     OnlineData we; 
     OnlineData wd; 
-    OnlineData k_mu; 
-    OnlineData k_gamma; 
-    OnlineData k_mu_dot; 
-    OnlineData k_gamma_dot; 
+    OnlineData mu_r_prev; 
+    OnlineData gamma_r_prev; 
     BMatrix acadodata_M1;
     acadodata_M1.read( "nmpc_ext_data_acadodata_M1.txt" );
     BMatrix acadodata_M2;
@@ -96,15 +93,13 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OCP ocp1(0, 3, 30);
     ocp1.minimizeLSQ(acadodata_M1, "evaluateLSQ");
     ocp1.minimizeLSQEndTerm(acadodata_M2, "evaluateLSQEndTerm");
-    ocp1.subjectTo((-6.108652E-01) <= mu <= 3.500000E+01);
-    ocp1.subjectTo((-2.617994E-01) <= gamma <= 2.617994E-01);
-    ocp1.subjectTo((-6.108652E-01) <= mu_cmd <= 6.108652E-01);
-    ocp1.subjectTo((-2.617994E-01) <= gamma_cmd <= 2.617994E-01);
-    ocp1.setNOD( 26 );
+    ocp1.subjectTo((-6.108652E-01) <= mu_r <= 6.108652E-01);
+    ocp1.subjectTo((-2.617994E-01) <= gamma_r <= 2.617994E-01);
+    ocp1.setNOD( 24 );
     ocp1.setNP( 0 );
     ocp1.setNU( 2 );
     ocp1.setModel( "model", "rhs", "rhs_jac" );
-    ocp1.setDimensions( 0, 8, 0, 0, 0, 2, 26, 0 );
+    ocp1.setDimensions( 0, 7, 0, 0, 0, 2, 24, 0 );
 
 
     OCPexport ExportModule1( ocp1 );
@@ -122,7 +117,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: NUM_INTEGRATOR_STEPS");
     options_flag = ExportModule1.set( QP_SOLVER, QP_QPOASES );
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: QP_SOLVER");
-    options_flag = ExportModule1.set( HOTSTART_QP, NO );
+    options_flag = ExportModule1.set( HOTSTART_QP, YES );
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: HOTSTART_QP");
     options_flag = ExportModule1.set( LEVENBERG_MARQUARDT, 1.000000E-10 );
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: LEVENBERG_MARQUARDT");
@@ -134,6 +129,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: GENERATE_SIMULINK_INTERFACE");
     options_flag = ExportModule1.set( CG_HARDCODE_CONSTRAINT_VALUES, YES );
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: CG_HARDCODE_CONSTRAINT_VALUES");
+    options_flag = ExportModule1.set( CG_USE_VARIABLE_WEIGHTING_MATRIX, YES );
+    if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: CG_USE_VARIABLE_WEIGHTING_MATRIX");
     uint export_flag;
     export_flag = ExportModule1.exportCode( "export_nmpc_ext" );
     if(export_flag != 0) mexErrMsgTxt("ACADO export failed because of the above error(s)!");
