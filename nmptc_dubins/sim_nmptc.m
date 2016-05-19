@@ -79,7 +79,7 @@ input.WN    = diag([QN_output, Q_prev(N+1,:)]);
 
 % simulation
 T0      = 0;
-Tf      = 50;
+Tf      = 80;
 Ts      = 0.01;
 time    = T0:Ts:Tf;
 KKT_MPC = []; INFO_MPC = []; controls_MPC = [];
@@ -98,7 +98,20 @@ d_states    = [...
     zeros(1,5)];
 cost = 0;
 U0 = zeros(1,2);
+alreadychanged = false;
 for k = 1:length(time)
+    
+    % check path
+    path_checks(k) = check_line_seg(states(1:3),pparams(2:end));
+    if path_checks(k) && ~alreadychanged
+        check_line_seg(states(1:3),pparams(2:end));
+        pparams = pparams_next;
+        ic_od   = [ic_V, pparams, pparams_next, wn, we, wd, ic_u];
+        input.od    = repmat(ic_od, N+1, 1);
+        alreadychanged = true;
+    end
+%     path_checks(k) = check_curve_seg(states(1:3),pparams(2:end));
+
     
     % measure
     input.x0    = X0';
