@@ -22,6 +22,15 @@ pparams = [paths(1).pparam1, ...
     paths(1).pparam7, ...
     paths(1).pparam8, ...
     paths(1).pparam9];
+pparams_next = [paths(2).pparam1, ...
+    paths(2).pparam2, ...
+    paths(2).pparam3, ...
+    paths(2).pparam4, ...
+    paths(2).pparam5, ...
+    paths(2).pparam6, ...
+    paths(2).pparam7, ...
+    paths(2).pparam8, ...
+    paths(2).pparam9];
 
 % wind
 wn=5;
@@ -29,31 +38,31 @@ we=3;
 wd=1;
 
 % parameters
-Kp_mu = 1;
-Kd_mu = 10;
-Kp_gam = 1;
-Kd_gam = 10;
+Kp_mu = 2;
+Kd_mu = 5;
+Kp_gam = 2;
+Kd_gam = 5;
 PD_gains = [Kp_mu,Kd_mu,Kp_gam,Kd_gam];
 
-k_mu = 1;
-k_mu_dot = 10;
-k_gamma = 1;
-k_gamma_dot = 10;
+k_mu = 2;
+k_mu_dot = 5;
+k_gamma = 2;
+k_gamma_dot = 5;
 
 % initial conditions
-ic_ned  = [0, 30, -20];
+ic_ned  = [0, 30, 0];
 ic_V    = 14;
-ic_att  = [0, 0, -pi];
+ic_att  = [0, 0, -pi/1.1];
 ic_attdot = [0, 0];
-ic_od   = [ic_V, pparams, wn, we, wd, k_mu, k_gamma, k_mu_dot, k_gamma_dot];
+ic_od   = [ic_V, pparams, pparams_next, wn, we, wd, k_mu, k_gamma, k_mu_dot, k_gamma_dot];
 
 % acado inputs
 nmpc_ic.x   = [ic_ned,ic_att,ic_attdot]; 
 nmpc_ic.u   = ic_attdot;
 yref        = zeros(1,n_Y);
 zref        = zeros(1,n_Z);
-Q_output    = [0.01 15 15];
-R_controls  = [5 5 1 5];
+Q_output    = [0.05 10 10];
+R_controls  = [10 10 10 10];
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
 input.u     = repmat(nmpc_ic.u, N,1);
@@ -61,11 +70,11 @@ input.y     = repmat([yref, zref], N,1);
 input.yN    = input.y(1, 1:length(yref))';
 input.od    = repmat(ic_od, N+1, 1);
 input.W     = diag([Q_output, R_controls]);
-input.WN    = diag(Q_output);
+input.WN    = diag([0.1,10,10]);
 
 % simulation
 T0      = 0;
-Tf      = 45;
+Tf      = 20;
 Ts      = 0.01;
 time    = T0:Ts:Tf;
 KKT_MPC = []; INFO_MPC = []; controls_MPC = [];

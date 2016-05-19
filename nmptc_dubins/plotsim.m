@@ -1,6 +1,6 @@
 
 horiz_disp = true;
-horiz_disp_int = 20; % every Nth record
+horiz_disp_int = 10; % every Nth record
 
 r2d = 180/pi;
 

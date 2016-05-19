@@ -1,17 +1,17 @@
 
 clear; clc;
 
-k_mu = 1;
-k_mu_dot = 10;
-k_gamma = 1;
-k_gamma_dot = 10;
+k_mu = 3;
+k_mu_dot = 5;
+k_gamma = 2;
+k_gamma_dot = 5;
 
 dt = 0.01;
 time = 0:dt:10;
 
 x = zeros(length(time),4);
-mu_cmd = 30;
-gamma_cmd = 10;
+mu_cmd = 35;
+gamma_cmd = 35;
 
 for k = 2:length(time)
     
@@ -29,9 +29,9 @@ figure('color','w');
 subplot(2,1,1); hold on; grid on;
 plot([time(1),time(end)],[mu_cmd,mu_cmd],'--')
 plot(time',x(:,1))
-ylabel('\mu')
-subplot(2,1,2); hold on; grid on;
-plot([time(1),time(end)],[gamma_cmd,gamma_cmd],'--')
+% ylabel('\mu')
+% subplot(2,1,2); hold on; grid on;
+% plot([time(1),time(end)],[gamma_cmd,gamma_cmd],'--')
 plot(time',x(:,2))
 ylabel('\gamma')
 

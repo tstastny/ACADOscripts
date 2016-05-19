@@ -35,8 +35,8 @@ Kp_gam = 8;
 Kd_gam = 0;
 PD_gains = [Kp_mu,Kd_mu,Kp_gam,Kd_gam];
 
-tau_mu_dot = 0.5;
-tau_gamma_dot = 0.5;
+tau_mu_dot = 0.01;
+tau_gamma_dot = 0.01;
 
 % initial conditions
 ic_ned  = [0, 30, -20];
@@ -50,8 +50,8 @@ nmpc_ic.x   = [ic_ned,ic_att,ic_attdot];
 nmpc_ic.u   = ic_attdot;
 yref        = zeros(1,n_Y);
 zref        = zeros(1,n_Z);
-Q_output    = [1/50];
-R_controls  = [10/(15*pi/180) 15/(45*pi/180) 50/(100*pi/180) 50/(100*pi/180) 50/(100*pi/180) 50/(100*pi/180)];
+Q_output    = [0.7/50];
+R_controls  = [10/(15*pi/180) 8/(45*pi/180) 10/(100*pi/180) 10/(100*pi/180) 5/(100*pi/180) 20/(100*pi/180)];
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
 input.u     = repmat(nmpc_ic.u, N,1);
@@ -63,7 +63,7 @@ input.WN    = diag(Q_output);
 
 % simulation
 T0      = 0;
-Tf      = 45;
+Tf      = 60;
 Ts      = 0.01;
 time    = T0:Ts:Tf;
 KKT_MPC = []; INFO_MPC = []; controls_MPC = [];

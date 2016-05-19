@@ -1,0 +1,9 @@
+% A=1/16;
+% M=20;
+% w2=3.5;
+% num=[1/A w2*1/A*1/M];
+% den=[1 w2*1/A];
+num = [10 0]; den = [1 10];
+W2c=tf(num,den)
+bode(W2c); grid on;
+[aw2,bw2,cw2,dw2] = tf2ss(num,den)
