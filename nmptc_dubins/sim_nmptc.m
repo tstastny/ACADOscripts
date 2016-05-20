@@ -34,7 +34,7 @@ pparams_next = [paths(2).pparam1, ...
 
 % wind
 wn=1;
-we=5;
+we=1;
 wd=-1;
 
 % parameters
@@ -61,8 +61,8 @@ nmpc_ic.u   = ic_u;
 yref        = zeros(1,n_Y);
 zref        = zeros(1,n_Z);
 % y   = [ et; e_Gamma; e_chi; intg_et; intg_e_Gamma; intg_e_chi; mu_r; gamma_r; Delta_mu_r; Delta_gamma_r ];
-Q_output    = [0.05 10 10 0.05 0 0 50 150];
-QN_output   = [0.05 10 10 0.05 0 0 50 150];
+Q_output    = [0.05 10 10 0.05 0 0 100 150];
+QN_output   = [0.05 10 10 0.05 0 0 100 150];
 R_controls  = [];
 Q_prev      = [500*(linspace(0,1,N+1)'-ones(N+1,1)).^2,500*(linspace(0,1,N+1)'-ones(N+1,1)).^2];
 
@@ -79,7 +79,7 @@ input.WN    = diag([QN_output, Q_prev(N+1,:)]);
 
 % simulation
 T0      = 0;
-Tf      = 80;
+Tf      = 50;
 Ts      = 0.01;
 time    = T0:Ts:Tf;
 KKT_MPC = []; INFO_MPC = []; controls_MPC = [];
@@ -98,18 +98,25 @@ d_states    = [...
     zeros(1,5)];
 cost = 0;
 U0 = zeros(1,2);
-alreadychanged = false;
+path_idx = 1;
 for k = 1:length(time)
     
     % check path
-    path_checks(k) = check_line_seg(states(1:3),pparams(2:end));
-    if path_checks(k) && ~alreadychanged
-        check_line_seg(states(1:3),pparams(2:end));
-        pparams = pparams_next;
+    if pparams(1) < 0.5
+        path_checks(k) = check_line_seg(states(1:3),[ic_V, pparams, pparams_next, wn, we, wd]);
+    elseif pparams(1) < 1.5
+        path_checks(k) = check_curve_seg(states(1:3),pparams);
+    end
+    if path_checks(k) && path_idx<length(paths)
+        for i = 1:length(pparams)
+            pparams(i) = pparams_next(i);
+            eval(['pparams_next(i) = paths(path_idx+1).pparam',int2str(i),';']);
+        end
+        path_idx = path_idx + 1;
         ic_od   = [ic_V, pparams, pparams_next, wn, we, wd, ic_u];
         input.od    = repmat(ic_od, N+1, 1);
-        alreadychanged = true;
     end
+
 %     path_checks(k) = check_curve_seg(states(1:3),pparams(2:end));
 
     

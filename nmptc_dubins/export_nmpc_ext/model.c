@@ -33,7 +33,7 @@ if (sin_d_dot_V_g < -1.0) sin_d_dot_V_g = -1.0;
 bool b_switch_segment = false; 
 int pparam_sel = 0;
 if ( in[10] < 0.5 ) {
-    b_switch_segment = check_line_seg( &in[0], &in[11] );
+    b_switch_segment = check_line_seg( &in[0], &in[9] );
 } else if (in[10] < 1.5 ) {
     b_switch_segment = check_curve_seg( &in[0], &in[11] );
 }
@@ -216,7 +216,7 @@ if (sin_d_dot_V_g < -1.0) sin_d_dot_V_g = -1.0;
 bool b_switch_segment = false; 
 int pparam_sel = 0;
 if ( in[10] < 0.5 ) {
-    b_switch_segment = check_line_seg( &in[0], &in[11] );
+    b_switch_segment = check_line_seg( &in[0], &in[9] );
 } else if (in[10] < 1.5 ) {
     b_switch_segment = check_curve_seg( &in[0], &in[11] );
 }
@@ -427,7 +427,7 @@ if (sin_d_dot_V_g < -1.0) sin_d_dot_V_g = -1.0;
 bool b_switch_segment = false; 
 int pparam_sel = 0;
 if ( in[10] < 0.5 ) {
-    b_switch_segment = check_line_seg( &in[0], &in[11] );
+    b_switch_segment = check_line_seg( &in[0], &in[9] );
 } else if (in[10] < 1.5 ) {
     b_switch_segment = check_curve_seg( &in[0], &in[11] );
 }
@@ -657,7 +657,7 @@ if (sin_d_dot_V_g < -1.0) sin_d_dot_V_g = -1.0;
 bool b_switch_segment = false; 
 int pparam_sel = 0;
 if ( in[10] < 0.5 ) {
-    b_switch_segment = check_line_seg( &in[0], &in[11] );
+    b_switch_segment = check_line_seg( &in[0], &in[9] );
 } else if (in[10] < 1.5 ) {
     b_switch_segment = check_curve_seg( &in[0], &in[11] );
 }
@@ -851,17 +851,22 @@ for (i = 0; i < ACADO_NX; i=i+1) {
 bool check_line_seg( const double *pos, const double *pparams ) {
     
     // calculate vector from waypoint a to b
-    const double ab_n = pparams[3] - pparams[0];
-    const double ab_e = pparams[4] - pparams[1];
-    const double ab_d = pparams[5] - pparams[2];
+    const double ab_n = pparams[5] - pparams[2];
+    const double ab_e = pparams[6] - pparams[3];
+    const double ab_d = pparams[7] - pparams[4];
     
     const double norm_ab = sqrt( ab_n*ab_n + ab_e*ab_e + ab_d*ab_d );
     
+    const double proj_w = ( pparams[20]*ab_n + pparams[21]*ab_e + pparams[22]*ab_d ) / norm_ab;
+    
+    // TODO: note this assumes hard-coded 30 [deg] max bank
+    const double r_acpt = ( pparams[0] + proj_w ) * ( pparams[0] + proj_w ) / 5.6638;
+    
     // 1-D track position
-    const double pb_t = norm_ab - ( (ab_n*(pos[0]-pparams[0]) + ab_e*(pos[1]-pparams[1]) + ab_d*(pos[2]-pparams[2])) ) / norm_ab;
+    const double pb_t = norm_ab - ( (ab_n*(pos[0]-pparams[2]) + ab_e*(pos[1]-pparams[3]) + ab_d*(pos[2]-pparams[4])) ) / norm_ab;
     
     // check
-    return (pb_t < 0.0);
+    return ( (pb_t - r_acpt) < 0.0 );
 }
 
 bool check_curve_seg( const double *pos, const double *pparams ) {
@@ -876,11 +881,11 @@ bool check_curve_seg( const double *pos, const double *pparams ) {
     const double Tb_e = sin(Gamma_b);
     const double Tb_d = -sin(pparams[5]);
 
-    // 1-D track position
+    // 1-D track position //TODO: not hard-coded acceptance radius
     const double pb_t = 1.0 - ( Tb_n*(pos[0]-b_n+Tb_n) + Tb_e*(pos[1]-b_e+Tb_e) + Tb_d*(pos[2]-b_d+Tb_d) );
         
     // check
-    return ( pb_t < 0.0 && fabs(b_d - pos[2]) < 10.0 );
+    return ( (pb_t - 25.0) < 0.0 && fabs(b_d - pos[2]) < 10.0 );
 }
 
 /* end inline functions !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
