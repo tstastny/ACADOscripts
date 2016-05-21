@@ -14,4 +14,4 @@ function bool = check_curve_seg( pos, pparams )
     pb_t = 1.0 - ( Tb_n*(pos(1)-b_n+Tb_n) + Tb_e*(pos(2)-b_e+Tb_e) + Tb_d*(pos(3)-b_d+Tb_d) );
 
     % check
-    bool  = ( (pb_t - 25.0) < 0.0 && abs(b_d - pos(3)) < 10.0 );
+    bool  = ( pb_t < 0.0 && abs(b_d - pos(3)) < 10.0 );

@@ -857,16 +857,11 @@ bool check_line_seg( const double *pos, const double *pparams ) {
     
     const double norm_ab = sqrt( ab_n*ab_n + ab_e*ab_e + ab_d*ab_d );
     
-    const double proj_w = ( pparams[20]*ab_n + pparams[21]*ab_e + pparams[22]*ab_d ) / norm_ab;
-    
-    // TODO: note this assumes hard-coded 30 [deg] max bank
-    const double r_acpt = ( pparams[0] + proj_w ) * ( pparams[0] + proj_w ) / 5.6638;
-    
     // 1-D track position
     const double pb_t = norm_ab - ( (ab_n*(pos[0]-pparams[2]) + ab_e*(pos[1]-pparams[3]) + ab_d*(pos[2]-pparams[4])) ) / norm_ab;
     
     // check
-    return ( (pb_t - r_acpt) < 0.0 );
+    return ( pb_t < 0.0 );
 }
 
 bool check_curve_seg( const double *pos, const double *pparams ) {
@@ -885,7 +880,7 @@ bool check_curve_seg( const double *pos, const double *pparams ) {
     const double pb_t = 1.0 - ( Tb_n*(pos[0]-b_n+Tb_n) + Tb_e*(pos[1]-b_e+Tb_e) + Tb_d*(pos[2]-b_d+Tb_d) );
         
     // check
-    return ( (pb_t - 25.0) < 0.0 && fabs(b_d - pos[2]) < 10.0 );
+    return ( pb_t < 0.0 && fabs(b_d - pos[2]) < 10.0 );
 }
 
 /* end inline functions !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */

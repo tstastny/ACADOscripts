@@ -61,10 +61,10 @@ nmpc_ic.u   = ic_u;
 yref        = zeros(1,n_Y);
 zref        = zeros(1,n_Z);
 % y   = [ et; e_Gamma; e_chi; intg_et; intg_e_Gamma; intg_e_chi; mu_r; gamma_r; Delta_mu_r; Delta_gamma_r ];
-Q_output    = [0.05 10 10 0.05 0 0 100 150];
-QN_output   = [0.05 10 10 0.05 0 0 100 150];
+Q_output    = [0.05 10 10 0.0 0 0 10 15];
+QN_output   = [0.05 10 10 0.0 0 0 0 0];
 R_controls  = [];
-Q_prev      = [500*(linspace(0,1,N+1)'-ones(N+1,1)).^2,500*(linspace(0,1,N+1)'-ones(N+1,1)).^2];
+Q_prev      = [10*(linspace(0,1,N+1)'-ones(N+1,1)).^2,10*(linspace(0,1,N+1)'-ones(N+1,1)).^2];
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
 input.u     = repmat(nmpc_ic.u, N,1);
