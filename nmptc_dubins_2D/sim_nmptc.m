@@ -33,8 +33,8 @@ pparams_next = [paths(2).pparam1, ...
     paths(2).pparam9];
 
 % wind
-wn=0;
-we=0;
+wn=2;
+we=4;
 
 % parameters
 omega_n_mu = 5;
@@ -58,8 +58,8 @@ nmpc_ic.u   = ic_u;
 yref        = zeros(1,n_Y);
 zref        = zeros(1,n_Z);
 % y   = [ et; e_chi; intg_et; intg_e_chi; mu_r; Delta_mu_r ];
-Q_output    = [0.1 10 0 0 10];
-QN_output   = [0.1 10 0 0 10];
+Q_output    = [0.1 10 0 0 50];
+QN_output   = [0.1 10 0 0 50];
 R_controls  = [];
 Q_prev      = [100*(linspace(0,1,N+1)'-ones(N+1,1)).^2];
 
