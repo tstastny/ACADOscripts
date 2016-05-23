@@ -27,6 +27,9 @@ if horiz_disp
     plot(Horiz_e_rec(1:horiz_disp_int:end,:)', ...
         Horiz_n_rec(1:horiz_disp_int:end,:)', ...
         '-', 'color', [0.7 1 1]);
+%     plot(Horiz_e_rec(3601:horiz_disp_int:4501,:)', ...
+%         Horiz_n_rec(3601:horiz_disp_int:4501,:)', ...
+%         '-', 'color', [0.7 1 1]);
 end
 plot(X_rec(:,2),X_rec(:,1))
 xlabel('East [m]')
@@ -79,5 +82,14 @@ linkaxes(handle_attdot,'x')
 
 figure('color','w','name','Auxillary')
 stairs(time,tsolve*10^3)
+ylabel('t_{solve} [ms]')
+xlabel('time [s]')
+
+figure('color','w','name','Auxillary 2')
+if horiz_disp
+    plot(repmat(time(1:horiz_disp_int:end),N+1,1)+Ts_step*repmat((0:N)',1,length(time(1:horiz_disp_int:end))), ...
+        Horiz_sw_rec(1:horiz_disp_int:end,:)'*r2d, ...
+        '-', 'color', [1 0.7 0.7]);
+end
 ylabel('t_{solve} [ms]')
 xlabel('time [s]')

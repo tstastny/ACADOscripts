@@ -28,7 +28,7 @@
 
 % Dimensions
 acado_N   = 30;
-acado_NX  = 5;
+acado_NX  = 6;
 acado_NDX = 0;
 acado_NXA = 0;
 acado_NU  = 1;

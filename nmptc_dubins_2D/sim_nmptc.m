@@ -5,8 +5,8 @@ close all; clear all; clc;
 % initial conditions
 N = 30;
 n_U = 1;
-n_X = 5;
-n_XA = 2;
+n_X = 6;
+n_XA = 3;
 n_Y = 6;
 n_Z = 0;
 
@@ -33,8 +33,8 @@ pparams_next = [paths(2).pparam1, ...
     paths(2).pparam9];
 
 % wind
-wn=1;
-we=1;
+wn=0;
+we=0;
 
 % parameters
 omega_n_mu = 5;
@@ -48,7 +48,7 @@ ic_V    = 14;
 ic_att  = [0, -pi/1.05];
 ic_attdot = [0];
 ic_u    = ic_att(1);
-ic_augm = [0,0];
+ic_augm = [0,0,0];
 
 ic_od   = [ic_V, pparams, pparams_next, wn, we, ic_u];
 
@@ -58,10 +58,10 @@ nmpc_ic.u   = ic_u;
 yref        = zeros(1,n_Y);
 zref        = zeros(1,n_Z);
 % y   = [ et; e_chi; intg_et; intg_e_chi; mu_r; Delta_mu_r ];
-Q_output    = [0.05 10 0.0 0 10];
-QN_output   = [0.05 10 0.0 0 0];
+Q_output    = [0.1 10 0 0 10];
+QN_output   = [0.1 10 0 0 10];
 R_controls  = [];
-Q_prev      = [10*(linspace(0,1,N+1)'-ones(N+1,1)).^2];
+Q_prev      = [100*(linspace(0,1,N+1)'-ones(N+1,1)).^2];
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
 input.u     = repmat(nmpc_ic.u, N,1);
@@ -108,14 +108,16 @@ for k = 1:length(time)
         path_checks(k) = check_curve_seg(states(1:2),pparams(2:end),d_states(1),d_states(2));
     end
     if path_checks(k)
-        if path_idx<length(paths)
+        if path_idx<length(paths)-1
             for i = 1:length(pparams)
                 pparams(i) = pparams_next(i);
-                eval(['pparams_next(i) = paths(path_idx+1).pparam',int2str(i),';']);
+                eval(['pparams_next(i) = paths(path_idx+2).pparam',int2str(i),';']);
             end
             path_idx = path_idx + 1;
             ic_od   = [ic_V, pparams, pparams_next, wn, we, ic_u];
             input.od    = repmat(ic_od, N+1, 1);
+            output.x(:,end) = zeros(N+1,1);
+            X0(6) = 0;
         elseif ~endofwaypoints
             endofwaypoints=true;
             for i = 1:length(pparams)
@@ -125,6 +127,8 @@ for k = 1:length(time)
             path_idx = path_idx + 1;
             ic_od   = [ic_V, pparams, pparams_next, wn, we, ic_u];
             input.od    = repmat(ic_od, N+1, 1);
+            output.x(:,end) = zeros(N+1,1);
+            X0(6) = 0;
         end
     end
 
@@ -181,6 +185,7 @@ for k = 1:length(time)
     X_rec(k,:)  = simout;
     Horiz_n_rec(k,:) = output.x(:,1)';
     Horiz_e_rec(k,:) = output.x(:,2)';
+    Horiz_sw_rec(k,:) = output.x(:,6)';
     Horiz_mu_r_rec(k,:) = output.u(:,1)';
     XA_rec(k,:) = X0((n_X-n_XA+1):n_X);
     J_rec(k,:)  = cost;

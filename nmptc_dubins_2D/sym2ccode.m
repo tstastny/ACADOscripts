@@ -16,8 +16,9 @@ syms e;            % (easting)
 syms xi;           % (heading angle)
 syms intg_e_t;     % (integral of track error)
 syms intg_e_chi;   % (integral of course error)
+syms sw;           % (segment switching state)
 
-states  = [n,e,xi,intg_e_t,intg_e_chi];
+states  = [n,e,xi,intg_e_t,intg_e_chi,sw];
 n_X     = length(states);
 
 assume(states,'real');
@@ -128,6 +129,8 @@ tracked_expr(idx_tracked_expr, :) = [e_chi, FaR_expr];
 % more state diffs
 intg_e_t_dot = e_t;
 intg_e_chi_dot = e_chi;
+syms sw_dot_expr;
+sw_dot = sw_dot_expr;
 
 % /////////////////////////////////////////////////////////////////////////
 % /////////////////////////////////////////////////////////////////////////

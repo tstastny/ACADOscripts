@@ -16,6 +16,7 @@ DifferentialState e;            % (easting)
 DifferentialState xi;           % (heading angle)
 DifferentialState intg_e_t;     % (integral of track error)
 DifferentialState intg_e_chi;   % (integral of course error)
+DifferentialState sw;
 
 % CONTROLS - - - - - - -
 Control mu_r;         % (reference bank angle)

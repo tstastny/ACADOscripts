@@ -58,6 +58,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     DifferentialState xi;
     DifferentialState intg_e_t;
     DifferentialState intg_e_chi;
+    DifferentialState sw;
     Control mu_r;
     OnlineData V; 
     OnlineData pparam1; 
@@ -93,7 +94,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     ocp1.setNP( 0 );
     ocp1.setNU( 1 );
     ocp1.setModel( "model", "rhs", "rhs_jac" );
-    ocp1.setDimensions( 0, 5, 0, 0, 0, 1, 22, 0 );
+    ocp1.setDimensions( 0, 6, 0, 0, 0, 1, 22, 0 );
 
 
     OCPexport ExportModule1( ocp1 );

@@ -1,34 +1,41 @@
 bool check_line_seg( const double *pos, const double *pparams );
 bool check_curve_seg( const double *pos, const double *pparams, const double n_dot, const double e_dot );
 
-
 /* begin manual input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
 // CHECK SEGMENT SWITCHING CONDITIONS //TODO: put this in a function!
-bool b_switch_segment = false; 
+bool b_switch_segment = false;
 int pparam_sel = 0;
-if ( in[7] < 0.5 ) {
-    b_switch_segment = check_line_seg( &in[0], &in[8] );
-} else if (in[7] < 1.5 ) {
-    b_switch_segment = check_curve_seg( &in[0], &in[8], n_dot, e_dot );
+double sw_dot = 0.0;
+if ( in[5] < 0.05 ) {
+    if ( in[8] < 0.5 ) {
+        b_switch_segment = check_line_seg( &in[0], &in[9] );
+    } else if (in[8] < 1.5 ) {
+        b_switch_segment = check_curve_seg( &in[0], &in[9], n_dot, e_dot );
+    }
+} else {
+    b_switch_segment = true;
 }
-if (b_switch_segment) pparam_sel = 9;
+if (b_switch_segment) {
+    pparam_sel = 9;
+    sw_dot = 1.0;
+} 
 
 double d_n = 0.0;
 double d_e = 0.0;
 double Td_n = 1.0;
 double Td_e = 0.0;
 
-const double pparam_type = in[7+pparam_sel];
+const double pparam_type = in[8+pparam_sel];
 
 // LINE SEGMENT
 if ( pparam_type < 0.5 ) {
 
     // variable definitions
-    const double pparam_aa_n = in[8+pparam_sel];
-    const double pparam_aa_e = in[9+pparam_sel];
-    const double pparam_bb_n = in[11+pparam_sel];
-    const double pparam_bb_e = in[12+pparam_sel];
+    const double pparam_aa_n = in[9+pparam_sel];
+    const double pparam_aa_e = in[10+pparam_sel];
+    const double pparam_bb_n = in[12+pparam_sel];
+    const double pparam_bb_e = in[13+pparam_sel];
 
     // calculate vector from waypoint a to b
     const double abn = pparam_bb_n - pparam_aa_n;
@@ -47,13 +54,13 @@ if ( pparam_type < 0.5 ) {
 } else if ( pparam_type < 1.5 ) {
 
     // variable definitions
-    const double pparam_cc_n = in[8+pparam_sel];
-    const double pparam_cc_e = in[9+pparam_sel];
-    const double pparam_R = in[11+pparam_sel];
-    const double pparam_ldir = in[12+pparam_sel];
-    const double pparam_gam_sp = in[13+pparam_sel];
-    const double pparam_xi0 = in[14+pparam_sel];
-    const double pparam_dxi = in[15+pparam_sel];
+    const double pparam_cc_n = in[9+pparam_sel];
+    const double pparam_cc_e = in[10+pparam_sel];
+    const double pparam_R = in[12+pparam_sel];
+    const double pparam_ldir = in[13+pparam_sel];
+    const double pparam_gam_sp = in[14+pparam_sel];
+    const double pparam_xi0 = in[15+pparam_sel];
+    const double pparam_dxi = in[16+pparam_sel];
 
     // calculate closest point on loiter circle
     const double cp_n = in[0] - pparam_cc_n;
