@@ -90,8 +90,11 @@ bool check_line_seg( const double *pos, const double *pparams ) {
     // 1-D track position
     const double pb_t = norm_ab - ( ab_n*(pos[0]-pparams[0]) + ab_e*(pos[1]-pparams[1]) ) / norm_ab;
     
+    const double bp_n = pos[0]-pparams[3];
+    const double bp_e = pos[1]-pparams[4];
+    
     // check
-    return ( pb_t < 0.0 );
+    return ( pb_t < 0.0 && sqrt(bp_n*bp_n + bp_e*bp_e) < 35.0 );
 }
 
 bool check_curve_seg( const double *pos, const double *pparams, const double n_dot, const double e_dot ) {
@@ -118,7 +121,7 @@ bool check_curve_seg( const double *pos, const double *pparams, const double n_d
     const double pb_t = 1.0 - ( Tb_n*(bp_n+Tb_n) + Tb_e*(bp_e+Tb_e) );
         
     // check //TODO: not hard-coded acceptance radius
-    return ( pb_t < 0.0 && dot_T_V > 0.8 );
+    return ( pb_t < 0.0 && dot_T_V > 0.8 && sqrt(bp_n*bp_n + bp_e*bp_e) < 35.0 );
 }
 
 /* end inline functions !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */

@@ -47,9 +47,9 @@ OnlineData pparam9_next;     %   --      dxi
 OnlineData wn;          % (northing wind)       [m/s]
 OnlineData we;          % (easting wind)        [m/s]
 
-OnlineData mu_r_prev;
-
 OnlineData k_chi;
+
+OnlineData mu_r_prev;
 
 % OPTIMAL CONTROL PROBLEM -------------------------------------------------
 

@@ -9,7 +9,7 @@ void rhs( const real_t *in, real_t *out ){
 
 const double n_dot = in[26]+in[7]*cos(in[2]);
 const double e_dot = in[27]+in[7]*sin(in[2]);
-
+    
 /* begin manual input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
 // CHECK SEGMENT SWITCHING CONDITIONS //TODO: put this in a function!
@@ -92,7 +92,7 @@ const double t4 = d_n-in[0];
 const double t5 = t3-Td_e*t4;
 
 const double atan2_01 = atan2(Td_e, Td_n);
-double chi_d = atan2_01+atan(in[29]*t5);
+double chi_d = atan2_01+atan(in[28]*t5);
 if (chi_d>3.14159265359) chi_d = chi_d - 6.28318530718;
 if (chi_d<-3.14159265359) chi_d = chi_d + 6.28318530718;
 
@@ -199,7 +199,7 @@ const double t4 = d_n-in[0];
 const double t5 = t3-Td_e*t4;
 
 const double atan2_01 = atan2(Td_e, Td_n);
-double chi_d = atan2_01+atan(in[29]*t5);
+double chi_d = atan2_01+atan(in[28]*t5);
 if (chi_d>3.14159265359) chi_d = chi_d - 6.28318530718;
 if (chi_d<-3.14159265359) chi_d = chi_d + 6.28318530718;
 
@@ -335,7 +335,7 @@ const double t4 = d_n-in[0];
 const double t5 = t3-Td_e*t4;
 
 const double atan2_01 = atan2(Td_e, Td_n);
-double chi_d = atan2_01+atan(in[29]*t5);
+double chi_d = atan2_01+atan(in[28]*t5);
 if (chi_d>3.14159265359) chi_d = chi_d - 6.28318530718;
 if (chi_d<-3.14159265359) chi_d = chi_d + 6.28318530718;
 
@@ -351,7 +351,7 @@ out[1] = e_chi;
 out[2] = in[3];
 out[3] = in[4];
 out[4] = in[6];
-out[5] = in[6]-in[28];
+out[5] = in[6]-in[29];
 
 }
 
@@ -487,7 +487,7 @@ const double t4 = d_n-in[0];
 const double t5 = t3-Td_e*t4;
 
 const double atan2_01 = atan2(Td_e, Td_n);
-double chi_d = atan2_01+atan(in[29]*t5);
+double chi_d = atan2_01+atan(in[28]*t5);
 if (chi_d>3.14159265359) chi_d = chi_d - 6.28318530718;
 if (chi_d<-3.14159265359) chi_d = chi_d + 6.28318530718;
 
@@ -503,7 +503,7 @@ out[1] = e_chi;
 out[2] = in[3];
 out[3] = in[4];
 out[4] = in[6];
-out[5] = in[6]-in[28];
+out[5] = in[6]-in[29];
 
 }
 
@@ -551,8 +551,11 @@ bool check_line_seg( const double *pos, const double *pparams ) {
     // 1-D track position
     const double pb_t = norm_ab - ( ab_n*(pos[0]-pparams[0]) + ab_e*(pos[1]-pparams[1]) ) / norm_ab;
     
+    const double bp_n = pos[0]-pparams[3];
+    const double bp_e = pos[1]-pparams[4];
+    
     // check
-    return ( pb_t < 0.0 );
+    return ( pb_t < 0.0 && sqrt(bp_n*bp_n + bp_e*bp_e) < 35.0 );
 }
 
 bool check_curve_seg( const double *pos, const double *pparams, const double n_dot, const double e_dot ) {
@@ -579,7 +582,7 @@ bool check_curve_seg( const double *pos, const double *pparams, const double n_d
     const double pb_t = 1.0 - ( Tb_n*(bp_n+Tb_n) + Tb_e*(bp_e+Tb_e) );
         
     // check //TODO: not hard-coded acceptance radius
-    return ( pb_t < 0.0 && dot_T_V > 0.8 );
+    return ( pb_t < 0.0 && dot_T_V > 0.8 && sqrt(bp_n*bp_n + bp_e*bp_e) < 35.0 );
 }
 
 /* end inline functions !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */

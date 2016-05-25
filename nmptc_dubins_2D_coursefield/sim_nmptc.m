@@ -42,7 +42,7 @@ zeta_mu = 0.8;
 
 dyn = [omega_n_mu, zeta_mu];
 
-k_chi = 0.01;
+k_chi = 0.1;
 
 % initial conditions
 ic_ne  = [0, 30];
@@ -52,7 +52,7 @@ ic_attdot = [0];
 ic_u    = ic_att(1);
 ic_augm = [0,0,0];
 
-ic_od   = [ic_V, pparams, pparams_next, wn, we, ic_u, k_chi];
+ic_od   = [ic_V, pparams, pparams_next, wn, we, k_chi, ic_u ];
 
 % acado inputs
 nmpc_ic.x   = [ic_ne,ic_att(2),ic_augm]; 
@@ -60,10 +60,10 @@ nmpc_ic.u   = ic_u;
 yref        = zeros(1,n_Y);
 zref        = zeros(1,n_Z);
 % y   = [ et; e_chi; intg_et; intg_e_chi; mu_r; Delta_mu_r ];
-Q_output    = [0.1 10 0 0 10];
-QN_output   = [0.1 10 0 0 10];
+Q_output    = [0 10 0.05 0 10];
+QN_output   = [0 10 0.05 0 10];
 R_controls  = [];
-Q_prev      = [100*(linspace(0,1,N+1)'-ones(N+1,1)).^2];
+Q_prev      = [100*(linspace(0,1,N+1)'-ones(N+1,1)).^2]; %[100; ones(N,1)];%
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
 input.u     = repmat(nmpc_ic.u, N,1);
@@ -83,7 +83,7 @@ Ts      = 0.01;
 time    = T0:Ts:Tf;
 KKT_MPC = []; INFO_MPC = []; controls_MPC = [];
 
-Ts_nmpc = 0.1; % interval between nmpc calls
+Ts_nmpc = 0.05; % interval between nmpc calls
 Ts_step = 0.1; % step size in nmpc
 
 % initial simout
@@ -104,9 +104,6 @@ for k = 1:length(time)
     if pparams(1) < 0.5
         path_checks(k) = check_line_seg(states(1:2),pparams(2:end));
     elseif pparams(1) < 1.5
-        if time(k) > 37
-            stoppp=1;
-        end
         path_checks(k) = check_curve_seg(states(1:2),pparams(2:end),d_states(1),d_states(2));
     end
     if path_checks(k)
@@ -116,7 +113,7 @@ for k = 1:length(time)
                 eval(['pparams_next(i) = paths(path_idx+2).pparam',int2str(i),';']);
             end
             path_idx = path_idx + 1;
-            ic_od   = [ic_V, pparams, pparams_next, wn, we, ic_u, k_chi];
+            ic_od   = [ic_V, pparams, pparams_next, wn, we, k_chi, ic_u];
             input.od    = repmat(ic_od, N+1, 1);
             output.x(:,end) = zeros(N+1,1);
             X0(6) = 0;
@@ -127,7 +124,7 @@ for k = 1:length(time)
 %                 eval(['pparams_next(i) = paths(path_idx+1).pparam',int2str(i),';']);
             end
             path_idx = path_idx + 1;
-            ic_od   = [ic_V, pparams, pparams_next, wn, we, ic_u, k_chi];
+            ic_od   = [ic_V, pparams, pparams_next, wn, we, k_chi, ic_u];
             input.od    = repmat(ic_od, N+1, 1);
             output.x(:,end) = zeros(N+1,1);
             X0(6) = 0;
@@ -148,7 +145,7 @@ for k = 1:length(time)
 %         input.x =spline(0:Ts_step:(N*Ts_step),output.x',Ts_nmpc:Ts_step:(N*Ts_step+Ts_nmpc))';
         input.u     = output.u;%[output.u(2:end,:); output.u(end,:)]; %
 %         input.u = spline(0:Ts_step:((N-1)*Ts_step),output.u',Ts_nmpc:Ts_step:((N-1)*Ts_step+Ts_nmpc))';
-        input.od(:,end-1) = [input.u(2:end,:); input.u(end,:); input.u(end,:)];
+        input.od(:,end) = [input.u(2:end,:); input.u(end,:); input.u(end,:)];
     end
     
     % generate controls

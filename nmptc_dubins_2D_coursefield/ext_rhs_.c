@@ -6,7 +6,7 @@
   A0[1][0] = in27+in07*sin(in02);
   A0[2][0] = Td_e;
   A0[3][0] = Td_n;
-  A0[4][0] = atan2_01+atan(in29*t5);
+  A0[4][0] = atan2_01+atan(in28*t5);
   A0[5][0] = e_dot;
   A0[6][0] = n_dot;
   A0[7][0] = -atan2_02+chi_d;
