@@ -42,7 +42,7 @@ zeta_mu = 0.8;
 
 dyn = [omega_n_mu, zeta_mu];
 
-k_chi = 0.1;
+k_chi = 0.05;
 
 % initial conditions
 ic_ne  = [0, 30];
@@ -60,8 +60,8 @@ nmpc_ic.u   = ic_u;
 yref        = zeros(1,n_Y);
 zref        = zeros(1,n_Z);
 % y   = [ et; e_chi; intg_et; intg_e_chi; mu_r; Delta_mu_r ];
-Q_output    = [0 10 0.05 0 10];
-QN_output   = [0 10 0.05 0 10];
+Q_output    = [0 50 0.05 0 10];
+QN_output   = [0 50 0.05 0 10];
 R_controls  = [];
 Q_prev      = [100*(linspace(0,1,N+1)'-ones(N+1,1)).^2]; %[100; ones(N,1)];%
 
