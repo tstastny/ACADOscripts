@@ -89,11 +89,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     acadodata_M1.read( "nmpc_ext_data_acadodata_M1.txt" );
     BMatrix acadodata_M2;
     acadodata_M2.read( "nmpc_ext_data_acadodata_M2.txt" );
-    OCP ocp1(0, 3, 30);
+    OCP ocp1(0, 4, 40);
     ocp1.minimizeLSQ(acadodata_M1, "evaluateLSQ");
     ocp1.minimizeLSQEndTerm(acadodata_M2, "evaluateLSQEndTerm");
-    ocp1.subjectTo((-6.108652E-01) <= mu <= 6.108652E-01);
-    ocp1.subjectTo((-4.363323E+00) <= mu_dot <= 4.363323E+00);
     ocp1.subjectTo((-6.108652E-01) <= mu_r <= 6.108652E-01);
     ocp1.setNOD( 23 );
     ocp1.setNP( 0 );
@@ -113,7 +111,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: SPARSE_QP_SOLUTION");
     options_flag = ExportModule1.set( INTEGRATOR_TYPE, INT_IRK_GL4 );
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: INTEGRATOR_TYPE");
-    options_flag = ExportModule1.set( NUM_INTEGRATOR_STEPS, 30 );
+    options_flag = ExportModule1.set( NUM_INTEGRATOR_STEPS, 40 );
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: NUM_INTEGRATOR_STEPS");
     options_flag = ExportModule1.set( QP_SOLVER, QP_QPOASES );
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: QP_SOLVER");

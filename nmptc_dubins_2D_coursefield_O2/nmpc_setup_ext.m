@@ -8,7 +8,7 @@ close all;
 % BEGIN_ACADO;
 
 Ts = 0.1;	% model discretization step
-N  = 30;    % horizon length
+N  = 40;    % horizon length
 
 % STATES - - - - - - - -
 DifferentialState n;            % (northing)
@@ -81,8 +81,6 @@ ocp.minimizeLSQEndTerm( QN, 'evaluateLSQEndTerm' );
 ocp.setModel('model', 'rhs', 'rhs_jac');
 ocp.setDimensions( n_X, n_U, n_OD, 0 );
 
-ocp.subjectTo( -35*pi/180 <= mu <= 35*pi/180 );
-ocp.subjectTo( -250*pi/180 <= mu_dot <= 250*pi/180 );
 ocp.subjectTo( -35*pi/180 <= mu_r <= 35*pi/180 );
 
 setNOD(ocp, n_OD);

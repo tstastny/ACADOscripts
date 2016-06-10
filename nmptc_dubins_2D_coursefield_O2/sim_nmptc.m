@@ -3,7 +3,7 @@
 close all; clear all; clc;
 
 % initial conditions
-N = 30;
+N = 40;
 n_U = 1;
 n_X = 8;
 n_XA = 3;
@@ -34,14 +34,14 @@ pparams_next = [paths(2).pparam1, ...
 
 % wind
 wn=0;
-we=0;
+we=-10;
 
 k_chi = 0;
 
 % initial conditions
-ic_ne  = [0, 30];
+ic_ne  = [0, 0];
 ic_V    = 14;
-ic_att  = [0, -pi/1.05];
+ic_att  = [0, 0];
 ic_attdot = [0];
 ic_u    = ic_att(1);
 ic_augm = [0,0,0];
@@ -54,10 +54,10 @@ nmpc_ic.u   = ic_u;
 yref        = zeros(1,n_Y);
 zref        = zeros(1,n_Z);
 % y   = [ et; e_chi; intg_et; intg_e_chi; mu; mu_dot; mu_r; Delta_mu_r ];
-Q_output    = [0.1 10 0 0 0.1 0.01 10];
-QN_output   = [0.1 10 0 0 0.1 0.01 10];
+Q_output    = [0.01 1 0 0 0.1 0.01 10];
+QN_output   = [0.1 10 0 0 0 0.01 0];
 R_controls  = [];
-Q_prev      = [100*(linspace(0,1,N+1)'-ones(N+1,1)).^2]; %[100; ones(N,1)];%
+Q_prev      = [0*(linspace(0,1,N+1)'-ones(N+1,1)).^2]; %[100; ones(N,1)];%
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
 input.u     = repmat(nmpc_ic.u, N,1);
@@ -93,6 +93,7 @@ U0 = 0;
 path_idx = 1;
 endofwaypoints=false;
 for k = 1:length(time)
+    
     
     % check path
     if pparams(1) < 0.5
@@ -141,6 +142,10 @@ for k = 1:length(time)
 %         input.u = spline(0:Ts_step:((N-1)*Ts_step),output.u',Ts_nmpc:Ts_step:((N-1)*Ts_step+Ts_nmpc))';
         input.od(:,end) = [input.u(2:end,:); input.u(end,:); input.u(end,:)];
     end
+    
+%     if k>1
+%         input.od(:,1) = 12.4*ones(N+1,1);
+%     end
     
     % generate controls
     output      = acado_nmpc_ext_step(input);
