@@ -14,6 +14,8 @@ DifferentialState e;            % (easting)                     [m]
 DifferentialState mu;           % (bank angle)                  [rad]
 DifferentialState xi;           % (heading angle)               [rad]
 DifferentialState mu_dot;       % (bank angle rate)             [rad/s]
+DifferentialState L_n;          % (DUMMY VARIABLE FOR KOREAN VECTOR)
+DifferentialState L_e;          % (DUMMY)
 
 % controls
 Control mu_r;                   % (reference bank angle)        [rad]
@@ -55,6 +57,7 @@ f.add(dot(mu_dot) == mu_dot_dot);
 % OBJECTIVE ---------------------------------------------------------------
 
 epsilon = 0.001;
+delta_BL=30;
 
 cp_n = n - c_n;
 cp_e = e - c_e;
@@ -66,6 +69,27 @@ d_e = R * cp_e_unit + c_e;
 Td_n = -cp_e_unit * ldir;
 Td_e = cp_n_unit * ldir;
 Vg = sqrt(n_dot * n_dot + e_dot * e_dot);
+
+
+%{
+% L initialization
+
+tP_ic=[Td_e;Td_n];
+e_ic=[d_e;d_n];
+d=e;%+d_shift*nP;
+%d=e+d_shift2*nP;
+d1=d/norm(d);
+
+asd=max(4,5);
+ratio=norm(d)/delta_BL;
+sat_ratio=min(1,max(-1,ratio));
+
+
+theta_L=pi/2*sqrt(1-sat_ratio);
+L=cos(theta_L)*d1+sin(theta_L)*tP;
+%}
+
+
 
 % track error
 e_t = (d_n - n) * Td_e - (d_e - e) * Td_n;

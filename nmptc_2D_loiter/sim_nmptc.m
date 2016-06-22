@@ -5,7 +5,7 @@ close all; clear all; clc;
 % initial conditions
 N = 80;
 n_U = 1;
-n_X = 5;
+n_X = 7;
 n_Y = 5;
 n_Z = 2;
 
@@ -16,7 +16,9 @@ c_e = 0;                 % (northing loiter center)      [m]
 R = 30;                   % (loiter radius)               [m]
 ldir = -1;                % (loiter direction)            [~]
 w_n = 0;                 % (northing wind)               [m/s]
-w_e = -10;                 % (easting wind)                [m/s]
+w_e = 10;                 % (easting wind)                [m/s]
+delta_BL=20;
+d_shift=0;
 
 % initial conditions
 n0 = 20;
@@ -29,15 +31,45 @@ ic_x = [n0, e0, mu0, xi0, mu_dot0];
 ic_u = mu_r0;
 ic_od = [V, c_n, c_e, R, ldir, w_n, w_e];
 
+%{
+% L initialization
+cp_n_ic = ic_x(1) - c_n;
+cp_e_ic = ic_x(2) - c_e;
+normcp_ic = sqrt(cp_n_ic * cp_n_ic + cp_e_ic * cp_e_ic);
+cp_n_unit_ic = cp_n_ic / normcp_ic;
+cp_e_unit_ic = cp_e_ic / normcp_ic;
+d_n_ic = R - cp_n_ic;
+d_e_ic = R - cp_e_ic;
+Td_n_ic = -cp_e_unit_ic * ldir;
+Td_e_ic = cp_n_unit_ic * ldir;
+
+tP_ic=[Td_e_ic;Td_n_ic];
+e_ic=[d_e_ic;d_n_ic];
+d_ic=e_ic;%+d_shift*nP;
+%d=e+d_shift2*nP;
+d1_ic=d_ic/norm(d_ic);
+
+ratio_ic=norm(d_ic)/delta_BL;
+if(ratio_ic<-1 || ratio_ic>1)
+    sat_ratio_ic=sign(ratio_ic);
+else
+    sat_ratio_ic=ratio_ic;
+end
+
+theta_L_ic=pi/2*sqrt(1-sat_ratio_ic);
+L_ic=cos(theta_L_ic)*d1_ic+sin(theta_L_ic)*tP_ic;
+%}
+
 % acado inputs
-nmpc_ic.x   = ic_x; 
+nmpc_ic.x   = [ic_x]; 
 nmpc_ic.u   = ic_u;
 yref        = zeros(1,n_Y);
 zref        = zeros(1,n_Z);
 % y = [e_t; e_vn; e_ve; mu; mu_dot]; z = [mu_r; mu_r];
-Q           = [0.1 10 10 0 0.01 0 500];
-QN          = [0.1 10 10 0 0.01];
+Q           = [1 0.2 0.2 0 0.0 500 0];
+QN          = [1 0.2 0.2 0 0.0];
 Q_delta     = (linspace(0,1,N+1)'-ones(N+1,1)).^2;
+
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
 input.u     = repmat(nmpc_ic.u, N,1);
@@ -51,7 +83,7 @@ input.WN    = diag(QN);
 
 % simulation
 T0      = 0;
-Tf      = 30;
+Tf      = 50;
 Ts      = 0.01;
 time    = T0:Ts:Tf;
 KKT_MPC = []; INFO_MPC = []; controls_MPC = [];
@@ -61,6 +93,9 @@ Ts_step = 0.1; % step size in nmpc
 
 % initial simout
 X0 = nmpc_ic.x;
+
+
+
 simout = nmpc_ic.x;
 states = simout;
 d_states = [...
@@ -87,6 +122,7 @@ for k = 1:length(time)
         input.y(:,end) = [input.u(2:end,:); input.u(end,:)];
     end
     
+    %%MODIFY STATES, TO INSERT NEW L
     % generate controls
     output = acado_nmpc_step(input);
         
@@ -115,6 +151,7 @@ for k = 1:length(time)
     Horiz_e_rec(k,:) = output.x(:,2)';
     Horiz_mu_rec(k,:) = output.x(:,3)';
     Horiz_mu_r_rec(k,:) = output.u(:,1)';
+    Horiz_xi_rec(k,:) = output.x(:,4)';
     U_rec(k,:) 	= U0;
     
     % apply control

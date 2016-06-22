@@ -58,6 +58,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     DifferentialState mu;
     DifferentialState xi;
     DifferentialState mu_dot;
+    DifferentialState L_n;
+    DifferentialState L_e;
     Control mu_r;
     OnlineData V; 
     OnlineData c_n; 

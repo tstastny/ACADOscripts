@@ -6,6 +6,8 @@ r2d = 180/pi;
 
 % /////////////////////////////////////////////////////////////////////////
 % POSITION
+airspeed_n(:)=V*cos(X_rec(:,4));
+airspeed_e(:)=V*sin(X_rec(:,4));
 
 figure('color','w','name','Position')
 hold on; grid on; axis equal;
@@ -26,6 +28,21 @@ if horiz_disp
     idx_pos = idx_pos + 1;
 end
 h_pos(idx_pos) = plot(X_rec(:,2), X_rec(:,1), '-', 'color', [0 0 0]);
+
+k=1;
+for(i=1:size(X_rec,1))
+    if(mod(i,25)==0)
+        X_rec_2_side(k)=X_rec(i,2);
+        X_rec_1_side(k)=X_rec(i,1);
+        airspeed_e_side(k)=airspeed_e(i);
+        airspeed_n_side(k)=airspeed_n(i);
+        k=k+1;
+    end
+end
+
+quiver(X_rec_2_side(:), X_rec_1_side(:), airspeed_e_side(:), airspeed_n_side(:), 0.5,'r','linewidth',0.01,'MaxHeadSize', 0.2);
+
+
 leg_pos{idx_pos} = 'Flight Path';
 idx_pos = idx_pos + 1;
 legend(h_pos, leg_pos);
@@ -34,6 +51,28 @@ ylabel('North [m]')
 zlabel('Height [m]');
 xlabel('time [s]')
 
+%%%%%% quiver 
+
+
+hold on; grid on; axis equal;
+
+%{
+cp_n(:) = X_rec(:,1) - c_n;
+cp_e(:) = X_rec(:,2) - c_e;
+for(i=1:size(cp_n,2))
+    normcp(i) = sqrt(cp_n(i)*cp_n(i) + cp_e(i)*cp_e(i));
+    cp_n_unit(i) = cp_n(i) / normcp(i);
+    cp_e_unit(i) = cp_e(i) / normcp(i);
+    d_n(i) = R * cp_n_unit(i) + c_n;
+    d_e(i) = R * cp_e_unit(i) + c_e;
+    Td_n(i) = -cp_e_unit(i) * ldir;
+    Td_e(i) = cp_n_unit(i) * ldir;
+end
+%}
+
+
+
+%{
 % /////////////////////////////////////////////////////////////////////////
 % ATTITUDE
 
@@ -84,6 +123,19 @@ ylabel('$\dot{\mu} [deg/s]$','interpreter','latex')
 xlabel('time [s]')
 linkaxes(h_attdot,'x')
 
+%{
+% /////////////////////////////////////////////////////////////////////////
+% yaw
+
+figure('color','w','name','Yaw')
+h_attdot(1) = subplot(1,1,1); hold on; grid on;
+plot(time,X_rec(:,4)*r2d);
+ylabel('$\dot{\lambda} [deg/s]$','interpreter','latex')
+xlabel('time [s]')
+linkaxes(h_attdot,'x')
+%}
+
+%{
 % /////////////////////////////////////////////////////////////////////////
 % AUXILLARY
 
@@ -91,3 +143,5 @@ figure('color','w','name','Auxillary')
 stairs(time,tsolve*10^3)
 ylabel('t_{solve} [ms]')
 xlabel('time [s]')
+%}
+%}
