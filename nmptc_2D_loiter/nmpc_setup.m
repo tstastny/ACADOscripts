@@ -58,7 +58,7 @@ f.add(dot(mu_dot) == mu_dot_dot);
 
 epsilon = 0.001;
 delta_BL=30;
-
+%
 cp_n = n - c_n;
 cp_e = e - c_e;
 normcp = sqrt(cp_n * cp_n + cp_e * cp_e);
