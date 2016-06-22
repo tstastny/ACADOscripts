@@ -34,11 +34,12 @@
 #ifndef QPOASES_CONSTANTS_HPP
 #define QPOASES_CONSTANTS_HPP
 
-#ifndef QPOASES_CUSTOM_INTERFACE
+//  FURIERI
+//  #ifndef QPOASES_CUSTOM_INTERFACE
 #include "acado_qpoases_interface.hpp"
-#else
-#include QPOASES_CUSTOM_INTERFACE
-#endif
+//  #else
+//  #include QPOASES_CUSTOM_INTERFACE
+//  #endif
 
 /** Maximum number of variables within a QP formulation.
 	Note: this value has to be positive! */

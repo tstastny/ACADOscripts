@@ -71,34 +71,37 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     BMatrix acadodata_M2;
     acadodata_M2.read( "nmpc_data_acadodata_M2.txt" );
     Function acadodata_f2;
-    acadodata_f2 << (-((-c_e+e)/(1.000000E-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n))))*R+c_e-e)*(-(-c_e+e)/(1.000000E-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n)))))*ldir+((-c_n+n)/(1.000000E-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n))))*R+c_n-n)*(-c_n+n)/(1.000000E-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n))))*ldir);
-    acadodata_f2 << ((-(-c_e+e)/(1.000000E-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n)))))*ldir-1/(1.000000E-03+sqrt(((V*cos(xi)+w_n)*(V*cos(xi)+w_n)+(V*sin(xi)+w_e)*(V*sin(xi)+w_e))))*(V*cos(xi)+w_n));
-    acadodata_f2 << ((-c_n+n)/(1.000000E-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n))))*ldir-1/(1.000000E-03+sqrt(((V*cos(xi)+w_n)*(V*cos(xi)+w_n)+(V*sin(xi)+w_e)*(V*sin(xi)+w_e))))*(V*sin(xi)+w_e));
+    acadodata_f2 << (-((-c_e+e)/(1.00000000000000002082e-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n))))*R+c_e-e)*(-(-c_e+e)/(1.00000000000000002082e-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n)))))*ldir+((-c_n+n)/(1.00000000000000002082e-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n))))*R+c_n-n)*(-c_n+n)/(1.00000000000000002082e-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n))))*ldir);
+    acadodata_f2 << ((-(-c_e+e)/(1.00000000000000002082e-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n)))))*ldir-1/(1.00000000000000002082e-03+sqrt(((V*cos(xi)+w_n)*(V*cos(xi)+w_n)+(V*sin(xi)+w_e)*(V*sin(xi)+w_e))))*(V*cos(xi)+w_n));
+    acadodata_f2 << ((-c_n+n)/(1.00000000000000002082e-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n))))*ldir-1/(1.00000000000000002082e-03+sqrt(((V*cos(xi)+w_n)*(V*cos(xi)+w_n)+(V*sin(xi)+w_e)*(V*sin(xi)+w_e))))*(V*sin(xi)+w_e));
     acadodata_f2 << mu;
     acadodata_f2 << mu_dot;
     acadodata_f2 << mu_r;
     acadodata_f2 << mu_r;
     Function acadodata_f3;
-    acadodata_f3 << (-((-c_e+e)/(1.000000E-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n))))*R+c_e-e)*(-(-c_e+e)/(1.000000E-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n)))))*ldir+((-c_n+n)/(1.000000E-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n))))*R+c_n-n)*(-c_n+n)/(1.000000E-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n))))*ldir);
-    acadodata_f3 << ((-(-c_e+e)/(1.000000E-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n)))))*ldir-1/(1.000000E-03+sqrt(((V*cos(xi)+w_n)*(V*cos(xi)+w_n)+(V*sin(xi)+w_e)*(V*sin(xi)+w_e))))*(V*cos(xi)+w_n));
-    acadodata_f3 << ((-c_n+n)/(1.000000E-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n))))*ldir-1/(1.000000E-03+sqrt(((V*cos(xi)+w_n)*(V*cos(xi)+w_n)+(V*sin(xi)+w_e)*(V*sin(xi)+w_e))))*(V*sin(xi)+w_e));
+    acadodata_f3 << (-((-c_e+e)/(1.00000000000000002082e-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n))))*R+c_e-e)*(-(-c_e+e)/(1.00000000000000002082e-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n)))))*ldir+((-c_n+n)/(1.00000000000000002082e-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n))))*R+c_n-n)*(-c_n+n)/(1.00000000000000002082e-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n))))*ldir);
+    acadodata_f3 << ((-(-c_e+e)/(1.00000000000000002082e-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n)))))*ldir-1/(1.00000000000000002082e-03+sqrt(((V*cos(xi)+w_n)*(V*cos(xi)+w_n)+(V*sin(xi)+w_e)*(V*sin(xi)+w_e))))*(V*cos(xi)+w_n));
+    acadodata_f3 << ((-c_n+n)/(1.00000000000000002082e-03+sqrt(((-c_e+e)*(-c_e+e)+(-c_n+n)*(-c_n+n))))*ldir-1/(1.00000000000000002082e-03+sqrt(((V*cos(xi)+w_n)*(V*cos(xi)+w_n)+(V*sin(xi)+w_e)*(V*sin(xi)+w_e))))*(V*sin(xi)+w_e));
     acadodata_f3 << mu;
     acadodata_f3 << mu_dot;
     DifferentialEquation acadodata_f1;
     acadodata_f1 << dot(n) == (V*cos(xi)+w_n);
     acadodata_f1 << dot(e) == (V*sin(xi)+w_e);
     acadodata_f1 << dot(mu) == mu_dot;
-    acadodata_f1 << dot(xi) == 9.810000E+00/V*tan(mu);
-    acadodata_f1 << dot(mu_dot) == (1.348000E+01*mu_r-1.397000E+01*mu-6.577000E+00*mu_dot);
+    acadodata_f1 << dot(xi) == 9.81000000000000049738e+00/V*tan(mu);
+    acadodata_f1 << dot(mu_dot) == (1.34800000000000004263e+01*mu_r-1.39700000000000006395e+01*mu-6.57699999999999995737e+00*mu_dot);
 
     OCP ocp1(0, 8, 80);
     ocp1.minimizeLSQ(acadodata_M1, acadodata_f2);
     ocp1.minimizeLSQEndTerm(acadodata_M2, acadodata_f3);
     ocp1.subjectTo(acadodata_f1);
-    ocp1.subjectTo((-6.108652E-01) <= mu_r <= 6.108652E-01);
+    ocp1.subjectTo((-6.10865238198015303439e-01) <= mu_r <= 6.10865238198015303439e-01);
     ocp1.setNOD( 7 );
 
 
+    ocp1.setNU( 1 );
+    ocp1.setNP( 0 );
+    ocp1.setNOD( 7 );
     OCPexport ExportModule1( ocp1 );
     ExportModule1.set( GENERATE_MATLAB_INTERFACE, 1 );
     uint options_flag;

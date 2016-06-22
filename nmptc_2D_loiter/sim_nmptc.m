@@ -42,7 +42,7 @@ Q_delta     = (linspace(0,1,N+1)'-ones(N+1,1)).^2;
 input.x     = repmat(nmpc_ic.x, N+1,1);
 input.u     = repmat(nmpc_ic.u, N,1);
 input.y     = repmat([yref, zref], N,1);
-input.yN    = input.y(1, 1:length(yref))';
+input.yN    = input.y(1, 1:length(yref)); %%%FURIERI: I removed the transpose operator " ' "
 input.od    = repmat(ic_od, N+1, 1);
 for i = 1:N
 input.W((n_Y+n_Z)*(i-1)+1:(n_Y+n_Z)*i,:) = diag([Q(1:end-1), Q(end)*Q_delta(i,:)]);
@@ -71,7 +71,7 @@ U0 = 0;
 for k = 1:length(time)
    
     % measure
-    input.x0 = X0';
+    input.x0 = X0;   %%%FURIERI: I removed the transpose operator " ' "
     
     if time(k)==floor(time(k)/Ts_nmpc)*Ts_nmpc
     
