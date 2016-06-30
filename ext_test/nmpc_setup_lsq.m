@@ -35,7 +35,7 @@ ocp.minimizeLSQ( Q, 'evaluateLSQ' );
 ocp.minimizeLSQEndTerm( QN, 'evaluateLSQEndTerm' );
 
 % external model
-ocp.setModel('model', 'rhs', 'rhs_jac');
+ocp.setModel('model_lsq', 'rhs', 'rhs_jac');
 ocp.setDimensions( 1, 1, 0, 0);
 
 % outputs
@@ -65,6 +65,6 @@ copyfile('../acado/external_packages/qpoases', ...
 nmpc.exportCode( 'export_nmpc' );
 
 cd export_nmpc
-make_acado_solver('../acado_nmpc_step', 'model.c')
+make_acado_solver('../acado_nmpc_step', 'model_lsq.c')
 cd ..
 

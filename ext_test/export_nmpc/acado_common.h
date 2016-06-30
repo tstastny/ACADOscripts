@@ -209,8 +209,8 @@ real_t evGu[ 10 ];
 /** Row vector of size: 2 */
 real_t objValueIn[ 2 ];
 
-/** Row vector of size: 6 */
-real_t objValueOut[ 6 ];
+/** Row vector of size: 2 */
+real_t objValueOut[ 2 ];
 
 /** Column vector of size: 10 */
 real_t Q1[ 10 ];
@@ -223,9 +223,6 @@ real_t R1[ 10 ];
 
 /** Matrix of size: 10 x 2 (row major format) */
 real_t R2[ 20 ];
-
-/** Column vector of size: 10 */
-real_t S1[ 10 ];
 
 /** Column vector of size: 1 */
 real_t QN1[ 1 ];
@@ -342,12 +339,6 @@ real_t getKKT(  );
  *  \return Value of the objective function.
  */
 real_t getObjective(  );
-
-/** An external function for evaluation of symbolic expressions. */
-void evaluateLSQ(const real_t* in, real_t* out);
-
-/** An external function for evaluation of symbolic expressions. */
-void evaluateLSQEndTerm(const real_t* in, real_t* out);
 
 
 /* 

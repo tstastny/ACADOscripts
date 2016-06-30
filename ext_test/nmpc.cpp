@@ -59,14 +59,19 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     acadodata_M1.read( "nmpc_data_acadodata_M1.txt" );
     BMatrix acadodata_M2;
     acadodata_M2.read( "nmpc_data_acadodata_M2.txt" );
+    Function acadodata_f1;
+    acadodata_f1 << x;
+    acadodata_f1 << u;
+    Function acadodata_f2;
+    acadodata_f2 << x;
     OCP ocp1(0, 1, 10);
-    ocp1.minimizeLSQ(acadodata_M1, "evaluateLSQ");
-    ocp1.minimizeLSQEndTerm(acadodata_M2, "evaluateLSQEndTerm");
+    ocp1.minimizeLSQ(acadodata_M1, acadodata_f1);
+    ocp1.minimizeLSQEndTerm(acadodata_M2, acadodata_f2);
     ocp1.subjectTo((-3.000000E+00) <= u <= 3.000000E+00);
     ocp1.setNOD( 0 );
     ocp1.setNP( 0 );
     ocp1.setNU( 1 );
-    ocp1.setModel( "model", "rhs", "rhs_jac" );
+    ocp1.setModel( "model_jac", "rhs", "rhs_jac" );
     ocp1.setDimensions( 0, 1, 0, 0, 0, 1, 0, 0 );
 
 
