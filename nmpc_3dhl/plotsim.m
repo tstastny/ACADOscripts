@@ -92,21 +92,22 @@ hc(2)=subplot(4,1,2:4); hold on; grid on;
 
 plot(time,J_rec(:,3).^2*Q_output(1)); %e_t_1_ne
 plot(time,J_rec(:,4).^2*Q_output(2)); %e_t_1_d
+plot(time,(yref(3)*ones(length(time),1)-X_rec(:,13)).^2*Q_output(3)); % i_e_t
 
 plot(time,J_rec(:,5).^2*Q_output(3)); %e_v1
 plot(time,J_rec(:,6).^2*Q_output(4)); %e_v2
 plot(time,J_rec(:,7).^2*Q_output(5)); %e_v3
 
-plot(time,(yref(6)*ones(length(time),1)-X_rec(:,4)).^2*Q_output(6)); % e_V
-plot(time,(yref(7)*ones(length(time),1)-X_rec(:,9)).^2*Q_output(7)); % e_p
-plot(time,(yref(8)*ones(length(time),1)-X_rec(:,10)).^2*Q_output(8)); % e_q
-plot(time,(yref(9)*ones(length(time),1)-X_rec(:,11)).^2*Q_output(9)); % e_r
+plot(time,(yref(7)*ones(length(time),1)-X_rec(:,4)).^2*Q_output(7)); % e_V
+plot(time,(yref(8)*ones(length(time),1)-X_rec(:,9)).^2*Q_output(8)); % e_p
+plot(time,(yref(9)*ones(length(time),1)-X_rec(:,10)).^2*Q_output(9)); % e_q
+plot(time,(yref(10)*ones(length(time),1)-X_rec(:,11)).^2*Q_output(10)); % e_r
 
 % plot(time,J_rec(:,4).^2*R_controls(4)); %Delta_T
 % plot(time,J_rec(:,4).^2*R_controls(5)); %Delta_phi
 % plot(time,J_rec(:,4).^2*R_controls(6)); %Delta_theta
 
-legend('e_{T^1_{ne}}','e_{T^1_{d}}','e_{v_{n}}','e_{v_{e}}','e_{v_{d}}','e_V','e_p','e_q','e_r')
+legend('e_{T^1_{ne}}','e_{T^1_{d}}','i_{e_{T}}','e_{v_{n}}','e_{v_{e}}','e_{v_{d}}','e_V','e_p','e_q','e_r')
 ylabel('J(e)')
 xlabel('time [s]')
 
@@ -119,7 +120,7 @@ figure('color','w','name','Airspeed & Throttle')
 
 handle_vdt(1) = subplot(3,1,1); hold on; grid on;
 hl = gobjects(0);
-hl(length(hl)+1) = plot(time,yref(6)*ones(1,length(time)),'color',c_ref);
+hl(length(hl)+1) = plot(time,yref(7)*ones(1,length(time)),'color',c_ref);
 hl(length(hl)+1) = plot(time,X_rec(:,4),'color',c_state);
 ylabel('V [m/s]');
 legend(hl,{'ref','state'});
@@ -141,6 +142,12 @@ if horiz_disp
     plot(horiz_time(:,2:end), ...
         horiz_rec(:,horiz_disp_int:horiz_disp_int:end,12), ...
         '-', 'color', c_horiz);
+%     hl(length(hl)+1) = plot(horiz_time(1:end-1,1), ...
+%         horiz_rec_U(:,1,1), ...
+%         '-', 'color', c_horiz);
+%     plot(horiz_time(1:end-1,2:end), ...
+%         horiz_rec_U(:,horiz_disp_int:horiz_disp_int:end,1), ...
+%         '-', 'color', c_horiz);
 end
 hl(length(hl)+1) = plot(time,U_rec(:,1),'color',c_ref);
 hl(length(hl)+1) = plot(time,X_rec(:,12),'color',c_state);
@@ -162,11 +169,17 @@ figure('color','w','name','Attitude')
 handle_att(1) = subplot(3,1,1); hold on; grid on;
 hl = gobjects(0);
 if horiz_disp
-    hl(length(hl)+1) = plot(horiz_time(:,1), ...
-        horiz_rec(:,1,7)*r2d, ...
+%     hl(length(hl)+1) = plot(horiz_time(:,1), ...
+%         horiz_rec(:,1,7)*r2d, ...
+%         '-', 'color', c_horiz);
+%     plot(horiz_time(:,2:end), ...
+%         horiz_rec(:,horiz_disp_int:horiz_disp_int:end,7)*r2d, ...
+%         '-', 'color', c_horiz);
+    hl(length(hl)+1) = plot(horiz_time(1:end-1,1), ...
+        horiz_rec_U(:,1,2)*r2d, ...
         '-', 'color', c_horiz);
-    plot(horiz_time(:,2:end), ...
-        horiz_rec(:,horiz_disp_int:horiz_disp_int:end,7)*r2d, ...
+    plot(horiz_time(1:end-1,2:end), ...
+        horiz_rec_U(:,horiz_disp_int:horiz_disp_int:end,2)*r2d, ...
         '-', 'color', c_horiz);
 end
 hl(length(hl)+1) = plot(time,U_rec(:,2)*r2d,'color',c_ref);
@@ -181,11 +194,17 @@ end
 handle_att(2) = subplot(3,1,2); hold on; grid on;
 hl = gobjects(0);
 if horiz_disp
-    hl(length(hl)+1) = plot(horiz_time(:,1), ...
-        horiz_rec(:,1,8)*r2d, ...
+%     hl(length(hl)+1) = plot(horiz_time(:,1), ...
+%         horiz_rec(:,1,8)*r2d, ...
+%         '-', 'color', c_horiz);
+%     plot(horiz_time(:,2:end), ...
+%         horiz_rec(:,horiz_disp_int:horiz_disp_int:end,8)*r2d, ...
+%         '-', 'color', c_horiz);
+    hl(length(hl)+1) = plot(horiz_time(1:end-1,1), ...
+        horiz_rec_U(:,1,3)*r2d, ...
         '-', 'color', c_horiz);
-    plot(horiz_time(:,2:end), ...
-        horiz_rec(:,horiz_disp_int:horiz_disp_int:end,8)*r2d, ...
+    plot(horiz_time(1:end-1,2:end), ...
+        horiz_rec_U(:,horiz_disp_int:horiz_disp_int:end,3)*r2d, ...
         '-', 'color', c_horiz);
 end
 hl(length(hl)+1) = plot(time,U_rec(:,3)*r2d,'color',c_ref);
@@ -235,12 +254,17 @@ linkaxes(handle_rates,'x')
 
 figure('color','w','name','Auxiliary')
 
-handle_aux(1) = subplot(2,1,1); hold on; grid on;
+handle_aux(1) = subplot(3,1,1); hold on; grid on;
 hl = gobjects(0);
 hl(length(hl)+1) = plot(time,tsolve*1000,'color',c_state);
 ylabel('t_{solve} [ms]');
 
-handle_aux(2) = subplot(2,1,2); hold on; grid on;
+handle_aux(2) = subplot(3,1,2); hold on; grid on;
+hl = gobjects(0);
+hl(length(hl)+1) = plot(time,X_rec(:,14),'color',c_state);
+ylabel('i_{e_T} [~]');
+
+handle_aux(3) = subplot(3,1,3); hold on; grid on;
 hl = gobjects(0);
 % if horiz_disp
 %     hl(length(hl)+1) = plot(horiz_time(:,1), ...
@@ -250,7 +274,7 @@ hl = gobjects(0);
 %         horiz_rec(:,horiz_disp_int:horiz_disp_int:end,8)*r2d, ...
 %         '-', 'color', c_horiz);
 % end
-hl(length(hl)+1) = plot(time,X_rec(:,13),'color',c_state);
+hl(length(hl)+1) = plot(time,X_rec(:,14),'color',c_state);
 ylabel('x_{sw} [~]');
 % if horiz_disp
 %     legend(hl,{'horizon','ref','state'});

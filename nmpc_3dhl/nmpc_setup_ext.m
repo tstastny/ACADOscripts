@@ -23,61 +23,64 @@ DifferentialState p;        % (roll rate)
 DifferentialState q;        % (pitch rate)
 DifferentialState r;        % (yaw rate)
 DifferentialState delta_T;  % (throttle setting)
+DifferentialState i_e_t;    % (integral of track error)
 DifferentialState sw;       % (segment switching state)
 
 % CONTROLS - - - - - - -
-Control u_T;        % (throttle input)              [~]
-Control phi_ref;	% (roll angle reference)        [rad]
-Control theta_ref;	% (pitch angle reference)       [rad]
+Control u_T;                % (throttle input)              [~]
+Control phi_ref;            % (roll angle reference)        [rad]
+Control theta_ref;          % (pitch angle reference)       [rad]
 
 % ONLINE DATA - - - - - -
-OnlineData pparam1;     %   type    type
-OnlineData pparam2;     %   aa_n    cc_n
-OnlineData pparam3;     %   aa_e    cc_e
-OnlineData pparam4;     %   aa_d    cc_d
-OnlineData pparam5;     %   bb_n    R
-OnlineData pparam6;     %   bb_e    dir
-OnlineData pparam7;     %   bb_d    gam
-OnlineData pparam8;     %   --      xi0
-OnlineData pparam9;     %   --      dxi
+OnlineData pparam1;         %   type    type
+OnlineData pparam2;         %   aa_n    cc_n
+OnlineData pparam3;         %   aa_e    cc_e
+OnlineData pparam4;         %   aa_d    cc_d
+OnlineData pparam5;         %   bb_n    R
+OnlineData pparam6;         %   bb_e    dir
+OnlineData pparam7;         %   bb_d    gam
+OnlineData pparam8;         %   --      xi0
+OnlineData pparam9;         %   --      dxi
 
-OnlineData pparam1_next;     %   type    type
-OnlineData pparam2_next;     %   aa_n    cc_n
-OnlineData pparam3_next;     %   aa_e    cc_e
-OnlineData pparam4_next;     %   aa_d    cc_d
-OnlineData pparam5_next;     %   bb_n    R
-OnlineData pparam6_next;     %   bb_e    dir
-OnlineData pparam7_next;     %   bb_d    gam
-OnlineData pparam8_next;     %   --      xi0
-OnlineData pparam9_next;     %   --      dxi
+OnlineData pparam1_next;   	%   type    type
+OnlineData pparam2_next;   	%   aa_n    cc_n
+OnlineData pparam3_next;   	%   aa_e    cc_e
+OnlineData pparam4_next;  	%   aa_d    cc_d
+OnlineData pparam5_next;  	%   bb_n    R
+OnlineData pparam6_next;  	%   bb_e    dir
+OnlineData pparam7_next;   	%   bb_d    gam
+OnlineData pparam8_next;  	%   --      xi0
+OnlineData pparam9_next;  	%   --      dxi
 
 OnlineData R_acpt;
 OnlineData ceta_acpt;
 
-OnlineData wn;          % (northing wind)       [m/s]
-OnlineData we;          % (easting wind)        [m/s]
-OnlineData wd;          % (easting wind)        [m/s]
+OnlineData wn;              % (northing wind)       [m/s]
+OnlineData we;              % (easting wind)        [m/s]
+OnlineData wd;              % (easting wind)        [m/s]
 
-OnlineData k_t_d;     % longitudinal logistic gain
-OnlineData e_d_co;    % longitudinal logistic cutoff
+OnlineData k_t_d;           % longitudinal logistic gain
+OnlineData e_d_co;          % longitudinal logistic cutoff
 
-OnlineData k_t_ne;    % lateral logistic gain
-OnlineData e_ne_co;   % lateral logistic cutoff
+OnlineData k_t_ne;          % lateral logistic gain
+OnlineData e_ne_co;         % lateral logistic cutoff
 
-OnlineData eps_v;     % unit ground speed threshold
+OnlineData eps_v;           % unit ground speed threshold
 
-OnlineData alpha_p_co;   % angle of attack upper cutoff
-OnlineData alpha_m_co;   % angle of attack lower cutoff 
-OnlineData alpha_delta_co;   % angle of attack cutoff transition length
+OnlineData alpha_p_co;      % angle of attack upper cutoff
+OnlineData alpha_m_co;      % angle of attack lower cutoff 
+OnlineData alpha_delta_co; 	% angle of attack cutoff transition length
+
+OnlineData i_e_t_co;       	% integral error cut-off
 
 % OPTIMAL CONTROL PROBLEM -------------------------------------------------
 
 % lengths
 n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
-n_Y = 10;                   % state objectives
-n_Z = 6;                    % control dependent objectives
-n_OD = 31;  % onlinedata
+n_Y = 11;                   % state objectives
+n_Z = 7;                    % control dependent objectives
+n_OD = 32;  % onlinedata
 
 Q = eye(n_Y+n_Z,n_Y+n_Z);
 Q = acado.BMatrix(Q);

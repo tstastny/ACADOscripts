@@ -5,7 +5,7 @@ hold on; grid on;
 
 e=linspace(-50,50,2001);
 e0=30;
-k_e_dir=6*1/15;
+k_e_dir=0*6*1/15;
 % k_e_t=6/140;
 
 Jep = (1./(1+exp(-k_e_dir*(e-e0))));

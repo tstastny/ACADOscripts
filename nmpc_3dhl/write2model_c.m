@@ -18,6 +18,7 @@ ext_obj = true;
 
 num_jac = true;                                                             % numerical jacobian
 use_atan2 = true;
+use_bool = true;
 
 % generate optimized c code for each external function
 sym2ccode
@@ -44,6 +45,10 @@ if use_atan2
 end
 if num_jac
     f_lines{k} = '#include <string.h>';
+    k = k + 1;
+end
+if use_bool
+    f_lines{k} = '#include <stdbool.h>';
     k = k + 1;
 end
 f_lines{k} = '';

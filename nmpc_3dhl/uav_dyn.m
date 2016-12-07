@@ -27,14 +27,15 @@ q = states(10);         % pitch angle rate
 r = states(11);         % yaw rate
 
 delta_T = states(12);   % effective throttle setting
-if delta_T>0.85, delta_T=0.85; end;
+if delta_T>1, delta_T=1; end;
 if delta_T<0, delta_T=0; end;
 
 mu = phi;
 
 % controls
 uT = ctrls(1);          % throttle
-uTsat=uT;%max([uT-0.15 0]); % throttle saturation
+if uT>1, uT=1; end;
+if uT<0, uT=0; end;
 phi_r = ctrls(2);       % roll reference
 theta_r = ctrls(3);     % pitch reference
 
@@ -61,7 +62,7 @@ D = qbarS*cD;
 L = qbarS*cL;
 
 % angular accelerations
-lm = lp * p + lr * r + leR * (phi_r-phi);
+Lm = Lp * p + Lr * r + LeR * (phi_r-phi);
 Mm = V^2 * (M0 + Ma * alpha + Mq * q + MeP * (theta_r-theta));
 Nm = Nr * r + NR * phi + NRR * phi_r;
 
@@ -74,10 +75,10 @@ d_states(5) = ((T*sin(alpha)+L)*cos(mu) - m*g*cos(gamma))/m/V;
 d_states(6) = (T*sin(alpha)+L)*sin(mu)/m/V/cos(gamma);
 d_states(7) = p;
 d_states(8) = q*cos(phi)-r*sin(phi);
-d_states(9) = lm;
+d_states(9) = Lm;
 d_states(10) = Mm;
 d_states(11) = Nm;
-d_states(12) = (uTsat - delta_T)/tauT;
+d_states(12) = (uT - delta_T)/tauT;
 
 % output
 output = states;

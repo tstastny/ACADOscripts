@@ -65,6 +65,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     DifferentialState q;
     DifferentialState r;
     DifferentialState delta_T;
+    DifferentialState i_e_t;
     DifferentialState sw;
     Control u_T;
     Control phi_ref;
@@ -100,6 +101,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OnlineData alpha_p_co; 
     OnlineData alpha_m_co; 
     OnlineData alpha_delta_co; 
+    OnlineData i_e_t_co; 
     BMatrix acadodata_M1;
     acadodata_M1.read( "nmpc_ext_data_acadodata_M1.txt" );
     BMatrix acadodata_M2;
@@ -110,11 +112,11 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     ocp1.subjectTo(0.000000E+00 <= u_T <= 8.500000E-01);
     ocp1.subjectTo((-5.235988E-01) <= phi_ref <= 5.235988E-01);
     ocp1.subjectTo((-2.617994E-01) <= theta_ref <= 2.617994E-01);
-    ocp1.setNOD( 31 );
+    ocp1.setNOD( 32 );
     ocp1.setNP( 0 );
     ocp1.setNU( 3 );
     ocp1.setModel( "model", "rhs", "rhs_jac" );
-    ocp1.setDimensions( 0, 13, 0, 0, 0, 3, 31, 0 );
+    ocp1.setDimensions( 0, 14, 0, 0, 0, 3, 32, 0 );
 
 
     OCPexport ExportModule1( ocp1 );

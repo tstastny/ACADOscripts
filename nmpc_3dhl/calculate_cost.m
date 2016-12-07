@@ -10,16 +10,12 @@ t2 = cos(in(5));
 
 alpha = -in(5)+in(8);
 
-t3 = alpha-in(45)+in(47);
-t4 = 1.0/(in(47)*in(47));
-t5 = -alpha+in(46)+in(47);
-
 Vsafe = in(4);
 if (Vsafe<1.0), Vsafe = 1.0; end;
 
-n_dot = in(37)+Vsafe*t2*cos(in(6));
-e_dot = in(38)+Vsafe*t2*sin(in(6));
-d_dot = in(39)-Vsafe*sin(in(5));
+n_dot = in(38)+Vsafe*t2*cos(in(6));
+e_dot = in(39)+Vsafe*t2*sin(in(6));
+d_dot = in(40)-Vsafe*sin(in(5));
 
 % begin manual input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
@@ -59,15 +55,15 @@ if ( pparam_type < 0.5 )
         Td_e = abe / norm_ab;
         Td_d = abd / norm_ab;
     end
-
+    
     % dot product
     dot_abunit_ap = Td_n*(in(1) - pparam_aa_n) + Td_e*(in(2) - pparam_aa_e) + Td_d*(in(3) - pparam_aa_d);
     
-    % point on track
+    % poon track
     d_n = pparam_aa_n + dot_abunit_ap * Td_n;
     d_e = pparam_aa_e + dot_abunit_ap * Td_e;
     d_d = pparam_aa_d + dot_abunit_ap * Td_d;
-
+    
 % CURVE SEGMENT
 elseif ( pparam_type < 1.5 )
 
@@ -89,8 +85,8 @@ elseif ( pparam_type < 1.5 )
         cp_n_unit = cp_n / norm_cp;
         cp_e_unit = cp_e / norm_cp;
     else
-        cp_n_unit = 0;
-        cp_e_unit = 0;
+        cp_n_unit = 0.0;
+        cp_e_unit = 0.0;
     end
     d_n = pparam_R * cp_n_unit + pparam_cc_n;
     d_e = pparam_R * cp_e_unit + pparam_cc_e;
@@ -139,7 +135,7 @@ elseif ( pparam_type < 1.5 )
             delta_d_k = 0.0;
 
         elseif (abs(delta_d_k) > abs(delta_d_end_k) )
-
+            
             if (delta_d_k < 0.0)
                 delta_d_k = -abs(delta_d_end_k);
             else
@@ -161,28 +157,32 @@ end
 
 % end manual input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
+% tracked expressions */
+
 pd_n = d_n-in(1);
 pd_e = d_e-in(2);
 pd_d = d_d-in(3);
-
 e_t_ne = -Td_e*pd_n+Td_n*pd_e;
 e_t_d = pd_d;
-if e_t_ne>in(43)
-    e_t_1_ne=1;
-elseif e_t_ne>-in(43)
-    e_t_1_ne = sin((3.141592653589793*e_t_ne*(1.0/2.0))/in(43));
+
+if (e_t_ne>in(44))
+    e_t_1_ne = 1.0;
+elseif (e_t_ne>-in(44))
+    e_t_1_ne = sin((3.141592653589793*e_t_ne*(1.0/2.0))/in(44));
 else
-    e_t_1_ne = -1;
+    e_t_1_ne = -1.0;
 end
-if e_t_d>in(41)
-    e_t_1_d=1;
-elseif e_t_d>-in(41)
-    e_t_1_d = sin((3.141592653589793*e_t_d*(1.0/2.0))/in(41));
+
+if (e_t_d>in(42))
+    e_t_1_d = 1.0;
+elseif (e_t_d>-in(42))
+    e_t_1_d = sin((3.141592653589793*e_t_d*(1.0/2.0))/in(42));
 else
-    e_t_1_d = -1;
+    e_t_1_d = -1.0;
 end
+
 % negative unit normal vector
-norm_pd = sqrt(e_t_ne^2+e_t_d^2);
+norm_pd = sqrt(e_t_ne * e_t_ne + e_t_d * e_t_d);
 if (norm_pd<1.0)
     Tpd_n = 0.0;
     Tpd_e = 0.0;
@@ -195,44 +195,55 @@ end
 
 % unit velocity vector
 norm_v = sqrt(d_dot*d_dot+e_dot*e_dot+n_dot*n_dot);
-if (abs(norm_v)<0.05)
+if (norm_v<0.05)
     vbar_n=0.0;
     vbar_e=0.0;
     vbar_d=0.0;
-elseif (abs(norm_v)<in(44))
-    vbar_n=((sin(2*norm_v/in(44)/3.141592653589793)-1)+1)*n_dot;
-    vbar_e=((sin(2*norm_v/in(44)/3.141592653589793)-1)+1)*e_dot;
-    vbar_d=((sin(2*norm_v/in(44)/3.141592653589793)-1)+1)*d_dot;
+elseif (norm_v<in(45))
+    vbar_n=((sin(2*norm_v/in(45)/3.141592653589793)-1)+1)*n_dot;
+    vbar_e=((sin(2*norm_v/in(45)/3.141592653589793)-1)+1)*e_dot;
+    vbar_d=((sin(2*norm_v/in(45)/3.141592653589793)-1)+1)*d_dot;
 else
     vbar_n=n_dot/norm_v;
     vbar_e=e_dot/norm_v;
     vbar_d=d_dot/norm_v;
 end
 
-t6 = e_t_ne+in(43);
-t7 = in(42)*t6;
+t3 = alpha-in(46)+in(48);
+t4 = 1.0/(in(48)*in(48));
+t5 = -alpha+in(47)+in(48);
+t6 = e_t_ne+in(44);
+t7 = in(43)*t6;
 t8 = exp(t7);
 t9 = t8+1.0;
 t10 = 1.0/t9;
-t11 = e_t_ne-in(43);
-t15 = in(42)*t11;
+t11 = e_t_ne-in(44);
+t15 = in(43)*t11;
 t12 = exp(-t15);
 t13 = t12+1.0;
 t14 = 1.0/t13;
 t16 = t10+t14-1.0;
 t17 = t10+t14;
-t18 = e_t_d+in(41);
-t19 = in(40)*t18;
+t18 = e_t_d+in(42);
+t19 = in(41)*t18;
 t20 = exp(t19);
 t21 = t20+1.0;
 t22 = 1.0/t21;
-t23 = e_t_d-in(41);
-t24 = exp(-in(40)*t23);
+t23 = e_t_d-in(42);
+t24 = exp(-in(41)*t23);
 t25 = t24+1.0;
 t26 = 1.0/t25;
 
-% outputs */
+% soft constraints
+if (alpha>(in(46)-in(48)))
+    a_soft=(t3*t3)*t4;
+elseif (alpha>(in(47)+in(48)))
+    a_soft=0.0;
+else
+    a_soft=t4*(t5*t5);
+end
 
+% outputs */
 e_vbar_1_n = -vbar_n-Td_n*t16+Tpd_n*t17;
 e_vbar_1_e = -vbar_e-Td_e*t16+Tpd_e*t17;
 e_vbar_1_d = -vbar_d-Td_d*(t22+t26-1.0)+Tpd_d*(t22+t26);

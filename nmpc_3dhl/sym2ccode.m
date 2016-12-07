@@ -23,10 +23,10 @@ syms p;         % (roll rate)
 syms q;         % (pitch rate)
 syms r;         % (yaw rate)
 syms delta_T;   % (throttle setting)
-% syms intg_e_t;	% (integral of track error)
+syms i_e_t;     % (integral of track error)
 syms sw;        % (segment switching state)
 
-states  = [n,e,d,V,gamma,xi,phi,theta,p,q,r,delta_T,sw];
+states  = [n,e,d,V,gamma,xi,phi,theta,p,q,r,delta_T,i_e_t,sw];
 n_X     = length(states);
 
 assume(states,'real');
@@ -59,37 +59,38 @@ n_U     = length(ctrls);
 assume(ctrls,'real');
 
 % ONLINE DATA /////////////////////////////////////////////////////////////
-syms pparam1;   %   type    type
-syms pparam2;   %   aa_n    cc_n
-syms pparam3;   %   aa_e    cc_e
-syms pparam4;   %   aa_d    cc_d
-syms pparam5;   %   bb_n    R
-syms pparam6;   %   bb_e    dir
-syms pparam7;   %   bb_d    gam
-syms pparam8;   %   --      xi0
-syms pparam9;   %   --      dxi
-syms pparam1_next;   %   type    type
-syms pparam2_next;   %   aa_n    cc_n
-syms pparam3_next;   %   aa_e    cc_e
-syms pparam4_next;   %   aa_d    cc_d
-syms pparam5_next;   %   bb_n    R
-syms pparam6_next;   %   bb_e    dir
-syms pparam7_next;   %   bb_d    gam
-syms pparam8_next;   %   --      xi0
-syms pparam9_next;   %   --      dxi
-syms R_acpt;    % switching acceptance radius
-syms ceta_acpt; % switching acceptance cosine of error angle
-syms wn;    % northing wind
-syms we;    % easting wind
-syms wd;    % down wind
-syms k_t_d;     % longitudinal logistic gain
-syms e_d_co;    % longitudinal logistic cutoff
-syms k_t_ne;    % lateral logistic gain
-syms e_ne_co;   % lateral logistic cutoff
-syms eps_v;     % unit ground speed threshold
-syms alpha_p_co;   % angle of attack upper cutoff
-syms alpha_m_co;   % angle of attack lower cutoff
-syms alpha_delta_co;   % angle of attack cutoff transition length
+syms pparam1;           %   type    type
+syms pparam2;           %   aa_n    cc_n
+syms pparam3;           %   aa_e    cc_e
+syms pparam4;           %   aa_d    cc_d
+syms pparam5;           %   bb_n    R
+syms pparam6;           %   bb_e    dir
+syms pparam7;           %   bb_d    gam
+syms pparam8;           %   --      xi0
+syms pparam9;           %   --      dxi
+syms pparam1_next;      %   type    type
+syms pparam2_next;      %   aa_n    cc_n
+syms pparam3_next;      %   aa_e    cc_e
+syms pparam4_next;      %   aa_d    cc_d
+syms pparam5_next;      %   bb_n    R
+syms pparam6_next;      %   bb_e    dir
+syms pparam7_next;      %   bb_d    gam
+syms pparam8_next;      %   --      xi0
+syms pparam9_next;      %   --      dxi
+syms R_acpt;            % switching acceptance radius
+syms ceta_acpt;         % switching acceptance cosine of error angle
+syms wn;                % northing wind
+syms we;                % easting wind
+syms wd;                % down wind
+syms k_t_d;             % longitudinal logistic gain
+syms e_d_co;            % longitudinal logistic cutoff
+syms k_t_ne;            % lateral logistic gain
+syms e_ne_co;           % lateral logistic cutoff
+syms eps_v;             % unit ground speed threshold
+syms alpha_p_co;        % angle of attack upper cut-off
+syms alpha_m_co;        % angle of attack lower cut-off
+syms alpha_delta_co;    % angle of attack cut-off transition length
+syms i_e_t_co;          % integral error cut-off
 
 onlinedata  = [...
     pparam1,pparam2,pparam3,pparam4,pparam5,pparam6,pparam7,pparam8,pparam9,...
@@ -98,7 +99,8 @@ onlinedata  = [...
     wn,we,wd,...
     k_t_d,e_d_co,k_t_ne,e_ne_co,...
     eps_v,...
-    alpha_p_co,alpha_m_co,alpha_delta_co];
+    alpha_p_co,alpha_m_co,alpha_delta_co,...
+    i_e_t_co];
 n_OD = length(onlinedata);
 
 assume(onlinedata,'real');
@@ -174,27 +176,32 @@ rho = 1.225;
 S = 0.39;
 qbarS = 0.5*rho*Vsafe^2*S;
 
-M0=0.000848173994434413;
-Ma=-0.164663711873934;
-Mq=-0.0410704191099466;
-MeP=0.158960374141736;
-lp=-6.73578773969040;
-lr=0.878182329679164;
-leR=11.1467593207791;
-Nr=-9.76492309398636;
-NR=5.98887765504684;
-NRR=1.58960918118893;
+% M0=0.000848173994434413;
+% Ma=-0.164663711873934;
+% Mq=-0.0410704191099466;
+% MeP=0.158960374141736;
+% lp=-6.73578773969040;
+% lr=0.878182329679164;
+% leR=11.1467593207791;
+% Nr=-9.76492309398636;
+% NR=5.98887765504684;
+% NRR=1.58960918118893;
+% 
+% tauT=0.179092870541038;
+% cT1=46.5309685298437;
+% cT2=133.121145483364;
+% cT3=194.400407803984;
+% cD0=0.0623204432055247;
+% cDa=0.378620335309777;
+% cDa2=1.62033558854341;
+% cL0=0.470333508888944;
+% cLa=6.87094469647060;
+% cLa2=-21.1069893359182;
 
-tauT=0.179092870541038;
-cT1=46.5309685298437;
-cT2=133.121145483364;
-cT3=194.400407803984;
-cD0=0.0623204432055247;
-cDa=0.378620335309777;
-cDa2=1.62033558854341;
-cL0=0.470333508888944;
-cLa=6.87094469647060;
-cLa2=-21.1069893359182;
+load parameters_20161121.mat;
+for i = 1:length(parameters)
+    eval([parameters(i).Name,'=',num2str(parameters(i).Value),';']);
+end
 
 cD = cD0 + cDa * alpha + cDa2 * alpha^2;
 cL = cL0 + cLa * alpha + cLa2 * alpha^2;
@@ -213,11 +220,11 @@ theta_dot = q*cos(phi)-r*sin(phi);
 
 % body rate differentials
 
-lm = lp * p + lr * r + leR * (phi_ref-phi);
+Lm = Lp * p + Lr * r + LeR * (phi_ref-phi);
 Mm = Vsafe^2 * (M0 + Ma * alpha + Mq * q + MeP * (theta_ref-theta));
 Nm = Nr * r + NR * phi + NRR * phi_ref;
 
-p_dot = lm;
+p_dot = Lm;
 q_dot = Mm;
 r_dot = Nm;
 
@@ -288,6 +295,15 @@ e_t_d_expr = pd_d;
 idx_tracked_expr = idx_tracked_expr + 1;
 e_t_d = sym('e_t_d','real');
 tracked_expr(idx_tracked_expr, :) = [e_t_d, e_t_d_expr];
+
+e_t = sqrt(e_t_ne^2 + e_t_d^2);
+
+i_e_t_dot_expr = e_t/i_e_t_co;
+
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+i_e_t_dot = sym('i_e_t_dot','real');
+tracked_expr(idx_tracked_expr, :) = [i_e_t_dot, i_e_t_dot_expr];
 
 % double e_t_1_ne;
 % if (e_t_ne>e_ne_co) {
@@ -411,11 +427,11 @@ for i = 1:n_X
 end
 
 % state output
-y   = [ e_t_1_ne; e_t_1_d; e_vbar_1_n; e_vbar_1_e; e_vbar_1_d; Vsafe; p; q; r; a_soft ];
+y   = [ e_t_1_ne; e_t_1_d; i_e_t; e_vbar_1_n; e_vbar_1_e; e_vbar_1_d; Vsafe; p; q; r; a_soft ];
 n_Y = length(y);
 
 % ctrl output
-z   = [ delta_T; phi_ref; theta_ref; delta_T; phi_ref; theta_ref ];
+z   = [ delta_T_dot; u_T; phi_ref; theta_ref; u_T; phi_ref; theta_ref ];
 n_Z = length(z);
 
 % lsq objective functions
