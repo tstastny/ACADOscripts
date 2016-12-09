@@ -60,7 +60,7 @@ W_i_e_t_d=0;
 
 
 % model parameters
-load parameters_20161117.mat;
+load parameters_20161209.mat;
 
 % initial conditions
 ic_ned  = [-300, 0, 10];
@@ -87,8 +87,8 @@ zref        = [0, ic_u, ic_u];
 Q_scale     = [1 1 1 1, 1 1 1, 1, 50*pi/180 50*pi/180 50*pi/180, 1];
 R_scale     = [1, 1 30*pi/180 15*pi/180, 1 5*pi/180 5*pi/180];
 
-Q_output    = [70 200 1 10 10 10 1 5 20 20 5 1]./Q_scale.^2;
-QN_output   = [70 200 1 10 10 10 1 5 20 20 5 1]./Q_scale.^2;
+Q_output    = [70 200 5 10 10 10 1 5 20 20 5 1]./Q_scale.^2;
+QN_output   = [70 200 5 10 10 10 1 5 20 20 5 1]./Q_scale.^2;
 R_controls  = [1 0.1 0.1 0.1 0 10 10]./R_scale.^2;
 
 Q_prev      = [(linspace(1,0,N+1)').^0,...

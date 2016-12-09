@@ -200,7 +200,7 @@ qbarS = 0.5*rho*Vsafe^2*S;
 % cLa=6.87094469647060;
 % cLa2=-21.1069893359182;
 
-load parameters_20161121.mat;
+load parameters_20161209.mat;
 for i = 1:length(parameters)
     eval([parameters(i).Name,'=',num2str(parameters(i).Value),';']);
 end
