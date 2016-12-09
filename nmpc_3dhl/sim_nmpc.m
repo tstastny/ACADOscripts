@@ -5,8 +5,8 @@ close all; clear all; clc;
 % initial conditions
 N = 40;
 n_U = 3;
-n_X = 14; % number of nmpc states
-n_Y = 18;
+n_X = 15; % number of nmpc states
+n_Y = 19;
 n_Z = 7;
 
 % track
@@ -53,8 +53,10 @@ alpha_p_co = 8*pi/180;   % angle of attack upper cutoff
 alpha_m_co = -3*pi/180;   % angle of attack lower cutoff
 alpha_delta_co = 2*pi/180;   % angle of attack cutoff transition length
 
-i_e_t_co = 7;
-W_i_e_t=0;
+i_e_t_ne_co = 10;
+i_e_t_d_co = 10;
+W_i_e_t_ne=0;
+W_i_e_t_d=0;
 
 
 % model parameters
@@ -66,28 +68,28 @@ ic_vV   = [13.5, 0, 0];
 ic_att  = [0, 0];
 ic_attdot = [0, 0, 0];
 ic_u    = [0.375, 0, 1.7*pi/180];
-ic_augm = [ic_u(1), 0, 0];
+ic_augm = [ic_u(1), 0, 0, 0];
 
 ic_od   = [pparams, pparams_next, R_acpt, ceta_acpt, ...
     wn, we, wd, ...
-    k_t_d, e_d_co, k_t_ne, e_ne_co, eps_v, ...
+    k_t_ne, e_ne_co, k_t_d, e_d_co, eps_v, ...
     alpha_p_co, alpha_m_co, alpha_delta_co, ...
-    i_e_t_co];
+    i_e_t_ne_co, i_e_t_d_co];
 
 % acado inputs
 nmpc_ic.x   = [ic_ned,ic_vV,ic_att,ic_attdot,ic_augm]; 
 nmpc_ic.u   = ic_u;
-yref        = [0 0 0, 0 0 0, 13.5, 0 0 0, 0];
+yref        = [0 0 0 0, 0 0 0, 13.5, 0 0 0, 0];
 zref        = [0, ic_u, ic_u];
 
 % y   = [ e_ne_1; e_d_1; i_e_t; e_vbar_1_n; e_vbar_1_e; e_vbar_1_d; Vsafe; p; q; r; a_soft ];
 
-Q_scale     = [1 1 1, 1 1 1, 1, 50*pi/180 50*pi/180 50*pi/180, 1];
+Q_scale     = [1 1 1 1, 1 1 1, 1, 50*pi/180 50*pi/180 50*pi/180, 1];
 R_scale     = [1, 1 30*pi/180 15*pi/180, 1 5*pi/180 5*pi/180];
 
-Q_output    = [70 150 3 10 10 5 5 30 30 5 10]./Q_scale.^2;
-QN_output   = [70 150 3 10 10 5 5 30 30 5 10]./Q_scale.^2;
-R_controls  = [100 15 5 20 0 20 30]./R_scale.^2;
+Q_output    = [70 200 1 10 10 10 1 5 20 20 5 1]./Q_scale.^2;
+QN_output   = [70 200 1 10 10 10 1 5 20 20 5 1]./Q_scale.^2;
+R_controls  = [1 0.1 0.1 0.1 0 10 10]./R_scale.^2;
 
 Q_prev      = [(linspace(1,0,N+1)').^0,...
     (linspace(1,0,N+1)').^0,...
@@ -98,12 +100,12 @@ input.u     = repmat(nmpc_ic.u, N,1);
 input.y     = repmat([yref, zref], N,1);
 input.yN    = input.y(1, 1:length(yref))';
 input.od    = repmat(ic_od, N+1, 1);
-QR = [Q_output(1:2),Q_output(3)*W_i_e_t,Q_output(4:end), R_controls(1:4)];
+QR = [Q_output(1:2),Q_output(3)*W_i_e_t_ne,Q_output(4)*W_i_e_t_d,Q_output(5:end), R_controls(1:4)];
 for i = 1:N
 input.W(n_Y*(i-1)+1:n_Y*i,:) = diag([QR, (R_controls(5:7)).*Q_prev(i,:)]);
 end
 load QN.mat;
-input.WN    = diag([QN_output(1:2),QN_output(3)*W_i_e_t,QN_output(4:end)]);%Py;%
+input.WN    = diag([QN_output(1:2),QN_output(3)*W_i_e_t_ne,QN_output(4)*W_i_e_t_d,QN_output(5:end)]);%Py;%
 
 % simulation
 T0      = 0;
@@ -147,13 +149,15 @@ for k = 1:length(time)
             path_idx = path_idx + 1;
             ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
                 wn, we, wd, ...
-                k_t_d, e_d_co, k_t_ne, e_ne_co, eps_v, ...
+                k_t_ne, e_ne_co, k_t_d, e_d_co, eps_v, ...
                 alpha_p_co, alpha_m_co, alpha_delta_co, ...
-                i_e_t_co];
+                i_e_t_ne_co, i_e_t_d_co];
             input.od = repmat(ic_od, N+1, 1);
             output.x(:,end-1) = zeros(N+1,1);
             output.x(:,end) = zeros(N+1,1);
+            X0(end-2) = 0; % i_e_t
             X0(end-1) = 0; % i_e_t
+            output.x(:,end-2:end-1)=zeros(N+1,2);
             X0(end) = 0; % sw
         elseif ~endofwaypoints
             endofwaypoints=true;
@@ -164,13 +168,15 @@ for k = 1:length(time)
             path_idx = path_idx + 1;
             ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
                 wn, we, wd, ...
-                k_t_d, e_d_co, k_t_ne, e_ne_co, eps_v, ...
+                k_t_ne, e_ne_co, k_t_d, e_d_co, eps_v, ...
                 alpha_p_co, alpha_m_co, alpha_delta_co, ...
-                i_e_t_co];
+                i_e_t_ne_co, i_e_t_d_co];
             input.od = repmat(ic_od, N+1, 1);
             output.x(:,end-1) = zeros(N+1,1);
             output.x(:,end) = zeros(N+1,1);
+            X0(end-2) = 0; % i_e_t
             X0(end-1) = 0; % i_e_t
+            output.x(:,end-2:end-1)=zeros(N+1,2);
             X0(end) = 0; % sw
         end
     end
@@ -226,20 +232,26 @@ for k = 1:length(time)
 %     X0(12) = U0(1);
     
     % record states/controls
-    X_rec(k,:) = [simout, X0(13:14)];
+    X_rec(k,:) = [simout, X0(13:15)];
     horiz_rec(:,k,:) = output.x(:,:);
     horiz_rec_U(:,k,:) = output.u(:,:);
     U_rec(k,:) = U0;
     J_rec(k,:) = calculate_cost([X0,U0,ic_od],[n_X,n_U]);
     
-    e_t = norm(J_rec(k,1:2));
-    if (e_t < i_e_t_co*0.8), W_i_e_t = 1;
-    elseif (e_t < i_e_t_co), W_i_e_t = cos((e_t/i_e_t_co-0.8)/0.2*3.141592653589793) * 0.5 + 0.5;
+    e_t_ne = J_rec(k,1);
+    if (e_t_ne < i_e_t_ne_co*0.8), W_i_e_t_ne = 1;
+    elseif (e_t_ne < i_e_t_ne_co), W_i_e_t_ne = cos((e_t_ne/i_e_t_ne_co-0.8)/0.2*3.141592653589793) * 0.5 + 0.5;
+    end
+    e_t_d = J_rec(k,2);
+    if (e_t_d < i_e_t_d_co*0.8), W_i_e_t_d = 1;
+    elseif (e_t_d < i_e_t_d_co), W_i_e_t_d = cos((e_t_d/i_e_t_d_co-0.8)/0.2*3.141592653589793) * 0.5 + 0.5;
     end
     for i = 1:N
-        input.W(n_Y*(i-1)+3,3) = Q_output(3)*W_i_e_t;
+        input.W(n_Y*(i-1)+3,3) = Q_output(3)*W_i_e_t_ne;
+        input.W(n_Y*(i-1)+4,4) = Q_output(4)*W_i_e_t_d;
     end
-    input.WN(3,3) = QN_output(3)*W_i_e_t;
+    input.WN(3,3) = QN_output(3)*W_i_e_t_ne;
+    input.WN(4,4) = QN_output(4)*W_i_e_t_d;
 end
 
 plotsim

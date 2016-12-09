@@ -23,10 +23,11 @@ syms p;         % (roll rate)
 syms q;         % (pitch rate)
 syms r;         % (yaw rate)
 syms delta_T;   % (throttle setting)
-syms i_e_t;     % (integral of track error)
+syms i_e_t_ne;  % (integral of lateral-directional track error)
+syms i_e_t_d;   % (integral of longitudinal track error)
 syms sw;        % (segment switching state)
 
-states  = [n,e,d,V,gamma,xi,phi,theta,p,q,r,delta_T,i_e_t,sw];
+states  = [n,e,d,V,gamma,xi,phi,theta,p,q,r,delta_T,i_e_t_ne,i_e_t_d,sw];
 n_X     = length(states);
 
 assume(states,'real');
@@ -82,15 +83,16 @@ syms ceta_acpt;         % switching acceptance cosine of error angle
 syms wn;                % northing wind
 syms we;                % easting wind
 syms wd;                % down wind
-syms k_t_d;             % longitudinal logistic gain
-syms e_d_co;            % longitudinal logistic cutoff
 syms k_t_ne;            % lateral logistic gain
 syms e_ne_co;           % lateral logistic cutoff
+syms k_t_d;             % longitudinal logistic gain
+syms e_d_co;            % longitudinal logistic cutoff
 syms eps_v;             % unit ground speed threshold
 syms alpha_p_co;        % angle of attack upper cut-off
 syms alpha_m_co;        % angle of attack lower cut-off
 syms alpha_delta_co;    % angle of attack cut-off transition length
-syms i_e_t_co;          % integral error cut-off
+syms i_e_t_ne_co;       % lateral-directional integral error cut-off
+syms i_e_t_d_co;        % longitudinal integral error cut-off
 
 onlinedata  = [...
     pparam1,pparam2,pparam3,pparam4,pparam5,pparam6,pparam7,pparam8,pparam9,...
@@ -100,7 +102,7 @@ onlinedata  = [...
     k_t_d,e_d_co,k_t_ne,e_ne_co,...
     eps_v,...
     alpha_p_co,alpha_m_co,alpha_delta_co,...
-    i_e_t_co];
+    i_e_t_ne_co,i_e_t_d_co];
 n_OD = length(onlinedata);
 
 assume(onlinedata,'real');
@@ -296,14 +298,20 @@ idx_tracked_expr = idx_tracked_expr + 1;
 e_t_d = sym('e_t_d','real');
 tracked_expr(idx_tracked_expr, :) = [e_t_d, e_t_d_expr];
 
-e_t = sqrt(e_t_ne^2 + e_t_d^2);
-
-i_e_t_dot_expr = e_t/i_e_t_co;
+i_e_t_ne_dot_expr = e_t_ne/i_e_t_ne_co;
 
 % | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
 idx_tracked_expr = idx_tracked_expr + 1;
-i_e_t_dot = sym('i_e_t_dot','real');
-tracked_expr(idx_tracked_expr, :) = [i_e_t_dot, i_e_t_dot_expr];
+i_e_t_ne_dot = sym('i_e_t_ne_dot','real');
+tracked_expr(idx_tracked_expr, :) = [i_e_t_ne_dot, i_e_t_ne_dot_expr];
+
+i_e_t_d_dot_expr = e_t_d/i_e_t_d_co;
+
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+i_e_t_d_dot = sym('i_e_t_d_dot','real');
+tracked_expr(idx_tracked_expr, :) = [i_e_t_d_dot, i_e_t_d_dot_expr];
+
 
 % double e_t_1_ne;
 % if (e_t_ne>e_ne_co) {
@@ -427,7 +435,7 @@ for i = 1:n_X
 end
 
 % state output
-y   = [ e_t_1_ne; e_t_1_d; i_e_t; e_vbar_1_n; e_vbar_1_e; e_vbar_1_d; Vsafe; p; q; r; a_soft ];
+y   = [ e_t_1_ne; e_t_1_d; i_e_t_ne; i_e_t_d; e_vbar_1_n; e_vbar_1_e; e_vbar_1_d; Vsafe; p; q; r; a_soft ];
 n_Y = length(y);
 
 % ctrl output

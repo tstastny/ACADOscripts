@@ -23,7 +23,8 @@ DifferentialState p;        % (roll rate)
 DifferentialState q;        % (pitch rate)
 DifferentialState r;        % (yaw rate)
 DifferentialState delta_T;  % (throttle setting)
-DifferentialState i_e_t;    % (integral of track error)
+DifferentialState i_e_t_ne; % (integral of lateral-directional track error)
+DifferentialState i_e_t_d;  % (integral of longitudinal track error)
 DifferentialState sw;       % (segment switching state)
 
 % CONTROLS - - - - - - -
@@ -59,11 +60,11 @@ OnlineData wn;              % (northing wind)       [m/s]
 OnlineData we;              % (easting wind)        [m/s]
 OnlineData wd;              % (easting wind)        [m/s]
 
+OnlineData k_t_ne;          % lateral-directional logistic gain
+OnlineData e_ne_co;         % lateral-directional logistic cutoff
+
 OnlineData k_t_d;           % longitudinal logistic gain
 OnlineData e_d_co;          % longitudinal logistic cutoff
-
-OnlineData k_t_ne;          % lateral logistic gain
-OnlineData e_ne_co;         % lateral logistic cutoff
 
 OnlineData eps_v;           % unit ground speed threshold
 
@@ -71,16 +72,17 @@ OnlineData alpha_p_co;      % angle of attack upper cutoff
 OnlineData alpha_m_co;      % angle of attack lower cutoff 
 OnlineData alpha_delta_co; 	% angle of attack cutoff transition length
 
-OnlineData i_e_t_co;       	% integral error cut-off
+OnlineData i_e_t_ne_co;     % lateral-directional integral error cut-off
+OnlineData i_e_t_d_co;      % longitudinal integral error cut-off
 
 % OPTIMAL CONTROL PROBLEM -------------------------------------------------
 
 % lengths
 n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
-n_Y = 11;                   % state objectives
+n_Y = 12;                   % state objectives
 n_Z = 7;                    % control dependent objectives
-n_OD = 32;  % onlinedata
+n_OD = 33;  % onlinedata
 
 Q = eye(n_Y+n_Z,n_Y+n_Z);
 Q = acado.BMatrix(Q);
@@ -101,7 +103,7 @@ ocp.minimizeLSQEndTerm( QN, 'evaluateLSQEndTerm' );
 ocp.setModel('model', 'rhs', 'rhs_jac');
 ocp.setDimensions( n_X, n_U, n_OD, 0 );
 
-ocp.subjectTo( 0 <= u_T <= 0.85 );
+ocp.subjectTo( 0 <= u_T <= 1.0 );
 ocp.subjectTo( -30*pi/180 <= phi_ref <= 30*pi/180 );
 ocp.subjectTo( -15*pi/180 <= theta_ref <= 15*pi/180 );
 

@@ -8,7 +8,7 @@ const int idx_OD_0 = ACADO_NX+ACADO_NU-minus_NU;
 bool b_switch_segment = false;
 int pparam_sel = 0;
 double sw_dot = 0.0;
-if ( in[12] < 0.05 ) { // check x_sw
+if ( in[ACADO_NX-1] < 0.05 ) { // check x_sw
     const double vel[3] = {n_dot,e_dot,d_dot};
     if ( in[idx_OD_0] < 0.5 ) { // path type
         b_switch_segment = check_line_seg( &in[0], &vel[0], &in[idx_OD_0+1] );
@@ -55,14 +55,14 @@ if ( pparam_type < 0.5 ) {
         Td_e = abe / norm_ab;
         Td_d = abd / norm_ab;
     }
-
+    
     // dot product
     const double dot_abunit_ap = Td_n*(in[0] - pparam_aa_n) + Td_e*(in[1] - pparam_aa_e) + Td_d*(in[2] - pparam_aa_d);
     
     // point on track
-    d_n = pparam_aa_n + dot_abunit_ap * abn;
-    d_e = pparam_aa_e + dot_abunit_ap * abe;
-    d_d = pparam_aa_d + dot_abunit_ap * abd;
+    d_n = pparam_aa_n + dot_abunit_ap * Td_n;
+    d_e = pparam_aa_e + dot_abunit_ap * Td_e;
+    d_d = pparam_aa_d + dot_abunit_ap * Td_d;
     
 // CURVE SEGMENT
 } else if ( pparam_type < 1.5 ) {
@@ -81,30 +81,37 @@ if ( pparam_type < 0.5 ) {
     const double cp_n = in[0] - pparam_cc_n;
     const double cp_e = in[1] - pparam_cc_e;
     const double norm_cp = sqrt( cp_n*cp_n + cp_e*cp_e );
-    const double cp_n_unit = (norm_cp>0.1) ? cp_n / norm_cp : 0.0;
-    const double cp_e_unit = (norm_cp>0.1) ? cp_e / norm_cp : 0.0;
+    double cp_n_unit;
+    double cp_e_unit;
+    if (norm_cp>0.1) {
+        cp_n_unit = cp_n / norm_cp;
+        cp_e_unit = cp_e / norm_cp;
+    }
+    else {
+        cp_n_unit = 0.0;
+        cp_e_unit = 0.0;
+    }
     d_n = pparam_R * cp_n_unit + pparam_cc_n;
     d_e = pparam_R * cp_e_unit + pparam_cc_e;
 
     // calculate tangent
     Td_n = pparam_ldir * -cp_e_unit;
     Td_e = pparam_ldir * cp_n_unit;
-
+    
     // spiral angular position: [0,2*pi)
     const double xi_sp = atan2(cp_e_unit, cp_n_unit);
-    double delta_xi = xi_sp-pparam_xi0;
-
-    // closest point on nearest spiral leg and tangent down component
+    double delta_xi_p = xi_sp-pparam_xi0;
     if (pparam_ldir > 0.0 && pparam_xi0 > xi_sp) {
 
-        delta_xi = delta_xi + 6.28318530718;
+        delta_xi_p = delta_xi_p + 6.28318530718;
 
     } else if (pparam_ldir<0.0 && xi_sp>pparam_xi0) {
 
-        delta_xi = delta_xi - 6.28318530718;
+        delta_xi_p = delta_xi_p - 6.28318530718;
 
     }
 
+    // closest point on nearest spiral leg and tangent down component
     if (fabs(pparam_gam_sp) < 0.001) {
 
         d_d = pparam_cc_d;
@@ -115,35 +122,43 @@ if ( pparam_type < 0.5 ) {
         const double Rtangam = pparam_R * tan(pparam_gam_sp);
 
         // spiral height delta for current angle
-        const double delta_d_xi = -delta_xi * pparam_ldir * Rtangam;
+        const double delta_d_xi = -delta_xi_p * Rtangam;
 
         // end spiral altitude change
         const double delta_d_sp_end = -pparam_dxi * Rtangam;
 
         // nearest spiral leg
-        double delta_d_k = round( (in[2] - (pparam_cc_d + delta_d_xi)) / (6.28318530718*Rtangam) ) * 6.28318530718*Rtangam;
-        const double delta_d_end_k  = round( (delta_d_sp_end - (pparam_cc_d + delta_d_xi)) / (6.28318530718*Rtangam) ) * 6.28318530718*Rtangam;
-
-        // check
-        if (delta_d_k * pparam_gam_sp > 0.0) { //NOTE: gam is actually being used for its sign, but writing a sign operator doesnt make a difference here
-
-            delta_d_k = 0.0;
-
-        } else if (fabs(delta_d_k) > fabs(delta_d_end_k) ) {
-
-            delta_d_k = (delta_d_k < 0.0) ? -fabs(delta_d_end_k) : fabs(delta_d_end_k);
-
-        }
+        const double delta_d_k = round( (in[2] - (pparam_cc_d + delta_d_xi)) / (6.28318530718*Rtangam) ) * 6.28318530718*Rtangam;
 
         // closest point on nearest spiral leg
-        const double delta_d_sp = delta_d_k + delta_d_xi;
-        d_d = pparam_cc_d + delta_d_sp;
-        Td_d = -sin(pparam_gam_sp);
+        d_d = pparam_cc_d + delta_d_k + delta_d_xi;
+
+        /* d (on spiral) = (start height) + (revolution height increment) +
+         * (lateral-direcitonal angular position increment)
+         */
+        
+        // cap end point
+        if ((d_d - (delta_d_sp_end + pparam_cc_d)) * pparam_gam_sp < 0.0) {
+            // we (or more correctly, the closest point on the nearest spiral leg) are beyond the end point
+            d_d = pparam_cc_d + delta_d_sp_end;
+            Td_d = 0.0;
+        }
+        else {
+            Td_d = -sin(pparam_gam_sp);
+        }
+        
     }
     
-    if (Td_n<0.01 && Td_e<0.01) { // should always have lateral-directional references on curve (this is only when we hit the center of the circle)
+    if (fabs(Td_n)<0.01 && fabs(Td_e)<0.01) { // should always have lateral-directional references on curve (this is only when we hit the center of the circle)
         Td_n=1.0;
     }
+    
+    // Renormalize Td
+    const double normTd = sqrt(Td_n*Td_n+Td_e*Td_e+Td_d*Td_d);
+    Td_n = Td_n / normTd;
+    Td_e = Td_e / normTd;
+    Td_d = Td_d / normTd;
+        
 }
 
 /* end manual input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */

@@ -80,7 +80,7 @@ end
 % COSTS
 
 figure('color','w','name','Costs')
-hc(1)=subplot(4,1,1); hold on; grid on;
+hc(1)=subplot(5,1,1); hold on; grid on;
 plot(time,J_rec(:,1));
 plot(time,J_rec(:,2));
 % plot(time,J_rec(:,1));
@@ -88,27 +88,34 @@ plot(time,J_rec(:,2));
 legend('e_{T_{ne}}','e_{T_{d}}')
 ylabel('e [m]')
 
-hc(2)=subplot(4,1,2:4); hold on; grid on;
+hc(2)=subplot(5,1,2:3); hold on; grid on;
 
 plot(time,J_rec(:,3).^2*Q_output(1)); %e_t_1_ne
 plot(time,J_rec(:,4).^2*Q_output(2)); %e_t_1_d
-plot(time,(yref(3)*ones(length(time),1)-X_rec(:,13)).^2*Q_output(3)); % i_e_t
+plot(time,(yref(3)*ones(length(time),1)-X_rec(:,13)).^2*Q_output(3)); % i_e_t_ne
+plot(time,(yref(4)*ones(length(time),1)-X_rec(:,14)).^2*Q_output(4)); % i_e_t_d
 
-plot(time,J_rec(:,5).^2*Q_output(3)); %e_v1
-plot(time,J_rec(:,6).^2*Q_output(4)); %e_v2
-plot(time,J_rec(:,7).^2*Q_output(5)); %e_v3
-
-plot(time,(yref(7)*ones(length(time),1)-X_rec(:,4)).^2*Q_output(7)); % e_V
-plot(time,(yref(8)*ones(length(time),1)-X_rec(:,9)).^2*Q_output(8)); % e_p
-plot(time,(yref(9)*ones(length(time),1)-X_rec(:,10)).^2*Q_output(9)); % e_q
-plot(time,(yref(10)*ones(length(time),1)-X_rec(:,11)).^2*Q_output(10)); % e_r
+plot(time,J_rec(:,5).^2*Q_output(5)); %e_v1
+plot(time,J_rec(:,6).^2*Q_output(6)); %e_v2
+plot(time,J_rec(:,7).^2*Q_output(7)); %e_v3
 
 % plot(time,J_rec(:,4).^2*R_controls(4)); %Delta_T
 % plot(time,J_rec(:,4).^2*R_controls(5)); %Delta_phi
 % plot(time,J_rec(:,4).^2*R_controls(6)); %Delta_theta
 
-legend('e_{T^1_{ne}}','e_{T^1_{d}}','i_{e_{T}}','e_{v_{n}}','e_{v_{e}}','e_{v_{d}}','e_V','e_p','e_q','e_r')
-ylabel('J(e)')
+legend('e_{T^1_{ne}}','e_{T^1_{d}}','i_{e_{t_{ne}}}','i_{e_{t_{d}}}','e_{v_{n}}','e_{v_{e}}','e_{v_{d}}')
+ylabel('J(e,v)')
+
+hc(3)=subplot(5,1,4:5); hold on; grid on;
+
+plot(time,(yref(8)*ones(length(time),1)-X_rec(:,4)).^2*Q_output(8)); % e_V
+plot(time,(yref(9)*ones(length(time),1)-X_rec(:,9)).^2*Q_output(9)); % e_p
+plot(time,(yref(10)*ones(length(time),1)-X_rec(:,10)).^2*Q_output(10)); % e_q
+plot(time,(yref(11)*ones(length(time),1)-X_rec(:,11)).^2*Q_output(11)); % e_r
+
+legend('e_V','e_p','e_q','e_r')
+ylabel('J(V,p,q,r)')
+
 xlabel('time [s]')
 
 linkaxes(hc,'x');
@@ -120,7 +127,7 @@ figure('color','w','name','Airspeed & Throttle')
 
 handle_vdt(1) = subplot(3,1,1); hold on; grid on;
 hl = gobjects(0);
-hl(length(hl)+1) = plot(time,yref(7)*ones(1,length(time)),'color',c_ref);
+hl(length(hl)+1) = plot(time,yref(8)*ones(1,length(time)),'color',c_ref);
 hl(length(hl)+1) = plot(time,X_rec(:,4),'color',c_state);
 ylabel('V [m/s]');
 legend(hl,{'ref','state'});
@@ -261,8 +268,9 @@ ylabel('t_{solve} [ms]');
 
 handle_aux(2) = subplot(3,1,2); hold on; grid on;
 hl = gobjects(0);
-hl(length(hl)+1) = plot(time,X_rec(:,14),'color',c_state);
-ylabel('i_{e_T} [~]');
+hl(length(hl)+1) = plot(time,X_rec(:,13));
+hl(length(hl)+1) = plot(time,X_rec(:,14));
+legend('i_{e_{t_{ne}}}','i_{e_{t_{d}}}');
 
 handle_aux(3) = subplot(3,1,3); hold on; grid on;
 hl = gobjects(0);
@@ -274,7 +282,7 @@ hl = gobjects(0);
 %         horiz_rec(:,horiz_disp_int:horiz_disp_int:end,8)*r2d, ...
 %         '-', 'color', c_horiz);
 % end
-hl(length(hl)+1) = plot(time,X_rec(:,14),'color',c_state);
+hl(length(hl)+1) = plot(time,X_rec(:,15),'color',c_state);
 ylabel('x_{sw} [~]');
 % if horiz_disp
 %     legend(hl,{'horizon','ref','state'});
