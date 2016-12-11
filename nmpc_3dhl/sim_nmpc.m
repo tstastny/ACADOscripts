@@ -33,7 +33,7 @@ pparams_next = [paths(2).pparam1, ...
 
 % wind
 wn=0;
-we=0;
+we=10;
 wd=0;
 
 % switch conditions
@@ -47,7 +47,7 @@ e_d_co = 30;    % longitudinal logistic cutoff
 k_t_ne = 6/15;    % lateral logistic gain
 e_ne_co = 60;   % lateral logistic cutoff
 
-eps_v = 0.5;     % unit ground speed threshold
+eps_v = 1;     % unit ground speed threshold
 
 alpha_p_co = 8*pi/180;   % angle of attack upper cutoff
 alpha_m_co = -3*pi/180;   % angle of attack lower cutoff
@@ -63,7 +63,7 @@ W_i_e_t_d=0;
 load parameters_20161209.mat;
 
 % initial conditions
-ic_ned  = [-300, 0, 100];
+ic_ned  = [-300, 0, 10];
 ic_vV   = [13.5, 0, 0];
 ic_att  = [0, 0];
 ic_attdot = [0, 0, 0];
@@ -89,7 +89,7 @@ R_scale     = [1, 1 30*pi/180 15*pi/180, 1 5*pi/180 5*pi/180];
 
 Q_output    = [100 200 5 5 10 10 10 5 20 20 5 1]./Q_scale.^2;
 QN_output   = [100 200 5 5 10 10 10 5 20 20 5 1]./Q_scale.^2;
-R_controls  = [1 0.1 0.1 0.1 0 10 10]./R_scale.^2;
+R_controls  = [1 0.1 0.1 0.1 10 10 10]./R_scale.^2; % IF operating close to zero ground speed .. will need high delta ctrl gains.. e.g. 300
 
 Q_prev      = [(linspace(1,0,N+1)').^0,...
     (linspace(1,0,N+1)').^0,...
@@ -109,7 +109,7 @@ input.WN    = diag([QN_output(1:2),QN_output(3)*W_i_e_t_ne,QN_output(4)*W_i_e_t_
 
 % simulation
 T0      = 0;
-Tf      = 45;
+Tf      = 75;
 Ts      = 0.01;
 time    = T0:Ts:Tf;
 KKT_MPC = []; INFO_MPC = []; controls_MPC = [];
