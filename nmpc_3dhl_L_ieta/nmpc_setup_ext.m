@@ -23,8 +23,6 @@ DifferentialState p;        % (roll rate)
 DifferentialState q;        % (pitch rate)
 DifferentialState r;        % (yaw rate)
 DifferentialState delta_T;  % (throttle setting)
-DifferentialState i_eta_lat;% (integral of lateral-directional error angle)
-DifferentialState i_eta_lon;% (integral of longitudinal error angle)
 DifferentialState sw;       % (segment switching state)
 
 % CONTROLS - - - - - - -
@@ -53,8 +51,8 @@ OnlineData pparam7_next;   	%   bb_d    gam
 OnlineData pparam8_next;  	%   --      xi0
 OnlineData pparam9_next;  	%   --      dxi
 
-OnlineData R_acpt;
-OnlineData ceta_acpt;
+OnlineData R_acpt;          % (acceptance radius)   [m]
+OnlineData ceta_acpt;       % (cosine of acceptance angle)
 
 OnlineData wn;              % (northing wind)       [m/s]
 OnlineData we;              % (easting wind)        [m/s]
@@ -64,20 +62,18 @@ OnlineData alpha_p_co;      % angle of attack upper cutoff
 OnlineData alpha_m_co;      % angle of attack lower cutoff 
 OnlineData alpha_delta_co; 	% angle of attack cutoff transition length
 
-OnlineData e_ne_co;         % lateral-directional position error cutoff
-OnlineData e_d_co;          % longitudinal position error cutoff
-
-OnlineData i_eta_lat_co;     % lateral-directional integral error cut-off
-OnlineData i_eta_lon_co;      % longitudinal integral error cut-off
+OnlineData T_b_ne;          % lateral-directional track-error boundary constant
+OnlineData T_b_d;           % longitudinal track-error boundary constant
+OnlineData vG_min;          % minimum ground speed for track-error boundary
 
 % OPTIMAL CONTROL PROBLEM -------------------------------------------------
 
 % lengths
 n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
-n_Y = 9;                    % state objectives
+n_Y = 7;                    % state objectives
 n_Z = 7;                    % control dependent objectives
-n_OD = 30;                  % onlinedata
+n_OD = 29;                  % onlinedata
 
 Q = eye(n_Y+n_Z,n_Y+n_Z);
 Q = acado.BMatrix(Q);

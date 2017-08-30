@@ -5,8 +5,8 @@ close all; clear all; clc;
 % initial conditions
 N = 40;
 n_U = 3;
-n_X = 15; % number of nmpc states
-n_Y = 9+7;
+n_X = 13; % number of nmpc states
+n_Y = 7+7;
 n_Z = 7;
 
 % track
@@ -36,22 +36,19 @@ wn=0;
 we=0;
 wd=0;
 
-% switch conditions
-R_acpt = 30;    % switching acceptance radius
-ceta_acpt = 0.8; % switching acceptance cosine of error angle
+% params
+R_acpt = 30;                    % switching acceptance radius
+ceta_acpt = 0.8;                % switching acceptance cosine of error angle
+alpha_p_co = deg2rad(8);        % angle of attack upper cut-off
+alpha_m_co = deg2rad(-3);       % angle of attack lower cut-off
+alpha_delta_co = deg2rad(2);    % angle of attack cut-off transition length\
+T_b_ne = 1.5;                   % lateral-directional track-error boundary constant
+T_b_d = 3.5;                    % longitudinal track-error boundary constant
+vG_min = 1;                     % minimum ground speed for track-error boundary
 
-% gains
-e_ne_co = 10;   % lateral-directional position error cutoff
-e_d_co = 10;    % longitudinal position error cutoff
-
-alpha_p_co = 8*pi/180;   % angle of attack upper cutoff
-alpha_m_co = -3*pi/180;   % angle of attack lower cutoff
-alpha_delta_co = 2*pi/180;   % angle of attack cutoff transition length
-
-i_eta_lat_co = deg2rad(5);
-i_eta_lon_co = deg2rad(5);
-W_i_eta_lat=0;
-W_i_eta_lon=0;
+% integral action
+k_i_lat = 0.01;
+k_i_lon = 0.0;
 
 % model parameters
 load parameters_20161209.mat;
@@ -62,24 +59,27 @@ ic_vV   = [14, 0, 0];
 ic_att  = [0, 0];
 ic_attdot = [0, 0, 0];
 ic_u    = [0.375, 0, 1.7*pi/180];
-ic_augm = [ic_u(1), 0, 0, 0];
+ic_augm = [ic_u(1), 0];
 
 ic_od   = [pparams, pparams_next, R_acpt, ceta_acpt, ...
     wn, we, wd, ...
     alpha_p_co, alpha_m_co, alpha_delta_co, ...
-    e_ne_co, e_d_co, i_eta_lat_co, i_eta_lon_co];
+    T_b_ne, T_b_d, vG_min];
+
+i_e_lat = 0;
+i_e_lon = 0;
 
 % acado inputs
 nmpc_ic.x   = [ic_ned,ic_vV,ic_att,ic_attdot,ic_augm]; 
 nmpc_ic.u   = ic_u;
-yref        = [0 0 0 0, 14, 0 0 0, 0];
+yref        = [i_e_lat i_e_lon, 14, 0 0 0, 0];
 zref        = [0, ic_u, ic_u];
 
-Q_scale     = [pi/2 pi/2 1 1, 1, 50*pi/180 50*pi/180 50*pi/180, 1];
+Q_scale     = [pi/2 pi/2, 1, 50*pi/180 50*pi/180 50*pi/180, 1];
 R_scale     = [1, 1 30*pi/180 15*pi/180, 1 5*pi/180 5*pi/180];
 
-Q_output    = [300 300 0 0, 10, 20 20 5, 1]./Q_scale.^2;
-QN_output   = [1000 1000 0 0, 10, 20 20 5, 1]./Q_scale.^2;
+Q_output    = [200 100, 10, 20 20 5, 1]./Q_scale.^2;
+QN_output   = [200 100, 10, 20 20 5, 1]./Q_scale.^2;
 R_controls  = [40 0.1 0.1 0.1 30 20 30]./R_scale.^2;
 
 Q_prev      = [(linspace(1,0,N+1)').^0,...
@@ -91,11 +91,10 @@ input.u     = repmat(nmpc_ic.u, N,1);
 input.y     = repmat([yref, zref], N,1);
 input.yN    = input.y(1, 1:length(yref))';
 input.od    = repmat(ic_od, N+1, 1);
-QR = [Q_output(1:2),Q_output(3)*W_i_eta_lat,Q_output(4)*W_i_eta_lon,Q_output(5:end), R_controls(1:4)];
 for i = 1:N
-input.W(n_Y*(i-1)+1:n_Y*i,:) = diag([QR, (R_controls(5:7)).*Q_prev(i,:)]);
+input.W(n_Y*(i-1)+1:n_Y*i,:) = diag([Q_output, R_controls(1:4), R_controls(5:7).*Q_prev(i,:)]);
 end
-input.WN    = diag([QN_output(1:2),QN_output(3)*W_i_eta_lat,QN_output(4)*W_i_eta_lon,QN_output(5:end)]);%Py;%
+input.WN = diag(QN_output);
 
 % simulation
 T0      = 0;
@@ -118,7 +117,7 @@ d_states    = [...
     0,0,0, ...
     0,0, ...
     0,0,0, ...
-    0];
+    0,0];
 U0 = ic_u;
 path_idx = 1;
 endofwaypoints=false;
@@ -140,28 +139,27 @@ for k = 1:length(time)
             ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
                 wn, we, wd, ...
                 alpha_p_co, alpha_m_co, alpha_delta_co, ...
-                e_ne_co, e_d_co, i_eta_lat_co, i_eta_lon_co];
+                T_b_ne, T_b_d, vG_min];
             input.od = repmat(ic_od, N+1, 1);
-            X0(end-2) = 0; % i_eta
-            X0(end-1) = 0; % i_eta
             X0(end) = 0; % sw
-            output.x(:,end-2:end)=zeros(N+1,3);
+            output.x(:,end)=zeros(N+1,1);
+            i_e_lat = 0; % reset
+            i_e_lon = 0; % reset
         elseif ~endofwaypoints
             endofwaypoints=true;
             for i = 1:length(pparams)
                 pparams(i) = pparams_next(i);
-%                 eval(['pparams_next(i) = paths(path_idx+1).pparam',int2str(i),';']);
             end
             path_idx = path_idx + 1;
             ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
                 wn, we, wd, ...
                 alpha_p_co, alpha_m_co, alpha_delta_co, ...
-                e_ne_co, e_d_co, i_eta_lat_co, i_eta_lon_co];
+                T_b_ne, T_b_d, vG_min];
             input.od = repmat(ic_od, N+1, 1);
-            X0(end-2) = 0; % i_eta
-            X0(end-1) = 0; % i_eta
             X0(end) = 0; % sw
-            output.x(:,end-2:end)=zeros(N+1,3);
+            output.x(:,end)=zeros(N+1,1);
+            i_e_lat = 0; % reset
+            i_e_lon = 0; % reset
         end
     end
     
@@ -176,10 +174,9 @@ for k = 1:length(time)
          % shift initial states and controls
         if k > 1
             input.x     = output.x;%[output.x(2:end,:); output.x(end,:)]; %
-%             input.x =spline(0:Ts_step:(N*Ts_step),output.x',Ts_nmpc:Ts_step:(N*Ts_step+Ts_nmpc))';
             input.u     = output.u;%[output.u(2:end,:); output.u(end,:)]; %
-%             input.u = spline(0:Ts_step:((N-1)*Ts_step),output.u',Ts_nmpc:Ts_step:((N-1)*Ts_step+Ts_nmpc))';
             input.y(:,(end-2):end) = output.u;%[output.u(1,1)*ones(N,1),output.u(:,2:3)];%repmat(output.u(1,:),N,1);%
+            input.y(:,1:2) = [i_e_lat*ones(N,1), i_e_lon*ones(N,1)];
         end
 
         % generate controls
@@ -191,14 +188,8 @@ for k = 1:length(time)
         INFO_MPC = [INFO_MPC; output.info];
         KKT_MPC = [KKT_MPC; output.info.kktValue];
 
-%         % shift initial states and controls
-%         input.x     = [output.x(2:N+1,:); output.x(N+1,:)];
-%         input.u     = [output.u(2:N,:); output.u(N,:)];
-%         X0(10:15)   = output.x(2,10:15);
-
         % augmented states measurement update
-        X0(12:15) = output.x(1,12:15) + (output.x(2,12:15) - output.x(1,12:15))*Ts_nmpc/Ts_step;
-%         X0((n_X-n_XA-n_Xno+1):n_X) = output.x(1,(n_X-n_XA+1):n_X);
+        X0(12:13) = output.x(1,12:13) + (output.x(2,12:13) - output.x(1,12:13))*Ts_nmpc/Ts_step;
 
         tsolve(k) = toc(st_nmpc);
     
@@ -213,37 +204,37 @@ for k = 1:length(time)
     
     % measurement update
     X0(1:11) = simout(1:11);
-%     X0(12) = U0(1);
     
     % record states/controls
-    X_rec(k,:) = [simout, X0(13:15)];
+    X_rec(k,:) = [simout, X0(13)];
     horiz_rec(:,k,:) = output.x(:,:);
     horiz_rec_U(:,k,:) = output.u(:,:);
     U_rec(k,:) = U0;
-    J_rec(k,:) = calculate_cost([X0,U0,ic_od],[n_X,n_U]);
+    J_rec(k,:) = [calculate_cost([X0,U0,ic_od],[n_X,n_U]), i_e_lat, i_e_lon];
     
-    eta_lat = J_rec(k,1);
-    if (abs(eta_lat) < i_eta_lat_co*0.8), W_i_eta_lat = 1;
-    elseif (abs(eta_lat) < i_eta_lat_co), W_i_eta_lat = cos((abs(eta_lat)/i_eta_lat_co-0.8)/0.2*3.141592653589793) * 0.5 + 0.5;
+    % integral action
+    i_e_lat_0 = i_e_lat;
+    i_e_lon_0 = i_e_lon;
+
+    e_ne1 = J_rec(k,11);
+    if (abs(e_ne1) < 0.8), W_i_ne = 1;
+    elseif (abs(e_ne1) < 1), W_i_ne = cos((e_ne1-0.8)/0.2*3.141592653589793) * 0.5 + 0.5;
     else
-        W_i_eta_lat = 0;
-        X0(end-2) = 0; % i_e_t_ne
-        output.x(:,end-2)=zeros(N+1,1);
+        W_i_ne = 0;
+        i_e_lat_0 = 0; % reset
     end
-    eta_lon = J_rec(k,2);
-    if (abs(eta_lon) < i_eta_lon_co*0.8), W_i_eta_lon = 1;
-    elseif (abs(eta_lon) < i_eta_lon_co), W_i_eta_lon = cos((abs(eta_lon)/i_eta_lon_co-0.8)/0.2*3.141592653589793) * 0.5 + 0.5;
+    
+    e_d1 = J_rec(k,12);
+    if (abs(e_d1) < 0.8), W_i_d = 1;
+    elseif (abs(e_d1) < 1), W_i_d = cos((e_d1-0.8)/0.2*3.141592653589793) * 0.5 + 0.5;
     else
-        W_i_eta_lon = 0;
-        X0(end-1) = 0; % i_e_t_d
-        output.x(:,end-1)=zeros(N+1,1);
+        W_i_d = 0;
+        i_e_lon_0 = 0; % reset
     end
-    for i = 1:N
-        input.W(n_Y*(i-1)+3,3) = Q_output(3)*W_i_eta_lat;
-        input.W(n_Y*(i-1)+4,4) = Q_output(4)*W_i_eta_lon;
-    end
-    input.WN(3,3) = QN_output(3)*W_i_eta_lat;
-    input.WN(4,4) = QN_output(4)*W_i_eta_lon;
+    
+    i_e_lat = i_e_lat_0 - k_i_lat * W_i_ne * max(min(e_ne1,1),-1) * Ts_nmpc;
+    i_e_lon = 0;%i_e_lon_0 + k_i_lon * W_i_d * max(min(e_d1,1),-1) * Ts_nmpc;
+
 end
 
 plotsim

@@ -13,15 +13,36 @@
 
 % /////////////////////////////////////////////////////////////////////////
 
-% % paths(1).pparam1 = 0;
-% % paths(1).pparam2 = 0;
-% % paths(1).pparam3 = -50;
-% % paths(1).pparam4 = 0;
-% % paths(1).pparam5 = 200;
-% % paths(1).pparam6 = -50;
-% % paths(1).pparam7 = 0;
-% % paths(1).pparam8 = 0;
-% % paths(1).pparam9 = 0;
+
+% paths(1).pparam1 = 1;
+% paths(1).pparam2 = 0;
+% paths(1).pparam3 = 0;
+% paths(1).pparam4 = 0;
+% paths(1).pparam5 = 80;
+% paths(1).pparam6 = 1;
+% paths(1).pparam7 = 0*pi/180;
+% paths(1).pparam8 = -90*pi/180;
+% paths(1).pparam9 = 360*2*pi/180;
+% paths(2).pparam1 = 1;
+% paths(2).pparam2 = 0;
+% paths(2).pparam3 = 0;
+% paths(2).pparam4 = 0;
+% paths(2).pparam5 = 80;
+% paths(2).pparam6 = 1;
+% paths(2).pparam7 = 0*pi/180;
+% paths(2).pparam8 = -90*pi/180;
+% paths(2).pparam9 = 360*2*pi/180;
+
+
+% paths(1).pparam1 = 0;
+% paths(1).pparam2 = 0;
+% paths(1).pparam3 = -50;
+% paths(1).pparam4 = 0;
+% paths(1).pparam5 = 200;
+% paths(1).pparam6 = -50;
+% paths(1).pparam7 = 0;
+% paths(1).pparam8 = 0;
+% paths(1).pparam9 = 0;
 
 paths(1).pparam1 = 1;
 paths(1).pparam2 = 0;
@@ -47,7 +68,7 @@ paths(2).pparam1 = 1;
 paths(2).pparam2 = 0;
 paths(2).pparam3 = -20;
 paths(2).pparam4 = 28;
-paths(2).pparam5 = 30;
+paths(2).pparam5 = 35;
 paths(2).pparam6 = 1;
 paths(2).pparam7 = 8*pi/180;
 paths(2).pparam8 = -90*pi/180;

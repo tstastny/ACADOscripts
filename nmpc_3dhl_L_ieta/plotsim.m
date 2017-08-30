@@ -41,12 +41,12 @@ end
 % guidance
 guide_disp_int=100;
 if true
-    plot3([J_rec(1:guide_disp_int:end,18) X_rec(1:guide_disp_int:end,2)]',...
-        [J_rec(1:guide_disp_int:end,17) X_rec(1:guide_disp_int:end,1)]',...
-        [-J_rec(1:guide_disp_int:end,19) -X_rec(1:guide_disp_int:end,3)]','r')
-    plot3(J_rec(1:guide_disp_int:end,18),J_rec(1:guide_disp_int:end,17),-J_rec(1:guide_disp_int:end,19),'ro')
-    quiver3(J_rec(1:guide_disp_int:end,18),J_rec(1:guide_disp_int:end,17),-J_rec(1:guide_disp_int:end,19),...
-        J_rec(1:guide_disp_int:end,21),J_rec(1:guide_disp_int:end,20),-J_rec(1:guide_disp_int:end,22),'c')
+    plot3([J_rec(1:guide_disp_int:end,4) X_rec(1:guide_disp_int:end,2)]',...
+        [J_rec(1:guide_disp_int:end,3) X_rec(1:guide_disp_int:end,1)]',...
+        [-J_rec(1:guide_disp_int:end,5) -X_rec(1:guide_disp_int:end,3)]','r')
+    plot3(J_rec(1:guide_disp_int:end,4),J_rec(1:guide_disp_int:end,3),-J_rec(1:guide_disp_int:end,5),'ro')
+    quiver3(J_rec(1:guide_disp_int:end,4),J_rec(1:guide_disp_int:end,3),-J_rec(1:guide_disp_int:end,5),...
+        J_rec(1:guide_disp_int:end,7),J_rec(1:guide_disp_int:end,6),-J_rec(1:guide_disp_int:end,8),'c')
 end
 % position horizons
 if horiz_disp
@@ -81,30 +81,32 @@ end
 
 figure('color','w','name','Costs')
 hc(1)=subplot(5,1,1); hold on; grid on;
-plot(time,J_rec(:,23));
-plot(time,J_rec(:,24));
-legend('e_{t_{ne}}','e_{t_{d}}')
-ylabel('e_t [m]')
+plot(time,J_rec(:,1));
+plot(time,J_rec(:,2));
+legend('e_{ne}','e_d')
+ylabel('e [m]')
 
 hc(2)=subplot(5,1,2:3); hold on; grid on;
 
-plot(time,(yref(1)*ones(length(time),1)-J_rec(:,1)).^2*Q_output(1)); % eta_lat
-plot(time,(yref(2)*ones(length(time),1)-J_rec(:,2)).^2*Q_output(2)); % eta_lon
-plot(time,(yref(3)*ones(length(time),1)-J_rec(:,3)).^2*Q_output(3)); % i_e_t_ne
-plot(time,(yref(4)*ones(length(time),1)-J_rec(:,4)).^2*Q_output(4)); % i_e_t_d
+plot(time,rad2deg(J_rec(:,9))); % eta_lat
+plot(time,rad2deg(J_rec(:,10))); % eta_lon
+plot(time,rad2deg(J_rec(:,end-1))); % i_eta_lat
+plot(time,rad2deg(J_rec(:,end))); % i_eta_lon
 
 legend('\eta_{lat}','\eta_{lon}','i_{\eta_{lat}}','i_{\eta_{lon}}')
-ylabel('J(\eta,i_\eta)')
+ylabel('\eta [deg]')
 
 hc(3)=subplot(5,1,4:5); hold on; grid on;
 
-plot(time,(yref(5)*ones(length(time),1)-J_rec(:,5)).^2*Q_output(5)); % e_V
-plot(time,(yref(6)*ones(length(time),1)-J_rec(:,6)).^2*Q_output(6)); % e_p
-plot(time,(yref(7)*ones(length(time),1)-J_rec(:,7)).^2*Q_output(7)); % e_q
-plot(time,(yref(8)*ones(length(time),1)-J_rec(:,8)).^2*Q_output(8)); % e_r
-plot(time,(yref(9)*ones(length(time),1)-J_rec(:,9)).^2*Q_output(9)); % alpha_soft
+plot(time,(yref(1)*ones(length(time),1)+J_rec(:,end-1)-J_rec(:,9)).^2*Q_output(1)); % e_eta_lat
+plot(time,(yref(2)*ones(length(time),1)+J_rec(:,end)-J_rec(:,10)).^2*Q_output(2)); % e_eta_lon
+plot(time,(yref(3)*ones(length(time),1)-X_rec(:,4)).^2*Q_output(3)); % e_V
+plot(time,(yref(4)*ones(length(time),1)-X_rec(:,9)).^2*Q_output(4)); % e_p
+plot(time,(yref(5)*ones(length(time),1)-X_rec(:,10)).^2*Q_output(5)); % e_q
+plot(time,(yref(6)*ones(length(time),1)-X_rec(:,11)).^2*Q_output(6)); % e_r
+plot(time,(yref(7)*ones(length(time),1)-J_rec(:,13)).^2*Q_output(7)); % alpha_soft
 
-legend('e_V','e_p','e_q','e_r','\alpha_{soft}')
+legend('e_{\eta_{lat}}','e_{\eta_{lon}}','e_V','e_p','e_q','e_r','\alpha_{soft}')
 ylabel('J(V,p,q,r)')
 
 xlabel('time [s]')
@@ -118,7 +120,7 @@ figure('color','w','name','Airspeed & Throttle')
 
 handle_vdt(1) = subplot(3,1,1); hold on; grid on;
 hl = gobjects(0);
-hl(length(hl)+1) = plot(time,yref(5)*ones(1,length(time)),'color',c_ref);
+hl(length(hl)+1) = plot(time,yref(3)*ones(1,length(time)),'color',c_ref);
 hl(length(hl)+1) = plot(time,X_rec(:,4),'color',c_state);
 ylabel('V [m/s]');
 legend(hl,{'ref','state'});
@@ -253,16 +255,10 @@ figure('color','w','name','Auxiliary')
 
 handle_aux(1) = subplot(3,1,1); hold on; grid on;
 hl = gobjects(0);
-hl(length(hl)+1) = plot(time,tsolve*1000,'color',c_state);
+hl(length(hl)+1) = plot(time,tsolve*1000,'.','color',c_state);
 ylabel('t_{solve} [ms]');
 
-handle_aux(2) = subplot(3,1,2); hold on; grid on;
-hl = gobjects(0);
-hl(length(hl)+1) = plot(time,X_rec(:,13));
-hl(length(hl)+1) = plot(time,X_rec(:,14));
-legend('i_{\eta_{lat}}','i_{\eta_{lon}}');
-
-handle_aux(3) = subplot(3,1,3); hold on; grid on;
+handle_aux(2) = subplot(3,1,3); hold on; grid on;
 hl = gobjects(0);
 % if horiz_disp
 %     hl(length(hl)+1) = plot(horiz_time(:,1), ...
@@ -272,7 +268,7 @@ hl = gobjects(0);
 %         horiz_rec(:,horiz_disp_int:horiz_disp_int:end,8)*r2d, ...
 %         '-', 'color', c_horiz);
 % end
-hl(length(hl)+1) = plot(time,X_rec(:,15),'color',c_state);
+hl(length(hl)+1) = plot(time,X_rec(:,13),'o','color',c_state);
 ylabel('x_{sw} [~]');
 % if horiz_disp
 %     legend(hl,{'horizon','ref','state'});
