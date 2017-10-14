@@ -3,7 +3,7 @@
 close all; clear all; clc;
 
 % initial conditions
-N = 80;
+N = 70;
 n_U = 3;
 n_X = 13; % number of nmpc states
 n_Y = 7+4;
@@ -18,22 +18,18 @@ pparams = [paths(1).pparam1, ...
     paths(1).pparam4, ...
     paths(1).pparam5, ...
     paths(1).pparam6, ...
-    paths(1).pparam7, ...
-    paths(1).pparam8, ...
-    paths(1).pparam9];
+    paths(1).pparam7];
 pparams_next = [paths(2).pparam1, ...
     paths(2).pparam2, ...
     paths(2).pparam3, ...
     paths(2).pparam4, ...
     paths(2).pparam5, ...
     paths(2).pparam6, ...
-    paths(2).pparam7, ...
-    paths(2).pparam8, ...
-    paths(2).pparam9];
+    paths(2).pparam7];
 
 % wind
-wn=6;
-we=-3;
+wn=0;
+we=0;
 wd=0;
 
 % params
@@ -52,7 +48,7 @@ u_trim = [0.375, 0, 1.7*pi/180];
 
 % initial conditions
 ic_u    = u_trim;
-ic_ned  = [-300, 0, 10];
+ic_ned  = [-300, 0, -80];
 ic_vV   = [14, 0, 0];
 ic_att  = [0, 0];
 ic_attdot = [0, 0, 0];
@@ -65,14 +61,14 @@ ic_od   = [pparams, pparams_next, R_acpt, ceta_acpt, ...
 % acado inputs
 nmpc_ic.x   = [ic_ned,ic_vV,ic_att,ic_attdot,ic_augm]; 
 nmpc_ic.u   = ic_u;
-yref        = [0 0, 13.5, 0 0 0, 0];
+yref        = [0 0, 13.5, 0 0 0, 0];%-0.764
 zref        = [0, u_trim];
 
 Q_scale     = [pi/2 pi/2, 1, deg2rad(50) deg2rad(50) deg2rad(50), 1];
 R_scale     = [1, 1 deg2rad(30) deg2rad(15)];
 
-Q_output    = [200 200, 10, 20 20 5, 100]./Q_scale.^2;
-QN_output   = [200 200, 10, 20 20 5, 100]./Q_scale.^2;
+Q_output    = [200 200, 80, 20 20 5, 120]./Q_scale.^2;
+QN_output   = [200 200, 80, 20 20 5, 120]./Q_scale.^2;
 R_controls  = [40 30 50 50]./R_scale.^2;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
@@ -91,7 +87,7 @@ time    = T0:Ts:Tf;
 KKT_MPC = []; INFO_MPC = []; controls_MPC = [];
 
 Ts_nmpc = 0.1; % interval between nmpc calls
-Ts_step = 0.05; % step size in nmpc
+Ts_step = 0.1; % step size in nmpc
 
 % initial simout
 X0          = nmpc_ic.x;
@@ -112,9 +108,21 @@ for k = 1:length(time)
     
     % check path
     if pparams(1) < 0.5
-        path_checks(k) = check_line_seg(states(1:3),d_states(1:3),ic_od(2:end));
+        path_checks(k) = check_line_seg(states(1:3),d_states(1:3),ic_od(1:end));
     elseif pparams(1) < 1.5
-        path_checks(k) = check_curve_seg(states(1:3),d_states(1:3),ic_od(2:end));
+        path_checks(k) = check_curve_seg(states(1:3),d_states(1:3),ic_od(1:end));
+    elseif pparams(1) < 2.5
+        path_checks(k) = false;
+%         % avoid shitty optimization solutions when far from point in z-axis
+%         [p1] = set_position_setpoint(states(3),abs(wd),yref(3)*sin(alpha_p_co-alpha_delta_co),pparams(4),Ts_step,N);
+%         
+%         ic_od = [pparams(1:3),p1,pparams(5:7), pparams_next, R_acpt, ceta_acpt, ...
+%                 wn, we, wd, ...
+%                 alpha_p_co, alpha_m_co, alpha_delta_co, ...
+%                 T_b_lat, T_b_lon];
+%         input.od = repmat(ic_od, N+1, 1);
+    else
+        path_checks(k) = false;
     end
     if path_checks(k)
         if path_idx<length(paths)-1
@@ -147,15 +155,16 @@ for k = 1:length(time)
     end
     
     % motor failure
-    if 0%k>25*1/Ts
-        input.W = repmat(diag([Q_output, R_controls(1), 1000000, R_controls(3:4)]), [N 1]);
-        input.y     = repmat([yref, zref(1), 0, zref(3:4)], N,1);
-        X0(12) = 0;
-        states(12) = 0;
-    end
+%     if k>25*1/Ts
+%         input.W = repmat(diag([Q_output, R_controls(1), 1000000, R_controls(3:4)]), [N 1]);
+%         input.y     = repmat([yref, zref(1), 0, zref(3:4)], N,1);
+%         X0(12) = 0;
+%         states(12) = 0;
+%     end
     
     % measure
     input.x0    = X0';
+%     input.x0(6) = input.x0(6)+deg2rad(2);
     
     if time(k)==floor(time(k)/Ts_nmpc)*Ts_nmpc
     

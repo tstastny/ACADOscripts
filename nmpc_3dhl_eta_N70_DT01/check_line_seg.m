@@ -1,27 +1,14 @@
 function bool = check_line_seg( pos, vel, params )
  
-% waypoint a to b
-ab_n = params(4) - params(1);
-ab_e = params(5) - params(2);
-ab_d = params(6) - params(3);
-
-norm_ab = sqrt( ab_n*ab_n + ab_e*ab_e + ab_d*ab_d );
-
 % Tb
-if (norm_ab > 0.1)
-    Tb_n =  ab_n / norm_ab;
-    Tb_e = ab_e / norm_ab;
-    Tb_d = ab_d / norm_ab;
-else
-    Tb_n = 1;
-    Tb_e = 0;
-    Tb_d = 0;
-end
+Tb_n = cos(params(7))*cos(params(6));
+Tb_e = cos(params(7))*sin(params(6));
+Tb_d = -sin(params(7));
 
 % p - b
-bp_n = pos(1) - params(4);
-bp_e = pos(2) - params(5);
-bp_d = pos(3) - params(6);
+bp_n = pos(1) - params(2);
+bp_e = pos(2) - params(3);
+bp_d = pos(3) - params(4);
 
 % % dot( v , Tb )
 % dot_vTb = vel(1) * Tb_n + vel(2) * Tb_e + vel(3) * Tb_d;

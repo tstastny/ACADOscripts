@@ -58,24 +58,20 @@ n_U     = length(ctrls);
 assume(ctrls,'real');
 
 % ONLINE DATA /////////////////////////////////////////////////////////////
-syms pparam1;           %   type    type
-syms pparam2;           %   aa_n    cc_n
-syms pparam3;           %   aa_e    cc_e
-syms pparam4;           %   aa_d    cc_d
-syms pparam5;           %   bb_n    R
-syms pparam6;           %   bb_e    dir
-syms pparam7;           %   bb_d    gam
-syms pparam8;           %   --      xi0
-syms pparam9;           %   --      dxi
-syms pparam1_next;      %   type    type
-syms pparam2_next;      %   aa_n    cc_n
-syms pparam3_next;      %   aa_e    cc_e
-syms pparam4_next;      %   aa_d    cc_d
-syms pparam5_next;      %   bb_n    R
-syms pparam6_next;      %   bb_e    dir
-syms pparam7_next;      %   bb_d    gam
-syms pparam8_next;      %   --      xi0
-syms pparam9_next;      %   --      dxi
+syms pparam1;           % 
+syms pparam2;           % 
+syms pparam3;           % 
+syms pparam4;           % 
+syms pparam5;           % 
+syms pparam6;           % 
+syms pparam7;           % 
+syms pparam1_next;      % 
+syms pparam2_next;      % 
+syms pparam3_next;      % 
+syms pparam4_next;      % 
+syms pparam5_next;      % 
+syms pparam6_next;      % 
+syms pparam7_next;      % 
 syms R_acpt;            % switching acceptance radius
 syms ceta_acpt;         % switching acceptance cosine of error angle
 syms wn;                % northing wind
@@ -89,8 +85,8 @@ syms T_b_lon;           % longitudinal track-error boundary constant
 vG_min = 1;
 
 onlinedata  = [...
-    pparam1,pparam2,pparam3,pparam4,pparam5,pparam6,pparam7,pparam8,pparam9,...
-    pparam1_next,pparam2_next,pparam3_next,pparam4_next,pparam5_next,pparam6_next,pparam7_next,pparam8_next,pparam9_next,...
+    pparam1,pparam2,pparam3,pparam4,pparam5,pparam6,pparam7,...
+    pparam1_next,pparam2_next,pparam3_next,pparam4_next,pparam5_next,pparam6_next,pparam7_next,...
     R_acpt,ceta_acpt,...
     wn,we,wd,...
     alpha_p_co,alpha_m_co,alpha_delta_co,...

@@ -76,8 +76,6 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OnlineData pparam5; 
     OnlineData pparam6; 
     OnlineData pparam7; 
-    OnlineData pparam8; 
-    OnlineData pparam9; 
     OnlineData pparam1_next; 
     OnlineData pparam2_next; 
     OnlineData pparam3_next; 
@@ -85,8 +83,6 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OnlineData pparam5_next; 
     OnlineData pparam6_next; 
     OnlineData pparam7_next; 
-    OnlineData pparam8_next; 
-    OnlineData pparam9_next; 
     OnlineData R_acpt; 
     OnlineData ceta_acpt; 
     OnlineData wn; 
@@ -107,11 +103,11 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     ocp1.subjectTo(0.000000E+00 <= u_T <= 1.000000E+00);
     ocp1.subjectTo((-5.235988E-01) <= phi_ref <= 5.235988E-01);
     ocp1.subjectTo((-2.617994E-01) <= theta_ref <= 2.617994E-01);
-    ocp1.setNOD( 28 );
+    ocp1.setNOD( 24 );
     ocp1.setNP( 0 );
     ocp1.setNU( 3 );
     ocp1.setModel( "model", "rhs", "rhs_jac" );
-    ocp1.setDimensions( 0, 13, 0, 0, 0, 3, 28, 0 );
+    ocp1.setDimensions( 0, 13, 0, 0, 0, 3, 24, 0 );
 
 
     OCPexport ExportModule1( ocp1 );

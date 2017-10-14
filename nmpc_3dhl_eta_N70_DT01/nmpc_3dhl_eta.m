@@ -31,25 +31,21 @@ Control phi_ref;            % (roll angle reference)        [rad]
 Control theta_ref;          % (pitch angle reference)       [rad]
 
 % ONLINE DATA - - - - - -
-OnlineData pparam1;         %   type    type
-OnlineData pparam2;         %   aa_n    cc_n
-OnlineData pparam3;         %   aa_e    cc_e
-OnlineData pparam4;         %   aa_d    cc_d
-OnlineData pparam5;         %   bb_n    R
-OnlineData pparam6;         %   bb_e    dir
-OnlineData pparam7;         %   bb_d    gam
-OnlineData pparam8;         %   --      xi0
-OnlineData pparam9;         %   --      dxi
+OnlineData pparam1;         % 
+OnlineData pparam2;         % 
+OnlineData pparam3;         % 
+OnlineData pparam4;         % 
+OnlineData pparam5;         % 
+OnlineData pparam6;         % 
+OnlineData pparam7;         % 
 
-OnlineData pparam1_next;   	%   type    type
-OnlineData pparam2_next;   	%   aa_n    cc_n
-OnlineData pparam3_next;   	%   aa_e    cc_e
-OnlineData pparam4_next;  	%   aa_d    cc_d
-OnlineData pparam5_next;  	%   bb_n    R
-OnlineData pparam6_next;  	%   bb_e    dir
-OnlineData pparam7_next;   	%   bb_d    gam
-OnlineData pparam8_next;  	%   --      xi0
-OnlineData pparam9_next;  	%   --      dxi
+OnlineData pparam1_next;   	% 
+OnlineData pparam2_next;   	% 
+OnlineData pparam3_next;   	% 
+OnlineData pparam4_next;  	% 
+OnlineData pparam5_next;  	% 
+OnlineData pparam6_next;  	% 
+OnlineData pparam7_next;   	% 
 
 OnlineData R_acpt;          % (acceptance radius)   [m]
 OnlineData ceta_acpt;       % (cosine of acceptance angle)
@@ -72,7 +68,7 @@ n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
 n_Y = 7;                    % state objectives
 n_Z = 4;                    % control dependent objectives
-n_OD = 28;                  % onlinedata
+n_OD = 24;                  % onlinedata
 
 Q = eye(n_Y+n_Z,n_Y+n_Z);
 Q = acado.BMatrix(Q);

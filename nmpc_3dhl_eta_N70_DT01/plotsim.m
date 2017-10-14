@@ -1,5 +1,5 @@
 
-horiz_disp = false;
+horiz_disp = true;
 horiz_disp_int = 100; % every Nth record
 
 horiz_time = (repmat(time(1:horiz_disp_int:end),N+1,1)+Ts_step*repmat((0:N)',1,length(time(1:horiz_disp_int:end))));
@@ -23,17 +23,24 @@ hl = gobjects(0);
 for k = 1:length(paths)
 
     if paths(k).pparam1 == 0
-        hl(1) = plot3([paths(k).pparam3 paths(k).pparam6], ...
-            [paths(k).pparam2 paths(k).pparam5], ...
-            -[paths(k).pparam4 paths(k).pparam7], ...
+        hl(1) = plot3([paths(k).pparam3 paths(k).pparam3+100*cos(paths(k).pparam6+pi)*cos(paths(k).pparam7)], ...
+            [paths(k).pparam2 paths(k).pparam2+100*sin(paths(k).pparam6+pi)*cos(paths(k).pparam7)], ...
+            -[paths(k).pparam4 paths(k).pparam4+100*sin(paths(k).pparam7)], ...
             'color',c_ref,'linewidth',1);
     elseif paths(k).pparam1 == 1
-        tset = linspace(paths(k).pparam8, ...
-            paths(k).pparam8 + paths(k).pparam9 * paths(k).pparam6, ...
-            ltset)';
+        tset = linspace(paths(k).pparam6 - sign(paths(k).pparam5) * pi/2, ...
+            (paths(k).pparam6 - sign(paths(k).pparam5) * pi/2) - sign(paths(k).pparam5)*2*pi*3, ltset)';
+        
         r = repmat([paths(k).pparam2,paths(k).pparam3,paths(k).pparam4],ltset,1) + ...
-            [paths(k).pparam5 * cos(tset), paths(k).pparam5 * sin(tset), ...
-            -paths(k).pparam6 * (tset-tset(1)) * paths(k).pparam5 * tan(paths(k).pparam7)];
+            [abs(paths(k).pparam5) * cos(tset), abs(paths(k).pparam5) * sin(tset), ...
+            abs(tset-tset(1)) * abs(paths(k).pparam5) * tan(paths(k).pparam7)];
+        
+        hl(1) = plot3(r(:,2),r(:,1),-r(:,3),'color',c_ref,'linewidth',1);
+    elseif paths(k).pparam1 == 2
+        tset = linspace(0,2*pi,ltset)';
+        r = repmat([paths(k).pparam2,paths(k).pparam3,paths(k).pparam4],ltset,1) + ...
+            [abs(paths(k).pparam5) * cos(tset), abs(paths(k).pparam5) * sin(tset), ...
+            -paths(k).pparam3 * ones(ltset,1)];
         hl(1) = plot3(r(:,2),r(:,1),-r(:,3),'color',c_ref,'linewidth',1);
     end
     
@@ -165,51 +172,22 @@ end
 xlabel('time [s]')
 linkaxes(handle_vdt,'x')
 
+
 %% /////////////////////////////////////////////////////////////////////////
-% ATTITUDE
+% SPEEDS
 
-figure('color','w','name','Attitude')
+figure('color','w','name','Speeds')
+hold on; grid on;
 
-handle_att(1) = subplot(2,1,1); hold on; grid on;
-hl = gobjects(0);
-if horiz_disp
-    hl(length(hl)+1) = plot(horiz_time(1:end-1,1), ...
-        horiz_rec_U(:,1,2)*r2d, ...
-        '-', 'color', c_horiz);
-    plot(horiz_time(1:end-1,2:end), ...
-        horiz_rec_U(:,horiz_disp_int:horiz_disp_int:end,2)*r2d, ...
-        '-', 'color', c_horiz);
-end
-hl(length(hl)+1) = plot(time,U_rec(:,2)*r2d,'color',c_ref);
-hl(length(hl)+1) = plot(time,X_rec(:,7)*r2d);
-ylabel('\phi [deg]');
-if horiz_disp
-    legend(hl,{'horizon','ref','state'});
-else
-    legend(hl,{'ref','state'});
-end
+plot(time,yref(3)*ones(1,length(time)),'color',c_ref);
+plot(time,X_rec(:,4));
+plot(time,sqrt(aux_rec(:,12).^2 + aux_rec(:,13).^2));
+plot(time,aux_rec(:,14));
+plot(time,sqrt(aux_rec(:,15).^2 + aux_rec(:,16).^2 + aux_rec(:,17).^2));
 
-handle_att(2) = subplot(2,1,2); hold on; grid on;
-hl = gobjects(0);
-if horiz_disp
-    hl(length(hl)+1) = plot(horiz_time(1:end-1,1), ...
-        horiz_rec_U(:,1,3)*r2d, ...
-        '-', 'color', c_horiz);
-    plot(horiz_time(1:end-1,2:end), ...
-        horiz_rec_U(:,horiz_disp_int:horiz_disp_int:end,3)*r2d, ...
-        '-', 'color', c_horiz);
-end
-hl(length(hl)+1) = plot(time,U_rec(:,3)*r2d,'color',c_ref);
-hl(length(hl)+1) = plot(time,X_rec(:,8)*r2d);
-ylabel('\theta [deg]');
-if horiz_disp
-    legend(hl,{'horizon','ref','state'});
-else
-    legend(hl,{'ref','state'});
-end
+legend('v_{A}^{ref}','v_A','v_{ne}','v_{d}','|w|')
 
 xlabel('time [s]')
-linkaxes(handle_att,'x')
 
 %% /////////////////////////////////////////////////////////////////////////
 % RATES
