@@ -12,7 +12,7 @@ if ( in[ACADO_NX-1] < 0.05 ) { // check x_sw
     const double vel[3] = {n_dot,e_dot,d_dot};
     if ( in[idx_OD_0] < 0.5 ) { // path type
         b_switch_segment = check_line_seg( &in[0], &vel[0], &in[idx_OD_0] );
-    } else if (in[ACADO_NX+ACADO_NU-minus_NU] < 1.5 ) {
+    } else if (in[idx_OD_0] < 1.5 ) {
         b_switch_segment = check_curve_seg( &in[0], &vel[0], &in[idx_OD_0] );
     }
 } else {
@@ -51,7 +51,7 @@ if ( pparam_type < 0.5 ) {
 // ARC SEGMENT
 } else if ( pparam_type < 1.5 ) {
 
-    // variable definitions
+// variable definitions
 //     const double pparam_cc_n = in[idx_OD_0+pparam_sel+1];
 //     const double pparam_cc_e = in[idx_OD_0+pparam_sel+2];
 //     const double pparam_cc_d = in[idx_OD_0+pparam_sel+3];
@@ -87,15 +87,17 @@ if ( pparam_type < 0.5 ) {
     
     // angular exit
     double xi_exit = in[idx_OD_0+pparam_sel+5] - pparam_ldir * 1.570796326794897;
+    if (xi_exit>3.141592653589793) {
+        xi_exit = xi_exit - 6.283185307179586;
+    }
+    else if (xi_exit<-3.141592653589793) {
+        xi_exit = xi_exit + 6.283185307179586;
+    }
     
     // angular travel (back calculated) from exit [0,2pi)
-    double delta_xi = xi_pos - xi_exit;
-    if (pparam_ldir > 0.0 && xi_exit < xi_pos) {
-        delta_xi = delta_xi + 6.28318530718;
-    }
-    else if (pparam_ldir < 0.0 && xi_exit > xi_pos) {
-        delta_xi = delta_xi - 6.28318530718;
-    }
+    double delta_xi = pparam_ldir * (xi_exit - xi_pos);
+    if (delta_xi >= 6.28318530718) delta_xi = 0.0;
+    if (delta_xi < 0.0) delta_xi = delta_xi + 6.28318530718;
 
     // closest point on nearest spiral leg and tangent down component
     if (fabs(in[idx_OD_0+pparam_sel+6]) < 0.001) {
@@ -112,7 +114,7 @@ if ( pparam_type < 0.5 ) {
 
         // nearest spiral leg
         const double delta_d_k = round( (in[2] - (in[idx_OD_0+pparam_sel+3] + delta_d_xi)) / (6.28318530718*RtanGam) ) * 6.28318530718*RtanGam;
-
+        
         // closest point on nearest spiral leg
         p_d = in[idx_OD_0+pparam_sel+3] + delta_d_k + delta_d_xi;
         
@@ -176,6 +178,8 @@ if ( pparam_type < 0.5 ) {
 
 /* begin inline functions !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
+/* begin inline functions !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+
 bool check_line_seg( const double *pos, const double *vel, const double *params ) {
     
     // tB
@@ -183,13 +187,13 @@ bool check_line_seg( const double *pos, const double *vel, const double *params 
     const double tB_e = cos(params[6])*sin(params[5]);
     const double tB_d = -sin(params[6]);
 
-    // p - b
-    const double bp_n = pos[0] - params[1];
-    const double bp_e = pos[1] - params[2];
-    const double bp_d = pos[2] - params[3];
+    // r - b
+    const double br_n = pos[0] - params[1];
+    const double br_e = pos[1] - params[2];
+    const double br_d = pos[2] - params[3];
     
-    // dot( (p-r) , tB )
-    const double dot_brtB = bp_n * tB_n + bp_e * tB_e + bp_d * tB_d;
+    // dot( (r-b) , tB )
+    const double dot_brtB = br_n * tB_n + br_e * tB_e + br_d * tB_d;
     
     // check travel 
     return ( dot_brtB > 0.0 );
@@ -203,23 +207,26 @@ bool check_curve_seg( const double *pos, const double *vel, const double *params
     const double tB_e = cos(params[6])*sin(params[5]);
     const double tB_d = -sin(params[6]);
 
-    // p - b
+    // r - b
     const double rot90 = (params[4]<0.0) ? -1.570796326794897 : 1.570796326794897;
-    const double bp_n = pos[0] - (params[1] + fabs(params[4]) * cos(params[5] - rot90));
-    const double bp_e = pos[1] - (params[2] + fabs(params[4]) * sin(params[5] - rot90));
-    const double bp_d = pos[2] - params[3];
+    const double br_n = pos[0] - (params[1] + fabs(params[4]) * cos(params[5] - rot90));
+    const double br_e = pos[1] - (params[2] + fabs(params[4]) * sin(params[5] - rot90));
+    const double br_d = pos[2] - params[3];
     
-    // dot( v , tB )
-    const double dot_vtB = vel[0] * tB_n + vel[1] * tB_e + vel[2] * tB_d;
+    // bearing : dot( v , tB ) (lat)
+    const double dot_vtB = vel[0] * tB_n + vel[1] * tB_e;
     
-    // dot( (p-r) , tB )
-    const double dot_brtB = bp_n * tB_n + bp_e * tB_e + bp_d * tB_d;
+    // travel : dot( (r-b) , tB ) (lat)
+    const double dot_brtB = br_n * tB_n + br_e * tB_e;
     
-    // norm( p-r )
-    const double norm_br = sqrt( bp_n*bp_n + bp_e*bp_e + bp_d*bp_d );
+    // proximity : norm( r-b ) (lat)
+    const double norm_br = sqrt( br_n*br_n + br_e*br_e );
+    
+    // proximity : norm( r-b ) (lon)
+    const double norm_br_d = fabs(br_d);
     
     // check (1) proximity, (2) bearing, (3) travel 
-    return ( norm_br < params[14] && dot_vtB > params[15] && dot_brtB > 0.0 );
+    return ( norm_br < params[14] && norm_br_d < 10.0 && dot_vtB > params[15]*sqrt(vel[0]*vel[0]+vel[1]*vel[1]) && dot_brtB > 0.0 );
 }
 
 /* end inline functions !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */

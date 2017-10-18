@@ -76,10 +76,26 @@ hl(length(hl)+1) = plot3(X_rec(:,2),X_rec(:,1),-X_rec(:,3),'linewidth',1.5);
 xlabel('East [m]')
 ylabel('North [m]')
 zlabel('Height [m]');
+
+% speed vectors
+spd_disp_int = 100;
+hl(length(hl)+1) = quiver3(X_rec(1:spd_disp_int:end,2),X_rec(1:spd_disp_int:end,1),-X_rec(1:spd_disp_int:end,3),...
+    aux_rec(1:spd_disp_int:end,13),aux_rec(1:spd_disp_int:end,12),-aux_rec(1:spd_disp_int:end,14),...
+    'AutoScaleFactor',0.3);
+hl(length(hl)+1) = quiver3(X_rec(1:spd_disp_int:end,2),X_rec(1:spd_disp_int:end,1),-X_rec(1:spd_disp_int:end,3),...
+    X_rec(1:spd_disp_int:end,4).*sin(X_rec(1:spd_disp_int:end,6)).*cos(X_rec(1:spd_disp_int:end,5)),...
+    X_rec(1:spd_disp_int:end,4).*cos(X_rec(1:spd_disp_int:end,6)).*cos(X_rec(1:spd_disp_int:end,5)),...
+    X_rec(1:spd_disp_int:end,4).*sin(X_rec(1:spd_disp_int:end,5)),...
+    'AutoScaleFactor',0.3);
+hl(length(hl)+1) = quiver3(X_rec(1:spd_disp_int:end,2),X_rec(1:spd_disp_int:end,1),-X_rec(1:spd_disp_int:end,3),...
+    aux_rec(1:spd_disp_int:end,16),aux_rec(1:spd_disp_int:end,15),-aux_rec(1:spd_disp_int:end,17),...
+    'AutoScaleFactor',0.3);
+
+
 if horiz_disp
-    legend(hl,{'path','horizon','position'});
+    legend(hl,{'path','horizon','position','vG','vA','w'});
 else
-    legend(hl,{'path','position'});
+    legend(hl,{'path','position','vG','vA','w'});
 end
 % view(10,60)
 
@@ -188,6 +204,27 @@ plot(time,sqrt(aux_rec(:,15).^2 + aux_rec(:,16).^2 + aux_rec(:,17).^2));
 legend('v_{A}^{ref}','v_A','v_{ne}','v_{d}','|w|')
 
 xlabel('time [s]')
+
+%% /////////////////////////////////////////////////////////////////////////
+% ATTITUDE
+
+figure('color','w','name','Attitude')
+
+handle_rates(1) = subplot(2,1,1); hold on; grid on;
+plot(time,rad2deg(U_rec(:,2)));
+plot(time,rad2deg(aux_rec(:,18)));
+plot(time,rad2deg(X_rec(:,7)));
+ylabel('\phi [deg]');
+legend('\phi_{ref}','phi_{ff}','\phi')
+
+handle_rates(2) = subplot(2,1,2); hold on; grid on;
+plot(time,rad2deg(U_rec(:,3)));
+plot(time,rad2deg(X_rec(:,8)));
+ylabel('\theta [deg/s]');
+legend('\theta_{ref}','\theta')
+
+xlabel('time [s]')
+linkaxes(handle_rates,'x')
 
 %% /////////////////////////////////////////////////////////////////////////
 % RATES

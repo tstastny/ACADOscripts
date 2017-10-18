@@ -8,7 +8,7 @@ close all;
 % BEGIN_ACADO;
 
 Ts = 0.1;	% model discretization step
-N  = 70;    % horizon length
+N  = 40;    % horizon length
 
 % STATES - - - - - - - -
 DifferentialState n;        % (northing)

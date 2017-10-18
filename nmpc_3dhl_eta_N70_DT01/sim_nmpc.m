@@ -3,11 +3,14 @@
 close all; clear all; clc;
 
 % initial conditions
-N = 70;
+N = 40;
 n_U = 3;
 n_X = 13; % number of nmpc states
 n_Y = 7+4;
 n_Z = 4;
+
+Ts_step = 0.1; % step size in nmpc
+
 
 % track
 defpaths
@@ -28,7 +31,7 @@ pparams_next = [paths(2).pparam1, ...
     paths(2).pparam7];
 
 % wind
-wn=0;
+wn=7;
 we=0;
 wd=0;
 
@@ -64,12 +67,18 @@ nmpc_ic.u   = ic_u;
 yref        = [0 0, 13.5, 0 0 0, 0];%-0.764
 zref        = [0, u_trim];
 
-Q_scale     = [pi/2 pi/2, 1, deg2rad(50) deg2rad(50) deg2rad(50), 1];
+Q_scale     = [1 1, 1, deg2rad(50) deg2rad(50) deg2rad(50), 1];
 R_scale     = [1, 1 deg2rad(30) deg2rad(15)];
 
-Q_output    = [200 200, 80, 20 20 5, 120]./Q_scale.^2;
-QN_output   = [200 200, 80, 20 20 5, 120]./Q_scale.^2;
-R_controls  = [40 30 50 50]./R_scale.^2;
+% Q_output    = [200 200, 80, 20 20 5, 120]./Q_scale.^2;
+% QN_output   = [200 200, 80, 20 20 5, 120]./Q_scale.^2;
+% R_controls  = [40 30 50 50]./R_scale.^2;
+% % Q_output    = [300 80, 80, 70 70 5, 120]./Q_scale;
+% % QN_output   = [300 80, 80, 70 70 5, 120]./Q_scale;
+% % R_controls  = [100 200 400 420]./R_scale;
+Q_output    = [300 80, 150, 70 70 5, 120]./Q_scale;
+QN_output   = [300 80, 150, 70 70 5, 120]./Q_scale;
+R_controls  = [100 200 200 220]./R_scale;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
 input.u     = repmat(nmpc_ic.u, N,1);
@@ -86,8 +95,7 @@ Ts      = 0.01;
 time    = T0:Ts:Tf;
 KKT_MPC = []; INFO_MPC = []; controls_MPC = [];
 
-Ts_nmpc = 0.1; % interval between nmpc calls
-Ts_step = 0.1; % step size in nmpc
+Ts_nmpc = 0.05; % interval between nmpc calls
 
 % initial simout
 X0          = nmpc_ic.x;
@@ -154,6 +162,20 @@ for k = 1:length(time)
         end
     end
     
+    if time(k) > 15
+        wn = 13.5;
+        ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
+            wn, we, wd, ...
+            alpha_p_co, alpha_m_co, alpha_delta_co, ...
+            T_b_lat, T_b_lon];
+    elseif time(k) > 10
+        wn = 6.5*sin((time(k)-20)*pi/2/5)^2+7;
+        ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
+            wn, we, wd, ...
+            alpha_p_co, alpha_m_co, alpha_delta_co, ...
+            T_b_lat, T_b_lon];
+    end
+    
     % motor failure
 %     if k>25*1/Ts
 %         input.W = repmat(diag([Q_output, R_controls(1), 1000000, R_controls(3:4)]), [N 1]);
@@ -208,9 +230,22 @@ for k = 1:length(time)
     horiz_rec(:,k,:) = output.x(:,:);
     horiz_rec_U(:,k,:) = output.u(:,:);
     U_rec(k,:) = U0;
+    if time(k)>25.85
+        stooppppp=1;
+    end
     [out,aux] = eval_obj([X0,U0,ic_od],[n_X,n_U]);
     Y_rec(k,:) = out;
     aux_rec(k,:) = aux;
+    
+    if abs(aux(1))<4.0
+        ww = 1-(1-abs(aux(1))/4)^2;
+        Q_out_1 = Q_output(1)*ww+10000*(1-ww);
+        input.W     = repmat(diag([Q_out_1 Q_output(2:end), R_controls]), [N 1]);
+        input.WN    = diag([Q_out_1, QN_output(2:end)]);
+    else
+        input.W     = repmat(diag([Q_output, R_controls]), [N 1]);
+        input.WN    = diag(QN_output);
+    end
 
 end
 

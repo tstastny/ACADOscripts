@@ -23,10 +23,20 @@ d_dot = in(34+1)-Vsafe*sin(in(4+1));
 idx_OD_0 = ACADO_NX+ACADO_NU-minus_NU;
 pparam_sel = 0;
 sw_dot = 0.0;
+
+p_n = 0.0;
+p_e = 0.0;
+p_d = 0.0;
+tP_n = 1.0;
+tP_e = 0.0;
+tP_d = 0.0;
+
 pparam_type = in(idx_OD_0+pparam_sel+1);
 
+phi_ff = 0.0;
+
 % LINE SEGMENT
-if ( pparam_type < 0.5 )
+if ( pparam_type < 0.5 ) 
 
     % calculate tangent
     tP_n = cos(in(idx_OD_0+pparam_sel+6+1))*cos(in(idx_OD_0+pparam_sel+5+1));
@@ -36,15 +46,18 @@ if ( pparam_type < 0.5 )
     % dot product
     dot_tP_bp = tP_n*(in(0+1) - in(idx_OD_0+pparam_sel+1+1)) + tP_e*(in(1+1) - in(idx_OD_0+pparam_sel+2+1)) + tP_d*(in(2+1) - in(idx_OD_0+pparam_sel+3+1));
     
-    % point on track
+    % poon track
     p_n = in(idx_OD_0+pparam_sel+1+1) + dot_tP_bp * tP_n;
     p_e = in(idx_OD_0+pparam_sel+2+1) + dot_tP_bp * tP_e;
     p_d = in(idx_OD_0+pparam_sel+3+1) + dot_tP_bp * tP_d;
     
+    % feed forward
+    phi_ff = 0.0;
+    
 % ARC SEGMENT
-elseif ( pparam_type < 1.5 )
+elseif ( pparam_type < 1.5 ) 
 
-    % variable definitions
+% variable definitions
 %     pparam_cc_n = in(idx_OD_0+pparam_sel+1+1);
 %     pparam_cc_e = in(idx_OD_0+pparam_sel+2+1);
 %     pparam_cc_d = in(idx_OD_0+pparam_sel+3+1);
@@ -58,16 +71,15 @@ elseif ( pparam_type < 1.5 )
 %     pparam_Gam = in(idx_OD_0+pparam_sel+6+1);
     Gam_temp = in(idx_OD_0+pparam_sel+6+1);
 
-    % calculate closest point on loiter circle
+    % calculate closest poon loiter circle
     cr_n = in(0+1) - in(idx_OD_0+pparam_sel+1+1);
     cr_e = in(1+1) - in(idx_OD_0+pparam_sel+2+1);
     norm_cr = sqrt( cr_n*cr_n + cr_e*cr_e );
-
-    if (norm_cr>0.1)
+    if (norm_cr>0.1) 
         cr_n_unit = cr_n / norm_cr;
         cr_e_unit = cr_e / norm_cr;
     
-    else
+    else 
         cr_n_unit = 0.0;
         cr_e_unit = 0.0;
     end
@@ -83,18 +95,19 @@ elseif ( pparam_type < 1.5 )
     
     % angular exit
     xi_exit = in(idx_OD_0+pparam_sel+5+1) - pparam_ldir * 1.570796326794897;
-    if (xi_exit>3.141592653589793)
+    if (xi_exit>3.141592653589793) 
         xi_exit = xi_exit - 6.283185307179586;
-    elseif (xi_exit<-3.141592653589793)
+    
+    elseif (xi_exit<-3.141592653589793) 
         xi_exit = xi_exit + 6.283185307179586;
     end
     
-    % angular travel (back calculated) from exit [0,2pi)
+    % angular travel (back calculated) from exit (0,2pi)
     delta_xi = pparam_ldir * (xi_exit - xi_pos);
     if (delta_xi >= 6.28318530718), delta_xi = 0.0; end;
     if (delta_xi < 0.0), delta_xi = delta_xi + 6.28318530718; end;
 
-    % closest point on nearest spiral leg and tangent down component
+    % closest poon nearest spiral leg and tangent down component
     if (abs(in(idx_OD_0+pparam_sel+6+1)) < 0.001) 
 
         p_d = in(idx_OD_0+pparam_sel+3+1);
@@ -109,8 +122,8 @@ elseif ( pparam_type < 1.5 )
 
         % nearest spiral leg
         delta_d_k = round( (in(2+1) - (in(idx_OD_0+pparam_sel+3+1) + delta_d_xi)) / (6.28318530718*RtanGam) ) * 6.28318530718*RtanGam;
-
-        % closest point on nearest spiral leg
+        
+        % closest poon nearest spiral leg
         p_d = in(idx_OD_0+pparam_sel+3+1) + delta_d_k + delta_d_xi;
         
         % cap end point
@@ -134,6 +147,9 @@ elseif ( pparam_type < 1.5 )
     tP_n = tP_n * cos(Gam_temp);
     tP_e = tP_e * cos(Gam_temp);
     
+    % feed forward
+    phi_ff = atan((n_dot*n_dot+e_dot*e_dot)/in(idx_OD_0+pparam_sel+4+1)/9.81);
+    
 % LOITER UNLIM
 elseif ( pparam_type < 2.5 ) 
 
@@ -143,11 +159,10 @@ elseif ( pparam_type < 2.5 )
         pparam_ldir = 1.0;
     end
 
-    % calculate closest point on loiter circle
+    % calculate closest poon loiter circle
     cr_n = in(0+1) - in(idx_OD_0+pparam_sel+1+1);
     cr_e = in(1+1) - in(idx_OD_0+pparam_sel+2+1);
     norm_cr = sqrt( cr_n*cr_n + cr_e*cr_e );
-
     if (norm_cr>0.1) 
         cr_n_unit = cr_n / norm_cr;
         cr_e_unit = cr_e / norm_cr;
@@ -170,6 +185,9 @@ elseif ( pparam_type < 2.5 )
         tP_n=1.0;
         tP_e=0.0;
     end
+    
+    % feed forward
+    phi_ff = atan((n_dot*n_dot+e_dot*e_dot)/in(idx_OD_0+pparam_sel+4+1)/9.81);
 end
 
 % end manual input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
@@ -181,7 +199,7 @@ norm_rp_ne = sqrt(t3*t3+t4*t4);
 t5 = 1.0/norm_rp_ne;
 t6 = -in(2+1)+p_d;
 
-sgn_rp=0.0;
+sgn_rp = 0.0;
 if (t6>0.0) 
     sgn_rp = 1.0;
 elseif (t6<0.0) 
@@ -226,24 +244,38 @@ t15 = sin(t14);
 rp_n_unit = -t4*t5;
 rp_e_unit = -t3*t5;
 
-atan2_01 = atan2(rp_e_unit*t10+t11*tP_e, rp_n_unit*t10+t11*tP_n);
-atan2_02 = atan2(e_dot, n_dot);
-eta_lat = atan2_01-atan2_02;
-if (eta_lat>3.141592653589793) 
-    eta_lat = eta_lat - 6.283185307179586;
+% atan2_01 = atan2(rp_e_unit*t10+t11*tP_e, rp_n_unit*t10+t11*tP_n);
+% atan2_02 = atan2(e_dot, n_dot);
+% eta_lat = atan2_01-atan2_02;
+% if (eta_lat>3.141592653589793) {
+%     eta_lat = eta_lat - 6.283185307179586;
+% }
+% elseif (eta_lat<-3.141592653589793) {
+%     eta_lat = eta_lat + 6.283185307179586;
+% }
 
-elseif (eta_lat<-3.141592653589793) 
-    eta_lat = eta_lat + 6.283185307179586;
+% atan2_03 = atan2(-t15*tP_d-sgn_rp*cos(t14), t15*sqrt(tP_e*tP_e+tP_n*tP_n));
+% atan2_04 = atan2(-d_dot, sqrt(t18));
+% eta_lon = atan2_03-atan2_04;
+% if (eta_lon>3.141592653589793) {
+%     eta_lon = eta_lon - 6.283185307179586;
+% }
+% elseif (eta_lon<-3.141592653589793) {
+%     eta_lon = eta_lon + 6.283185307179586;
+% }
+
+norm_vG_lat = sqrt(t18);
+if (norm_vG_lat<1.0) 
+    eta_lat = sqrt(-(norm_vG_lat-2.0)*(norm_vG_lat-n_dot*(rp_n_unit*t10+t11*tP_n)-e_dot*(rp_e_unit*t10+t11*tP_e))/2.0);
+else 
+    eta_lat = sqrt((norm_vG_lat*(1.0/2.0)-n_dot*(rp_n_unit*t10+t11*tP_n)*(1.0/2.0)-e_dot*(rp_e_unit*t10+t11*tP_e)*(1.0/2.0))/norm_vG_lat);
 end
 
-atan2_03 = atan2(-t15*tP_d-sgn_rp*cos(t14), t15*sqrt(tP_e*tP_e+tP_n*tP_n));
-atan2_04 = atan2(-d_dot, sqrt(t18));
-eta_lon = atan2_03-atan2_04;
-if (eta_lon>3.141592653589793) 
-    eta_lon = eta_lon - 6.283185307179586;
-
-elseif (eta_lon<-3.141592653589793) 
-    eta_lon = eta_lon + 6.283185307179586;
+norm_vG_lon = sqrt(t18+d_dot*d_dot);
+if (norm_vG_lon<1.0) 
+    eta_lon = sqrt(-(norm_vG_lon-2.0)*(norm_vG_lon-t15*sqrt(tP_e*tP_e+tP_n*tP_n)*norm_vG_lat-d_dot*(-t15*tP_d-sgn_rp*cos(t14)))/2.0);
+else 
+    eta_lon = sqrt((norm_vG_lon*(1.0/2.0)-norm_vG_lat*t15*sqrt(tP_e*tP_e+tP_n*tP_n)*(1.0/2.0)-d_dot*(-t15*tP_d-sgn_rp*cos(t14))*(1.0/2.0))/norm_vG_lon);
 end
 
 t19 = alpha-in(35+1)+in(37+1);
@@ -252,8 +284,10 @@ t21 = -alpha+in(36+1)+in(37+1);
 
 if (alpha>(in(35+1)-in(37+1))) 
     a_soft=(t19*t19)*t20;
+
 elseif (alpha>(in(36+1)+in(37+1))) 
     a_soft=0.0;
+
 else 
     a_soft=t20*(t21*t21);
 end
@@ -269,8 +303,10 @@ out(5+1) = in(10+1);
 out(6+1) = a_soft;
 out(7+1) = in(11+1)*(-4.143016944939305)+in(13+1)*4.143016944939305;
 out(8+1) = in(13+1);
-out(9+1) = in(14+1);
+if (phi_ff>0.523598775598299), phi_ff = 0.523598775598299;
+elseif (phi_ff<-0.523598775598299), phi_ff = -0.523598775598299; end;
+out(9+1) = in(14+1) - t8*phi_ff;
 out(10+1) = in(15+1);
 
-aux = [e_lat,e_lon, p_n,p_e,p_d,tP_n,tP_e,tP_d, e_lat/e_b_lat,e_lon/e_b_lon, a_soft, n_dot,e_dot,d_dot, in(32+1),in(33+1),in(34+1)];
+aux = [e_lat,e_lon, p_n,p_e,p_d,tP_n,tP_e,tP_d, e_lat/e_b_lat,e_lon/e_b_lon, a_soft, n_dot,e_dot,d_dot, in(32+1),in(33+1),in(34+1), t8*phi_ff];
 
