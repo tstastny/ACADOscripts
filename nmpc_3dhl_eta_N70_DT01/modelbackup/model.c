@@ -37,7 +37,7 @@ if ( in[ACADO_NX-1] < 0.05 ) { // check x_sw
     const double vel[3] = {n_dot,e_dot,d_dot};
     if ( in[idx_OD_0] < 0.5 ) { // path type
         b_switch_segment = check_line_seg( &in[0], &vel[0], &in[idx_OD_0] );
-    } else if (in[idx_OD_0] < 1.5 ) {
+    } else if (in[ACADO_NX+ACADO_NU-minus_NU] < 1.5 ) {
         b_switch_segment = check_curve_seg( &in[0], &vel[0], &in[idx_OD_0] );
     }
 } else {
@@ -118,7 +118,7 @@ if ( in[ACADO_NX-1] < 0.05 ) { // check x_sw
     const double vel[3] = {n_dot,e_dot,d_dot};
     if ( in[idx_OD_0] < 0.5 ) { // path type
         b_switch_segment = check_line_seg( &in[0], &vel[0], &in[idx_OD_0] );
-    } else if (in[idx_OD_0] < 1.5 ) {
+    } else if (in[ACADO_NX+ACADO_NU-minus_NU] < 1.5 ) {
         b_switch_segment = check_curve_seg( &in[0], &vel[0], &in[idx_OD_0] );
     }
 } else {
@@ -223,20 +223,20 @@ const int idx_OD_0 = ACADO_NX+ACADO_NU-minus_NU;
 bool b_switch_segment = false;
 int pparam_sel = 0;
 double sw_dot = 0.0;
-if ( in[ACADO_NX-1] < 0.05 ) { // check x_sw
-    const double vel[3] = {n_dot,e_dot,d_dot};
-    if ( in[idx_OD_0] < 0.5 ) { // path type
-        b_switch_segment = check_line_seg( &in[0], &vel[0], &in[idx_OD_0] );
-    } else if (in[idx_OD_0] < 1.5 ) {
-        b_switch_segment = check_curve_seg( &in[0], &vel[0], &in[idx_OD_0] );
-    }
-} else {
-    b_switch_segment = true;
-}
-if (b_switch_segment) {
-    pparam_sel = 7;
-    sw_dot = 1.0;
-} 
+// if ( in[ACADO_NX-1] < 0.05 ) { // check x_sw
+//     const double vel[3] = {n_dot,e_dot,d_dot};
+//     if ( in[idx_OD_0] < 0.5 ) { // path type
+//         b_switch_segment = check_line_seg( &in[0], &vel[0], &in[idx_OD_0] );
+//     } else if (in[idx_OD_0] < 1.5 ) {
+//         b_switch_segment = check_curve_seg( &in[0], &vel[0], &in[idx_OD_0] );
+//     }
+// } else {
+//     b_switch_segment = true;
+// }
+// if (b_switch_segment) {
+//     pparam_sel = 7;
+//     sw_dot = 1.0;
+// } 
 
 double p_n = 0.0;
 double p_e = 0.0;
@@ -245,9 +245,7 @@ double tP_n = 1.0;
 double tP_e = 0.0;
 double tP_d = 0.0;
 
-const double pparam_type = in[idx_OD_0+pparam_sel];
-
-double phi_ff = 0.0;
+const double pparam_type = 1;//in[idx_OD_0+pparam_sel];
 
 // LINE SEGMENT
 if ( pparam_type < 0.5 ) {
@@ -265,13 +263,10 @@ if ( pparam_type < 0.5 ) {
     p_e = in[idx_OD_0+pparam_sel+2] + dot_tP_bp * tP_e;
     p_d = in[idx_OD_0+pparam_sel+3] + dot_tP_bp * tP_d;
     
-    // feed forward
-    phi_ff = 0.0;
-    
 // ARC SEGMENT
 } else if ( pparam_type < 1.5 ) {
 
-// variable definitions
+        // variable definitions
 //     const double pparam_cc_n = in[idx_OD_0+pparam_sel+1];
 //     const double pparam_cc_e = in[idx_OD_0+pparam_sel+2];
 //     const double pparam_cc_d = in[idx_OD_0+pparam_sel+3];
@@ -317,15 +312,15 @@ if ( pparam_type < 0.5 ) {
     // angular travel (back calculated) from exit [0,2pi)
     double delta_xi = pparam_ldir * (xi_exit - xi_pos);
     if (delta_xi >= 6.28318530718) delta_xi = 0.0;
-    if (delta_xi < 0.0) delta_xi = delta_xi + 6.28318530718;
+    if (delta_xi < 0.0) delta_xi =+ 6.28318530718;
 
-    // closest point on nearest spiral leg and tangent down component
-    if (fabs(in[idx_OD_0+pparam_sel+6]) < 0.001) {
-
-        p_d = in[idx_OD_0+pparam_sel+3];
-        tP_d = 0.0;
-
-    } else {
+//     // closest point on nearest spiral leg and tangent down component
+//     if (false) { //(fabs(in[idx_OD_0+pparam_sel+6]) < 0.001) {
+// 
+//         p_d = in[idx_OD_0+pparam_sel+3];
+//         tP_d = 0.0;
+// 
+//     } else {
 
         const double RtanGam = fabs(in[idx_OD_0+pparam_sel+4]) * tan(in[idx_OD_0+pparam_sel+6]);
 
@@ -334,21 +329,21 @@ if ( pparam_type < 0.5 ) {
 
         // nearest spiral leg
         const double delta_d_k = round( (in[2] - (in[idx_OD_0+pparam_sel+3] + delta_d_xi)) / (6.28318530718*RtanGam) ) * 6.28318530718*RtanGam;
-        
+
         // closest point on nearest spiral leg
         p_d = in[idx_OD_0+pparam_sel+3] + delta_d_k + delta_d_xi;
         
-        // cap end point
-        if ((p_d - in[idx_OD_0+pparam_sel+3]) * in[idx_OD_0+pparam_sel+6] < 0.0) {
-            p_d = in[idx_OD_0+pparam_sel+3];
-            tP_d = 0.0;
-            Gam_temp = 0.0;
-        }
-        else {
+//         // cap end point
+//         if ((p_d - in[idx_OD_0+pparam_sel+3]) * in[idx_OD_0+pparam_sel+6] < 0.0) {
+//             p_d = in[idx_OD_0+pparam_sel+3];
+//             tP_d = 0.0;
+//             Gam_temp = 0.0;
+//         }
+//         else {
             tP_d = -sin(in[idx_OD_0+pparam_sel+6]);
-        }
+//         }
         
-    }
+//     }
     
     if (fabs(tP_n)<0.01 && fabs(tP_e)<0.01) { // should always have lateral-directional references on curve (this is only when we hit the center of the circle)
         tP_n=1.0;
@@ -358,9 +353,6 @@ if ( pparam_type < 0.5 ) {
     // Normalize tP
     tP_n = tP_n * cos(Gam_temp);
     tP_e = tP_e * cos(Gam_temp);
-    
-    // feed forward
-    phi_ff = atan((n_dot*n_dot+e_dot*e_dot)/in[idx_OD_0+pparam_sel+4]/9.81);
     
 // LOITER UNLIM
 } else if ( pparam_type < 2.5 ) {
@@ -395,9 +387,6 @@ if ( pparam_type < 0.5 ) {
         tP_n=1.0;
         tP_e=0.0;
     }
-    
-    // feed forward
-    phi_ff = atan((n_dot*n_dot+e_dot*e_dot)/in[idx_OD_0+pparam_sel+4]/9.81);
 }
 
 /* end manual input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
@@ -439,16 +428,13 @@ const double t11 = sin(t9);
 
 const double e_lon = t6;
 
-// double e_b_lon;
-// if (fabs(d_dot)>1.0) {
-//     e_b_lon = fabs(d_dot)*in[39];                               
-// } else {
-//     e_b_lon = in[39]*(1.0/2.0)+in[39]*fabs(d_dot)*(1.0/2.0);
-// }
-// double sat_e_lon = fabs(e_lon)/e_b_lon;
-// if (sat_e_lon>1.0) sat_e_lon = 1.0;
-
-double sat_e_lon = fabs(e_lon)/in[39];
+double e_b_lon;
+if (fabs(d_dot)>1.0) {
+    e_b_lon = fabs(d_dot)*in[39];                               
+} else {
+    e_b_lon = in[39]*(1.0/2.0)+in[39]*fabs(d_dot)*(1.0/2.0);
+}
+double sat_e_lon = fabs(e_lon)/e_b_lon;
 if (sat_e_lon>1.0) sat_e_lon = 1.0;
 
 const double t12 = sat_e_lon-1.0;
@@ -459,42 +445,24 @@ const double t15 = sin(t14);
 const double rp_n_unit = -t4*t5;
 const double rp_e_unit = -t3*t5;
 
-// const double atan2_01 = atan2(rp_e_unit*t10+t11*tP_e, rp_n_unit*t10+t11*tP_n);
-// const double atan2_02 = atan2(e_dot, n_dot);
-// double eta_lat = atan2_01-atan2_02;
-// if (eta_lat>3.141592653589793) {
-//     eta_lat = eta_lat - 6.283185307179586;
-// }
-// else if (eta_lat<-3.141592653589793) {
-//     eta_lat = eta_lat + 6.283185307179586;
-// }
-
-// const double atan2_03 = atan2(-t15*tP_d-sgn_rp*cos(t14), t15*sqrt(tP_e*tP_e+tP_n*tP_n));
-// const double atan2_04 = atan2(-d_dot, sqrt(t18));
-// double eta_lon = atan2_03-atan2_04;
-// if (eta_lon>3.141592653589793) {
-//     eta_lon = eta_lon - 6.283185307179586;
-// }
-// else if (eta_lon<-3.141592653589793) {
-//     eta_lon = eta_lon + 6.283185307179586;
-// }
-
-const double norm_vG_lat = sqrt(t18);
-double eta_lat;
-if (norm_vG_lat<1.0) {
-    eta_lat = sqrt(-(norm_vG_lat-2.0)*(norm_vG_lat-n_dot*(rp_n_unit*t10+t11*tP_n)-e_dot*(rp_e_unit*t10+t11*tP_e))/2.0);
+const double atan2_01 = atan2(rp_e_unit*t10+t11*tP_e, rp_n_unit*t10+t11*tP_n);
+const double atan2_02 = atan2(e_dot, n_dot);
+double eta_lat = atan2_01-atan2_02;
+if (eta_lat>3.141592653589793) {
+    eta_lat = eta_lat - 6.283185307179586;
 }
-else {
-    eta_lat = sqrt((norm_vG_lat*(1.0/2.0)-n_dot*(rp_n_unit*t10+t11*tP_n)*(1.0/2.0)-e_dot*(rp_e_unit*t10+t11*tP_e)*(1.0/2.0))/norm_vG_lat);
+else if (eta_lat<-3.141592653589793) {
+    eta_lat = eta_lat + 6.283185307179586;
 }
 
-const double norm_vG_lon = sqrt(t18+d_dot*d_dot);
-double eta_lon;
-if (norm_vG_lon<1.0) {
-    eta_lon = sqrt(-(norm_vG_lon-2.0)*(norm_vG_lon-t15*sqrt(tP_e*tP_e+tP_n*tP_n)*norm_vG_lat-d_dot*(-t15*tP_d-sgn_rp*cos(t14)))/2.0);
+const double atan2_03 = atan2(-t15*tP_d-sgn_rp*cos(t14), t15*sqrt(tP_e*tP_e+tP_n*tP_n));
+const double atan2_04 = atan2(-d_dot, sqrt(t18));
+double eta_lon = atan2_03-atan2_04;
+if (eta_lon>3.141592653589793) {
+    eta_lon = eta_lon - 6.283185307179586;
 }
-else {
-    eta_lon = sqrt((norm_vG_lon*(1.0/2.0)-norm_vG_lat*t15*sqrt(tP_e*tP_e+tP_n*tP_n)*(1.0/2.0)-d_dot*(-t15*tP_d-sgn_rp*cos(t14))*(1.0/2.0))/norm_vG_lon);
+else if (eta_lon<-3.141592653589793) {
+    eta_lon = eta_lon + 6.283185307179586;
 }
 
 const double t19 = alpha-in[35]+in[37];
@@ -523,9 +491,7 @@ out[5] = in[10];
 out[6] = a_soft;
 out[7] = in[11]*(-4.143016944939305)+in[13]*4.143016944939305;
 out[8] = in[13];
-if (phi_ff>0.523598775598299) phi_ff = 0.523598775598299;
-else if (phi_ff<-0.523598775598299) phi_ff = -0.523598775598299;
-out[9] = in[14] - (0.5+0.5*cos(sat_e_lat*3.141592653589793))*phi_ff;
+out[9] = in[14];
 out[10] = in[15];
 
 }
@@ -623,7 +589,7 @@ double tP_n = 1.0;
 double tP_e = 0.0;
 double tP_d = 0.0;
 
-const double pparam_type = in[idx_OD_0+pparam_sel];
+const double pparam_type = 1;//in[idx_OD_0+pparam_sel];
 
 // LINE SEGMENT
 if ( pparam_type < 0.5 ) {
@@ -690,15 +656,15 @@ if ( pparam_type < 0.5 ) {
     // angular travel (back calculated) from exit [0,2pi)
     double delta_xi = pparam_ldir * (xi_exit - xi_pos);
     if (delta_xi >= 6.28318530718) delta_xi = 0.0;
-    if (delta_xi < 0.0) delta_xi = delta_xi + 6.28318530718;
+    if (delta_xi < 0.0) delta_xi =+ 6.28318530718;
 
     // closest point on nearest spiral leg and tangent down component
-    if (fabs(in[idx_OD_0+pparam_sel+6]) < 0.001) {
-
-        p_d = in[idx_OD_0+pparam_sel+3];
-        tP_d = 0.0;
-
-    } else {
+//     if (false) { //(fabs(in[idx_OD_0+pparam_sel+6]) < 0.001) {
+// 
+//         p_d = in[idx_OD_0+pparam_sel+3];
+//         tP_d = 0.0;
+// 
+//     } else {
 
         const double RtanGam = fabs(in[idx_OD_0+pparam_sel+4]) * tan(in[idx_OD_0+pparam_sel+6]);
 
@@ -707,21 +673,21 @@ if ( pparam_type < 0.5 ) {
 
         // nearest spiral leg
         const double delta_d_k = round( (in[2] - (in[idx_OD_0+pparam_sel+3] + delta_d_xi)) / (6.28318530718*RtanGam) ) * 6.28318530718*RtanGam;
-        
+
         // closest point on nearest spiral leg
         p_d = in[idx_OD_0+pparam_sel+3] + delta_d_k + delta_d_xi;
         
-        // cap end point
-        if ((p_d - in[idx_OD_0+pparam_sel+3]) * in[idx_OD_0+pparam_sel+6] < 0.0) {
-            p_d = in[idx_OD_0+pparam_sel+3];
-            tP_d = 0.0;
-            Gam_temp = 0.0;
-        }
-        else {
+//         // cap end point
+//         if ((p_d - in[idx_OD_0+pparam_sel+3]) * in[idx_OD_0+pparam_sel+6] < 0.0) {
+//             p_d = in[idx_OD_0+pparam_sel+3];
+//             tP_d = 0.0;
+//             Gam_temp = 0.0;
+//         }
+//         else {
             tP_d = -sin(in[idx_OD_0+pparam_sel+6]);
-        }
+//         }
         
-    }
+//     }
     
     if (fabs(tP_n)<0.01 && fabs(tP_e)<0.01) { // should always have lateral-directional references on curve (this is only when we hit the center of the circle)
         tP_n=1.0;
@@ -806,16 +772,13 @@ const double t11 = sin(t9);
 
 const double e_lon = t6;
 
-// double e_b_lon;
-// if (fabs(d_dot)>1.0) {
-//     e_b_lon = fabs(d_dot)*in[36];                               
-// } else {
-//     e_b_lon = in[36]*(1.0/2.0)+in[36]*fabs(d_dot)*(1.0/2.0);
-// }
-// double sat_e_lon = fabs(e_lon)/e_b_lon;
-// if (sat_e_lon>1.0) sat_e_lon = 1.0;
-
-double sat_e_lon = fabs(e_lon)/in[36];
+double e_b_lon;
+if (fabs(d_dot)>1.0) {
+    e_b_lon = fabs(d_dot)*in[36];                               
+} else {
+    e_b_lon = in[36]*(1.0/2.0)+in[36]*fabs(d_dot)*(1.0/2.0);
+}
+double sat_e_lon = fabs(e_lon)/e_b_lon;
 if (sat_e_lon>1.0) sat_e_lon = 1.0;
 
 const double t12 = sat_e_lon-1.0;
@@ -826,42 +789,24 @@ const double t15 = sin(t14);
 const double rp_n_unit = -t4*t5;
 const double rp_e_unit = -t3*t5;
 
-// const double atan2_01 = atan2(rp_e_unit*t10+t11*tP_e, rp_n_unit*t10+t11*tP_n);
-// const double atan2_02 = atan2(e_dot, n_dot);
-// double eta_lat = atan2_01-atan2_02;
-// if (eta_lat>3.141592653589793) {
-//     eta_lat = eta_lat - 6.283185307179586;
-// }
-// else if (eta_lat<-3.141592653589793) {
-//     eta_lat = eta_lat + 6.283185307179586;
-// }
-// 
-// const double atan2_03 = atan2(-t15*tP_d-sgn_rp*cos(t14), t15*sqrt(tP_e*tP_e+tP_n*tP_n));
-// const double atan2_04 = atan2(-d_dot, sqrt(t18));
-// double eta_lon = atan2_03-atan2_04;
-// if (eta_lon>3.141592653589793) {
-//     eta_lon = eta_lon - 6.283185307179586;
-// }
-// else if (eta_lon<-3.141592653589793) {
-//     eta_lon = eta_lon + 6.283185307179586;
-// }
-
-const double norm_vG_lat = sqrt(t18);
-double eta_lat;
-if (norm_vG_lat<1.0) {
-    eta_lat = sqrt(-(norm_vG_lat-2.0)*(norm_vG_lat-n_dot*(rp_n_unit*t10+t11*tP_n)-e_dot*(rp_e_unit*t10+t11*tP_e))/2.0);
+const double atan2_01 = atan2(rp_e_unit*t10+t11*tP_e, rp_n_unit*t10+t11*tP_n);
+const double atan2_02 = atan2(e_dot, n_dot);
+double eta_lat = atan2_01-atan2_02;
+if (eta_lat>3.141592653589793) {
+    eta_lat = eta_lat - 6.283185307179586;
 }
-else {
-    eta_lat = sqrt((norm_vG_lat*(1.0/2.0)-n_dot*(rp_n_unit*t10+t11*tP_n)*(1.0/2.0)-e_dot*(rp_e_unit*t10+t11*tP_e)*(1.0/2.0))/norm_vG_lat);
+else if (eta_lat<-3.141592653589793) {
+    eta_lat = eta_lat + 6.283185307179586;
 }
 
-const double norm_vG_lon = sqrt(t18+d_dot*d_dot);
-double eta_lon;
-if (norm_vG_lon<1.0) {
-    eta_lon = sqrt(-(norm_vG_lon-2.0)*(norm_vG_lon-t15*sqrt(tP_e*tP_e+tP_n*tP_n)*norm_vG_lat-d_dot*(-t15*tP_d-sgn_rp*cos(t14)))/2.0);
+const double atan2_03 = atan2(-t15*tP_d-sgn_rp*cos(t14), t15*sqrt(tP_e*tP_e+tP_n*tP_n));
+const double atan2_04 = atan2(-d_dot, sqrt(t18));
+double eta_lon = atan2_03-atan2_04;
+if (eta_lon>3.141592653589793) {
+    eta_lon = eta_lon - 6.283185307179586;
 }
-else {
-    eta_lon = sqrt((norm_vG_lon*(1.0/2.0)-norm_vG_lat*t15*sqrt(tP_e*tP_e+tP_n*tP_n)*(1.0/2.0)-d_dot*(-t15*tP_d-sgn_rp*cos(t14))*(1.0/2.0))/norm_vG_lon);
+else if (eta_lon<-3.141592653589793) {
+    eta_lon = eta_lon + 6.283185307179586;
 }
 
 const double t19 = alpha-in[32]+in[34];
@@ -940,7 +885,7 @@ bool check_line_seg( const double *pos, const double *vel, const double *params 
     const double dot_brtB = br_n * tB_n + br_e * tB_e + br_d * tB_d;
     
     // check travel 
-    return ( dot_brtB > 0.0 );
+    return false;//( dot_brtB > 0.0 );
     
 }
 
@@ -970,7 +915,7 @@ bool check_curve_seg( const double *pos, const double *vel, const double *params
     const double norm_br_d = fabs(br_d);
     
     // check (1) proximity, (2) bearing, (3) travel 
-    return ( norm_br < params[14] && norm_br_d < 10.0 && dot_vtB > params[15]*sqrt(vel[0]*vel[0]+vel[1]*vel[1]) && dot_brtB > 0.0 );
+    return false;//( norm_br < params[14] && norm_br_d < 10.0 && dot_vtB > params[15]*sqrt(vel[0]*vel[0]+vel[1]*vel[1]) && dot_brtB > 0.0 );
 }
 
 /* end inline functions !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */

@@ -92,7 +92,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OnlineData alpha_m_co; 
     OnlineData alpha_delta_co; 
     OnlineData T_b_ne; 
-    OnlineData T_b_d; 
+    OnlineData e_b_d; 
     BMatrix acadodata_M1;
     acadodata_M1.read( "nmpc_ext_data_acadodata_M1.txt" );
     BMatrix acadodata_M2;

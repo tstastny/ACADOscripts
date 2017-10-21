@@ -1,5 +1,5 @@
 
-horiz_disp = true;
+horiz_disp = false;
 horiz_disp_int = 100; % every Nth record
 
 horiz_time = (repmat(time(1:horiz_disp_int:end),N+1,1)+Ts_step*repmat((0:N)',1,length(time(1:horiz_disp_int:end))));
@@ -113,16 +113,16 @@ ylabel('e [m]')
 
 hc(2)=subplot(4,1,2); hold on; grid on;
 
-plot(time,rad2deg(Y_rec(:,1))); % eta_lat
-plot(time,rad2deg(Y_rec(:,2))); % eta_lon
+plot(time,Y_rec(:,1)); % ev_lat
+plot(time,Y_rec(:,2)); % ev_lon
 
-legend('\eta_{lat}','\eta_{lon}')
-ylabel('\eta [deg]')
+legend('e_{v_{lat}}','e_{v_{lon}}')
+ylabel('e_v [deg]')
 
 hc(3)=subplot(4,1,3:4); hold on; grid on;
 
-plot(time,(yref(1)*ones(length(time),1)-Y_rec(:,1)).^2*Q_output(1)); % eta_lat
-plot(time,(yref(2)*ones(length(time),1)-Y_rec(:,2)).^2*Q_output(2)); % eta_lon
+plot(time,(yref(1)*ones(length(time),1)-Y_rec(:,1)).^2*Q_output(1)); % ev_lat
+plot(time,(yref(2)*ones(length(time),1)-Y_rec(:,2)).^2*Q_output(2)); % ev_lon
 plot(time,(yref(3)*ones(length(time),1)-Y_rec(:,3)).^2*Q_output(3)); % V
 plot(time,(yref(4)*ones(length(time),1)-Y_rec(:,4)).^2*Q_output(4)); % p
 plot(time,(yref(5)*ones(length(time),1)-Y_rec(:,5)).^2*Q_output(5)); % q
@@ -133,7 +133,7 @@ plot(time,(zref(2)*ones(length(time),1)-Y_rec(:,9)).^2*R_controls(2)); % uT
 plot(time,(zref(3)*ones(length(time),1)-Y_rec(:,10)).^2*R_controls(3)); % phi_ref
 plot(time,(zref(4)*ones(length(time),1)-Y_rec(:,11)).^2*R_controls(4)); % theta_ref
 
-legend('\eta_{lat}','\eta_{lon}','V','p','q','r','\alpha_{soft}','u_T','\phi_{ref}','\theta_{ref}')
+legend('e_{v_{lat}}','e_{v_{lon}}','V','p','q','r','\alpha_{soft}','u_T','\phi_{ref}','\theta_{ref}')
 ylabel('J(x,u)')
 
 xlabel('time [s]')

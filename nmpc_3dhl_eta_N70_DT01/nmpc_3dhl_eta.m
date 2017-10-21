@@ -59,7 +59,7 @@ OnlineData alpha_m_co;      % angle of attack lower cutoff
 OnlineData alpha_delta_co; 	% angle of attack cutoff transition length
 
 OnlineData T_b_ne;          % lateral-directional track-error boundary constant
-OnlineData T_b_d;           % longitudinal track-error boundary constant 
+OnlineData e_b_d;           % longitudinal track-error boundary
 
 % OPTIMAL CONTROL PROBLEM -------------------------------------------------
 

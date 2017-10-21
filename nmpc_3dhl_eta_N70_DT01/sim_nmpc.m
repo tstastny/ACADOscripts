@@ -31,7 +31,7 @@ pparams_next = [paths(2).pparam1, ...
     paths(2).pparam7];
 
 % wind
-wn=7;
+wn=0;
 we=0;
 wd=0;
 
@@ -51,7 +51,7 @@ u_trim = [0.375, 0, 1.7*pi/180];
 
 % initial conditions
 ic_u    = u_trim;
-ic_ned  = [-300, 0, -80];
+ic_ned  = [-300, 0, -79];
 ic_vV   = [14, 0, 0];
 ic_att  = [0, 0];
 ic_attdot = [0, 0, 0];
@@ -162,19 +162,19 @@ for k = 1:length(time)
         end
     end
     
-    if time(k) > 15
-        wn = 13.5;
-        ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
-            wn, we, wd, ...
-            alpha_p_co, alpha_m_co, alpha_delta_co, ...
-            T_b_lat, T_b_lon];
-    elseif time(k) > 10
-        wn = 6.5*sin((time(k)-20)*pi/2/5)^2+7;
-        ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
-            wn, we, wd, ...
-            alpha_p_co, alpha_m_co, alpha_delta_co, ...
-            T_b_lat, T_b_lon];
-    end
+%     if time(k) > 15
+%         wn = 13.5;
+%         ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
+%             wn, we, wd, ...
+%             alpha_p_co, alpha_m_co, alpha_delta_co, ...
+%             T_b_lat, T_b_lon];
+%     elseif time(k) > 10
+%         wn = 6.5*sin((time(k)-20)*pi/2/5)^2+7;
+%         ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
+%             wn, we, wd, ...
+%             alpha_p_co, alpha_m_co, alpha_delta_co, ...
+%             T_b_lat, T_b_lon];
+%     end
     
     % motor failure
 %     if k>25*1/Ts
@@ -237,15 +237,15 @@ for k = 1:length(time)
     Y_rec(k,:) = out;
     aux_rec(k,:) = aux;
     
-    if abs(aux(1))<4.0
-        ww = 1-(1-abs(aux(1))/4)^2;
-        Q_out_1 = Q_output(1)*ww+10000*(1-ww);
-        input.W     = repmat(diag([Q_out_1 Q_output(2:end), R_controls]), [N 1]);
-        input.WN    = diag([Q_out_1, QN_output(2:end)]);
-    else
-        input.W     = repmat(diag([Q_output, R_controls]), [N 1]);
-        input.WN    = diag(QN_output);
-    end
+%     if abs(aux(1))<4.0
+%         ww = 1-(1-abs(aux(1))/4)^2;
+%         Q_out_1 = Q_output(1)*ww+10000*(1-ww);
+%         input.W     = repmat(diag([Q_out_1 Q_output(2:end), R_controls]), [N 1]);
+%         input.WN    = diag([Q_out_1, QN_output(2:end)]);
+%     else
+%         input.W     = repmat(diag([Q_output, R_controls]), [N 1]);
+%         input.WN    = diag(QN_output);
+%     end
 
 end
 

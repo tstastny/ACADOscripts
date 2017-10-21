@@ -305,8 +305,8 @@ out(7+1) = in(11+1)*(-4.143016944939305)+in(13+1)*4.143016944939305;
 out(8+1) = in(13+1);
 if (phi_ff>0.523598775598299), phi_ff = 0.523598775598299;
 elseif (phi_ff<-0.523598775598299), phi_ff = -0.523598775598299; end;
-out(9+1) = in(14+1) - t8*phi_ff;
+out(9+1) = in(14+1) - (0.5+0.5*cos(sat_e_lat*3.141592653589793))*phi_ff;
 out(10+1) = in(15+1);
 
-aux = [e_lat,e_lon, p_n,p_e,p_d,tP_n,tP_e,tP_d, e_lat/e_b_lat,e_lon/e_b_lon, a_soft, n_dot,e_dot,d_dot, in(32+1),in(33+1),in(34+1), t8*phi_ff];
+aux = [e_lat,e_lon, p_n,p_e,p_d,tP_n,tP_e,tP_d, e_lat/e_b_lat,e_lon/e_b_lon, a_soft, n_dot,e_dot,d_dot, in(32+1),in(33+1),in(34+1), (0.5+0.5*cos(sat_e_lat*3.141592653589793))*phi_ff];
 
