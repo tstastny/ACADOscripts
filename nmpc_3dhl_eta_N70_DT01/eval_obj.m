@@ -228,11 +228,15 @@ t11 = sin(t9);
 
 e_lon = t6;
 
-if (abs(d_dot)>1.0) 
-    e_b_lon = abs(d_dot)*in(39+1);                               
-else 
-    e_b_lon = in(39+1)*(1.0/2.0)+in(39+1)*abs(d_dot)*(1.0/2.0);
-end
+% if (abs(d_dot)>1.0) 
+%     e_b_lon = abs(d_dot)*in(39+1);                               
+% else 
+%     e_b_lon = in(39+1)*(1.0/2.0)+in(39+1)*abs(d_dot)*(1.0/2.0);
+% end
+% sat_e_lon = abs(e_lon)/e_b_lon;
+% if (sat_e_lon>1.0), sat_e_lon = 1.0; end;
+
+e_b_lon = in(39+1);
 sat_e_lon = abs(e_lon)/e_b_lon;
 if (sat_e_lon>1.0), sat_e_lon = 1.0; end;
 

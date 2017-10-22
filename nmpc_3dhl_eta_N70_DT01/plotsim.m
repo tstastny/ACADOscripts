@@ -1,5 +1,5 @@
 
-horiz_disp = false;
+horiz_disp = true;
 horiz_disp_int = 100; % every Nth record
 
 horiz_time = (repmat(time(1:horiz_disp_int:end),N+1,1)+Ts_step*repmat((0:N)',1,length(time(1:horiz_disp_int:end))));

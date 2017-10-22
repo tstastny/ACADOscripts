@@ -41,8 +41,8 @@ ceta_acpt = 0.8;                % switching acceptance cosine of error angle
 alpha_p_co = deg2rad(8);        % angle of attack upper cut-off
 alpha_m_co = deg2rad(-3);       % angle of attack lower cut-off
 alpha_delta_co = deg2rad(2);    % angle of attack cut-off transition length\
-T_b_lat = 1;                  % lateral-directional track-error boundary constant
-T_b_lon = 2;                    % longitudinal track-error boundary constant
+T_b_lat = 1;                    % lateral-directional track-error boundary constant
+e_b_d = 5;                      % longitudinal track-error boundary
 
 % model parameters
 load parameters_20161209.mat;
@@ -51,7 +51,7 @@ u_trim = [0.375, 0, 1.7*pi/180];
 
 % initial conditions
 ic_u    = u_trim;
-ic_ned  = [-300, 0, -79];
+ic_ned  = [-300, 0, -70];
 ic_vV   = [14, 0, 0];
 ic_att  = [0, 0];
 ic_attdot = [0, 0, 0];
@@ -59,7 +59,7 @@ ic_augm = [ic_u(1), 0];
 ic_od   = [pparams, pparams_next, R_acpt, ceta_acpt, ...
     wn, we, wd, ...
     alpha_p_co, alpha_m_co, alpha_delta_co, ...
-    T_b_lat, T_b_lon];
+    T_b_lat, e_b_d];
 
 % acado inputs
 nmpc_ic.x   = [ic_ned,ic_vV,ic_att,ic_attdot,ic_augm]; 
@@ -90,7 +90,7 @@ input.WN    = diag(QN_output);
 
 % simulation
 T0      = 0;
-Tf      = 45;
+Tf      = 15;
 Ts      = 0.01;
 time    = T0:Ts:Tf;
 KKT_MPC = []; INFO_MPC = []; controls_MPC = [];
@@ -121,14 +121,6 @@ for k = 1:length(time)
         path_checks(k) = check_curve_seg(states(1:3),d_states(1:3),ic_od(1:end));
     elseif pparams(1) < 2.5
         path_checks(k) = false;
-%         % avoid shitty optimization solutions when far from point in z-axis
-%         [p1] = set_position_setpoint(states(3),abs(wd),yref(3)*sin(alpha_p_co-alpha_delta_co),pparams(4),Ts_step,N);
-%         
-%         ic_od = [pparams(1:3),p1,pparams(5:7), pparams_next, R_acpt, ceta_acpt, ...
-%                 wn, we, wd, ...
-%                 alpha_p_co, alpha_m_co, alpha_delta_co, ...
-%                 T_b_lat, T_b_lon];
-%         input.od = repmat(ic_od, N+1, 1);
     else
         path_checks(k) = false;
     end
@@ -142,7 +134,7 @@ for k = 1:length(time)
             ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
                 wn, we, wd, ...
                 alpha_p_co, alpha_m_co, alpha_delta_co, ...
-                T_b_lat, T_b_lon];
+                T_b_lat, e_b_d];
             input.od = repmat(ic_od, N+1, 1);
             X0(end) = 0; % sw
             output.x(:,end)=zeros(N+1,1);
@@ -155,12 +147,29 @@ for k = 1:length(time)
             ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
                 wn, we, wd, ...
                 alpha_p_co, alpha_m_co, alpha_delta_co, ...
-                T_b_lat, T_b_lon];
+                T_b_lat, e_b_d];
             input.od = repmat(ic_od, N+1, 1);
             X0(end) = 0; % sw
             output.x(:,end)=zeros(N+1,1);
         end
     end
+    
+    % avoid shitty optimization solutions when far from point in z-axis
+    [out0,aux0] = eval_obj([X0,U0,ic_od],[n_X,n_U]);
+    if (aux0(5) - states(3)) < -e_b_d*0.8
+        delta_d = aux0(5) - (states(3) - e_b_d*0.8);
+    elseif (aux0(5) - states(3)) > e_b_d-1
+        delta_d = aux0(5) - (states(3) + e_b_d*0.8);
+    else
+        delta_d = 0;
+    end
+    ic_od1 = [pparams(1:3),pparams(4)-delta_d,pparams(5:7),...
+        pparams_next(1:3),pparams_next(4)-delta_d,pparams_next(5:7),...
+        R_acpt, ceta_acpt, ...
+        wn, we, wd, ...
+        alpha_p_co, alpha_m_co, alpha_delta_co, ...
+        T_b_lat, e_b_d];
+    input.od = repmat(ic_od1, N+1, 1);
     
 %     if time(k) > 15
 %         wn = 13.5;
@@ -173,7 +182,7 @@ for k = 1:length(time)
 %         ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
 %             wn, we, wd, ...
 %             alpha_p_co, alpha_m_co, alpha_delta_co, ...
-%             T_b_lat, T_b_lon];
+%             T_b_lat, e_b_d];
 %     end
     
     % motor failure
@@ -233,7 +242,7 @@ for k = 1:length(time)
     if time(k)>25.85
         stooppppp=1;
     end
-    [out,aux] = eval_obj([X0,U0,ic_od],[n_X,n_U]);
+    [out,aux] = eval_obj([X0,U0,ic_od1],[n_X,n_U]);
     Y_rec(k,:) = out;
     aux_rec(k,:) = aux;
     

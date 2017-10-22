@@ -32,12 +32,19 @@ for i=1:length(VG_set)
 %         e_lat(i,:) = sqrt((VG-2)*(-VG + (tP(1)*vG(1,:)+tP(2)*vG(2,:)))/2);
         e_lat(i,:) = sqrt(-(VG-2)*(VG - (tP(1)*vG(1,:)+tP(2)*vG(2,:)))/2);
     end
+%     e_lat0(i,:) = sqrt((VG - (tP(1)*vG(1,:)+tP(2)*vG(2,:)))/2);
 end
 
+figure('color','w','name','3d'); hold on; grid on; box on;
 mesh(rad2deg(chi),VG_set,e_lat)
 xlabel('\chi')
 ylabel('VG')
 zlabel('e')
+
+% figure('color','w','name','2d'); hold on; grid on; box on;
+% plot(rad2deg(chi),e_lat0(1:10:length(VG_set),:))
+% xlabel('\chi')
+% ylabel('e')
 
 %%
 clear; clc;
