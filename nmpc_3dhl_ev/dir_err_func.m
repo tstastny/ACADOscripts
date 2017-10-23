@@ -22,15 +22,23 @@ clear; clc;
 
 tP = [1;0];
 chi = linspace(-pi,pi,101);
-VG_set = linspace(0,1,101);
+VG_set = linspace(0,1.5,101);
 for i=1:length(VG_set)
     VG = VG_set(i);
     vG = VG*[cos(chi);sin(chi)];
     if VG>=1
-        e_lat(i,:) = sqrt((VG - (tP(1)*vG(1,:)+tP(2)*vG(2,:)))/VG/2);
+%         e_lat(i,:) = sign(tP(1)*vG(2,:)-tP(2)*vG(1,:)).*sqrt((VG - (tP(1)*vG(1,:)+tP(2)*vG(2,:)))/VG/2);
+        e_lat(i,:) = (sign(tP(1)*vG(2,:)-tP(2)*vG(1,:)).*sqrt((VG*tP(1)-vG(1,:)).^2+(VG*tP(2)-vG(2,:)).^2)/VG/2);%.^2;
     else
-%         e_lat(i,:) = sqrt((VG-2)*(-VG + (tP(1)*vG(1,:)+tP(2)*vG(2,:)))/2);
-        e_lat(i,:) = sqrt(-(VG-2)*(VG - (tP(1)*vG(1,:)+tP(2)*vG(2,:)))/2);
+%         e_lat(i,:) = sign(tP(1)*vG(2,:)-tP(2)*vG(1,:)).*sqrt((VG - (tP(1)*vG(1,:)+tP(2)*vG(2,:)))/2);
+%         e_lat(i,:) = (sign(tP(1)*vG(2,:)-tP(2)*vG(1,:)).*-(VG-2).*sqrt((VG*tP(1)-vG(1,:)).^2+(VG*tP(2)-vG(2,:)).^2)/2);%.^2;
+        VG1 = 0.5-0.5*cos(pi*VG);
+        if VG>0
+            VG1_VG=VG1/VG;
+        else
+            VG1_VG=0;
+        end
+        e_lat(i,:) = (sign(tP(1)*vG(2,:)-tP(2)*vG(1,:)).*sqrt((VG1*tP(1)-vG(1,:)*VG1_VG).^2+(VG1*tP(2)-vG(2,:)*VG1_VG).^2)/2);%.^2
     end
 %     e_lat0(i,:) = sqrt((VG - (tP(1)*vG(1,:)+tP(2)*vG(2,:)))/2);
 end

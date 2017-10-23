@@ -448,13 +448,13 @@ const double e_lon = t6;
 // double sat_e_lon = fabs(e_lon)/e_b_lon;
 // if (sat_e_lon>1.0) sat_e_lon = 1.0;
 
-double sat_e_lon = fabs(e_lon)/in[39];
-if (sat_e_lon>1.0) sat_e_lon = 1.0;
-
-const double t12 = sat_e_lon-1.0;
-const double t13 = t12*t12;
-const double t14 = 3.141592653589793*t13*(1.0/2.0);
-const double t15 = sin(t14);
+// double sat_e_lon = fabs(e_lon)/in[39];
+// if (sat_e_lon>1.0) sat_e_lon = 1.0;
+// 
+// const double t12 = sat_e_lon-1.0;
+// const double t13 = t12*t12;
+// const double t14 = 3.141592653589793*t13*(1.0/2.0);
+// const double t15 = sin(t14);
 
 const double rp_n_unit = -t4*t5;
 const double rp_e_unit = -t3*t5;
@@ -481,20 +481,52 @@ const double rp_e_unit = -t3*t5;
 
 const double norm_vG_lat = sqrt(t18);
 double eta_lat;
+const double tt1 = norm_vG_lat*(rp_e_unit*t10+t11*tP_e)-e_dot;
+const double tt2 = norm_vG_lat*(rp_n_unit*t10+t11*tP_n)-n_dot;
+const double tt3 = (rp_n_unit*t10+t11*tP_n)*e_dot-(rp_e_unit*t10+t11*tP_e)*n_dot;
 if (norm_vG_lat<1.0) {
-    eta_lat = sqrt(-(norm_vG_lat-2.0)*(norm_vG_lat-n_dot*(rp_n_unit*t10+t11*tP_n)-e_dot*(rp_e_unit*t10+t11*tP_e))/2.0);
+//     eta_lat = sqrt(-(norm_vG_lat-2.0)*(norm_vG_lat-n_dot*(rp_n_unit*t10+t11*tP_n)-e_dot*(rp_e_unit*t10+t11*tP_e))/2.0);
+    eta_lat = (((tt3<0.0) ? -1.0 : 1.0)*-(norm_vG_lat-2.0)*sqrt(tt1*tt1+tt2*tt2)/2.0);
 }
 else {
-    eta_lat = sqrt((norm_vG_lat*(1.0/2.0)-n_dot*(rp_n_unit*t10+t11*tP_n)*(1.0/2.0)-e_dot*(rp_e_unit*t10+t11*tP_e)*(1.0/2.0))/norm_vG_lat);
+//     eta_lat = sqrt((norm_vG_lat*(1.0/2.0)-n_dot*(rp_n_unit*t10+t11*tP_n)*(1.0/2.0)-e_dot*(rp_e_unit*t10+t11*tP_e)*(1.0/2.0))/norm_vG_lat);
+    eta_lat = (((tt3<0.0) ? -1.0 : 1.0)*sqrt(tt1*tt1+tt2*tt2)/norm_vG_lat/2.0);
 }
 
 const double norm_vG_lon = sqrt(t18+d_dot*d_dot);
+// double eta_lon;
+// if (norm_vG_lon<1.0) {
+//     eta_lon = sqrt(-(norm_vG_lon-2.0)*(norm_vG_lon-t15*sqrt(tP_e*tP_e+tP_n*tP_n)*norm_vG_lat-d_dot*(-t15*tP_d-sgn_rp*cos(t14)))/2.0);
+// }
+// else {
+//     eta_lon = sqrt((norm_vG_lon*(1.0/2.0)-norm_vG_lat*t15*sqrt(tP_e*tP_e+tP_n*tP_n)*(1.0/2.0)-d_dot*(-t15*tP_d-sgn_rp*cos(t14))*(1.0/2.0))/norm_vG_lon);
+// }
+
+// const double d_dot_max = 3.0;
+// sat_e_lon = e_lon/in[39];
+// if (sat_e_lon>1.0) sat_e_lon = 1.0;
+// if (sat_e_lon<-1.0) sat_e_lon = -1.0;
+// const double eta_lon = sqrt((sat_e_lon*d_dot_max - d_dot)/d_dot_max);
+
+double ddot_sp = norm_vG_lon*tP_d/sqrt(tP_e*tP_e+tP_n*tP_n);
+const double ddot_clmb = 3.5;
+const double ddot_sink = 1.5;
+if (ddot_sp>1.4) ddot_sp=1.4;
+if (ddot_sp<-3.4) ddot_sp=-3.4;
 double eta_lon;
-if (norm_vG_lon<1.0) {
-    eta_lon = sqrt(-(norm_vG_lon-2.0)*(norm_vG_lon-t15*sqrt(tP_e*tP_e+tP_n*tP_n)*norm_vG_lat-d_dot*(-t15*tP_d-sgn_rp*cos(t14)))/2.0);
+double sat_e_lon;
+double thetal;
+if (e_lon<0.0) {
+    sat_e_lon = fabs(e_lon/in[39]/(-ddot_clmb-ddot_sp));
+    if (sat_e_lon>1.0) sat_e_lon=1.0;
+    thetal = -sat_e_lon*(sat_e_lon-2.0);
+    eta_lon = ((-ddot_clmb-ddot_sp)*thetal + ddot_sp - d_dot)/(ddot_clmb+ddot_sink);
 }
 else {
-    eta_lon = sqrt((norm_vG_lon*(1.0/2.0)-norm_vG_lat*t15*sqrt(tP_e*tP_e+tP_n*tP_n)*(1.0/2.0)-d_dot*(-t15*tP_d-sgn_rp*cos(t14))*(1.0/2.0))/norm_vG_lon);
+    sat_e_lon = fabs(e_lon/in[39]/(ddot_sink-ddot_sp));
+    if (sat_e_lon>1.0) sat_e_lon=1.0;
+    thetal = -sat_e_lon*(sat_e_lon-2.0);
+    eta_lon = ((ddot_sink-ddot_sp)*thetal + ddot_sp - d_dot)/(ddot_clmb+ddot_sink);
 }
 
 const double t19 = alpha-in[35]+in[37];
@@ -815,13 +847,13 @@ const double e_lon = t6;
 // double sat_e_lon = fabs(e_lon)/e_b_lon;
 // if (sat_e_lon>1.0) sat_e_lon = 1.0;
 
-double sat_e_lon = fabs(e_lon)/in[36];
-if (sat_e_lon>1.0) sat_e_lon = 1.0;
-
-const double t12 = sat_e_lon-1.0;
-const double t13 = t12*t12;
-const double t14 = 3.141592653589793*t13*(1.0/2.0);
-const double t15 = sin(t14);
+// double sat_e_lon = fabs(e_lon)/in[36];
+// if (sat_e_lon>1.0) sat_e_lon = 1.0;
+// 
+// const double t12 = sat_e_lon-1.0;
+// const double t13 = t12*t12;
+// const double t14 = 3.141592653589793*t13*(1.0/2.0);
+// const double t15 = sin(t14);
 
 const double rp_n_unit = -t4*t5;
 const double rp_e_unit = -t3*t5;
@@ -848,20 +880,52 @@ const double rp_e_unit = -t3*t5;
 
 const double norm_vG_lat = sqrt(t18);
 double eta_lat;
+const double tt1 = norm_vG_lat*(rp_e_unit*t10+t11*tP_e)-e_dot;
+const double tt2 = norm_vG_lat*(rp_n_unit*t10+t11*tP_n)-n_dot;
+const double tt3 = (rp_n_unit*t10+t11*tP_n)*e_dot-(rp_e_unit*t10+t11*tP_e)*n_dot;
 if (norm_vG_lat<1.0) {
-    eta_lat = sqrt(-(norm_vG_lat-2.0)*(norm_vG_lat-n_dot*(rp_n_unit*t10+t11*tP_n)-e_dot*(rp_e_unit*t10+t11*tP_e))/2.0);
+//     eta_lat = sqrt(-(norm_vG_lat-2.0)*(norm_vG_lat-n_dot*(rp_n_unit*t10+t11*tP_n)-e_dot*(rp_e_unit*t10+t11*tP_e))/2.0);
+    eta_lat = (((tt3<0.0) ? -1.0 : 1.0)*-(norm_vG_lat-2.0)*sqrt(tt1*tt1+tt2*tt2)/2.0);
 }
 else {
-    eta_lat = sqrt((norm_vG_lat*(1.0/2.0)-n_dot*(rp_n_unit*t10+t11*tP_n)*(1.0/2.0)-e_dot*(rp_e_unit*t10+t11*tP_e)*(1.0/2.0))/norm_vG_lat);
+//     eta_lat = sqrt((norm_vG_lat*(1.0/2.0)-n_dot*(rp_n_unit*t10+t11*tP_n)*(1.0/2.0)-e_dot*(rp_e_unit*t10+t11*tP_e)*(1.0/2.0))/norm_vG_lat);
+    eta_lat = (((tt3<0.0) ? -1.0 : 1.0)*sqrt(tt1*tt1+tt2*tt2)/norm_vG_lat/2.0);
 }
 
 const double norm_vG_lon = sqrt(t18+d_dot*d_dot);
+// double eta_lon;
+// if (norm_vG_lon<1.0) {
+//     eta_lon = sqrt(-(norm_vG_lon-2.0)*(norm_vG_lon-t15*sqrt(tP_e*tP_e+tP_n*tP_n)*norm_vG_lat-d_dot*(-t15*tP_d-sgn_rp*cos(t14)))/2.0);
+// }
+// else {
+//     eta_lon = sqrt((norm_vG_lon*(1.0/2.0)-norm_vG_lat*t15*sqrt(tP_e*tP_e+tP_n*tP_n)*(1.0/2.0)-d_dot*(-t15*tP_d-sgn_rp*cos(t14))*(1.0/2.0))/norm_vG_lon);
+// }
+
+// const double d_dot_max = 3.0;
+// sat_e_lon = e_lon/in[36]/;
+// if (sat_e_lon>1.0) sat_e_lon = 1.0;
+// if (sat_e_lon<-1.0) sat_e_lon = -1.0;
+// const double eta_lon = (sat_e_lon*d_dot_max - d_dot)/d_dot_max;
+
+double ddot_sp = norm_vG_lon*tP_d/sqrt(tP_e*tP_e+tP_n*tP_n);
+const double ddot_clmb = 3.5;
+const double ddot_sink = 1.5;
+if (ddot_sp>1.4) ddot_sp=1.4;
+if (ddot_sp<-3.4) ddot_sp=-3.4;
 double eta_lon;
-if (norm_vG_lon<1.0) {
-    eta_lon = sqrt(-(norm_vG_lon-2.0)*(norm_vG_lon-t15*sqrt(tP_e*tP_e+tP_n*tP_n)*norm_vG_lat-d_dot*(-t15*tP_d-sgn_rp*cos(t14)))/2.0);
+double sat_e_lon;
+double thetal;
+if (e_lon<0.0) {
+    sat_e_lon = fabs(e_lon/in[36]/(-ddot_clmb-ddot_sp));
+    if (sat_e_lon>1.0) sat_e_lon=1.0;
+    thetal = -sat_e_lon*(sat_e_lon-2.0);
+    eta_lon = ((-ddot_clmb-ddot_sp)*thetal + ddot_sp - d_dot)/(ddot_clmb+ddot_sink);
 }
 else {
-    eta_lon = sqrt((norm_vG_lon*(1.0/2.0)-norm_vG_lat*t15*sqrt(tP_e*tP_e+tP_n*tP_n)*(1.0/2.0)-d_dot*(-t15*tP_d-sgn_rp*cos(t14))*(1.0/2.0))/norm_vG_lon);
+    sat_e_lon = fabs(e_lon/in[36]/(ddot_sink-ddot_sp));
+    if (sat_e_lon>1.0) sat_e_lon=1.0;
+    thetal = -sat_e_lon*(sat_e_lon-2.0);
+    eta_lon = ((ddot_sink-ddot_sp)*thetal + ddot_sp - d_dot)/(ddot_clmb+ddot_sink);
 }
 
 const double t19 = alpha-in[32]+in[34];
