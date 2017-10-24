@@ -9,8 +9,8 @@ ddot_sp = 0;
 
 e_b_d = 5;
 
-e = linspace(-ddot_clmb*5/1.1,ddot_sink*5/1.1,501);
-ddot = linspace(-ddot_clmb,ddot_sink+2,501);
+e = linspace(-ddot_clmb*5/1.1*2,ddot_sink*5/1.1*2,501);
+ddot = linspace(-ddot_clmb*2,ddot_sink*2,501);
 
 for i=1:length(e)
     
@@ -46,7 +46,7 @@ figure('color','w'); hold on; grid on; box on;
 % mesh(e,ddot,zeros(length(e),length(ddot)));
 mesh(e,ddot,ev');
 
-xlabel('e_{sat}')
+xlabel('e')
 ylabel('ddot')
 zlabel('ev')
 
@@ -55,7 +55,7 @@ colorbar;
 figure('color','w'); hold on; grid on; box on;
 plot(e,ddot_guide);
 
-xlabel('e_{sat}')
+xlabel('e')
 ylabel('ddot_{guide}')
 
 % colorbar;

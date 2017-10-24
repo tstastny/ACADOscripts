@@ -31,7 +31,7 @@ pparams_next = [paths(2).pparam1, ...
     paths(2).pparam7];
 
 % wind
-wn=-13.5;
+wn=0;
 we=0;
 wd=0;
 
@@ -41,8 +41,8 @@ ceta_acpt = 0.8;                % switching acceptance cosine of error angle
 alpha_p_co = deg2rad(8);        % angle of attack upper cut-off
 alpha_m_co = deg2rad(-3);       % angle of attack lower cut-off
 alpha_delta_co = deg2rad(2);    % angle of attack cut-off transition length\
-T_b_lat = 1;                    % lateral-directional track-error boundary constant
-e_b_d = 2;                      % longitudinal track-error boundary
+T_b_lat = 5;                    % lateral-directional track-error boundary constant
+e_b_d = 0.5;                      % longitudinal track-error boundary
 
 % model parameters
 load parameters_20161209.mat;
@@ -51,8 +51,8 @@ u_trim = [0.375, 0, 1.7*pi/180];
 
 % initial conditions
 ic_u    = u_trim;
-ic_ned  = [-100, 0, -95];
-ic_vV   = [14, 0, 0];
+ic_ned  = [10*cosd(90), 10*sind(90), 5];
+ic_vV   = [14, 0, deg2rad(-170)];
 ic_att  = [0, 0];
 ic_attdot = [0, 0, 0];
 ic_augm = [ic_u(1), 0];
@@ -76,8 +76,8 @@ R_scale     = [1, 1 deg2rad(30) deg2rad(15)];
 % % Q_output    = [300 80, 80, 70 70 5, 120]./Q_scale;
 % % QN_output   = [300 80, 80, 70 70 5, 120]./Q_scale;
 % % R_controls  = [100 200 400 420]./R_scale;
-Q_output    = [300 300, 150, 70 70 5, 120]./Q_scale;
-QN_output   = [300 300, 150, 70 70 5, 120]./Q_scale;
+Q_output    = [300 400, 150, 70 70 5, 120]./Q_scale;
+QN_output   = [300 400, 150, 70 70 5, 120]./Q_scale;
 R_controls  = [100 200 200 220]./R_scale;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
@@ -239,7 +239,7 @@ for k = 1:length(time)
     horiz_rec(:,k,:) = output.x(:,:);
     horiz_rec_U(:,k,:) = output.u(:,:);
     U_rec(k,:) = U0;
-    if time(k)>=23.71
+    if time(k)>=20.84
         stooppppp=1;
     end
     [out,aux] = eval_obj([X0,U0,ic_od],[n_X,n_U]);
