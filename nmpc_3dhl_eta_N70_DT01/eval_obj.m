@@ -274,19 +274,29 @@ norm_vG_lat = sqrt(t18);
 % else 
 %     eta_lat = sqrt((norm_vG_lat*(1.0/2.0)-n_dot*(rp_n_unit*t10+t11*tP_n)*(1.0/2.0)-e_dot*(rp_e_unit*t10+t11*tP_e)*(1.0/2.0))/norm_vG_lat);
 % end
-tt1 = norm_vG_lat*(rp_e_unit*t10+t11*tP_e)-e_dot;
-tt2 = norm_vG_lat*(rp_n_unit*t10+t11*tP_n)-n_dot;
 tt3 = (rp_n_unit*t10+t11*tP_n)*e_dot-(rp_e_unit*t10+t11*tP_e)*n_dot;
 if (tt3<0.0)
     tt3=-1.0;
 else
     tt3=1.0;
 end
-if (norm_vG_lat<1.0)
-    eta_lat = (tt3*-(norm_vG_lat-2.0)*sqrt(tt1*tt1+tt2*tt2)/2.0);
+if (norm_vG_lat<0.00001) 
+    eta_lat = 0.0;
+elseif (norm_vG_lat<1.0) 
+    VG1 = 0.5-0.5*cos(3.141592653589793*norm_vG_lat);
+    VG1_VG = VG1/norm_vG_lat;
+    
+    tt1 = VG1*(rp_e_unit*t10+t11*tP_e)-e_dot*VG1_VG;
+    tt2 = VG1*(rp_n_unit*t10+t11*tP_n)-n_dot*VG1_VG;
+
+    eta_lat = (tt3*sqrt(tt1*tt1+tt2*tt2)/2.0);
 else
+    tt1 = norm_vG_lat*(rp_e_unit*t10+t11*tP_e)-e_dot;
+    tt2 = norm_vG_lat*(rp_n_unit*t10+t11*tP_n)-n_dot;
+    
     eta_lat = (tt3*sqrt(tt1*tt1+tt2*tt2)/norm_vG_lat/2.0);
 end
+
 
 
 norm_vG_lon = sqrt(t18+d_dot*d_dot);

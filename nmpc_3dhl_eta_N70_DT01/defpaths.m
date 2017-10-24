@@ -13,47 +13,47 @@
 
 % LOITER UNLIM
 
-% paths(1).pparam1 = 2;
-% paths(1).pparam2 = 0;
-% paths(1).pparam3 = 0;
-% paths(1).pparam4 = -80;
-% paths(1).pparam5 = 50;
-% paths(1).pparam6 = 0;
-% paths(1).pparam7 = 0;
-% 
-% paths(2).pparam1 = 2;
-% paths(2).pparam2 = 0;
-% paths(2).pparam3 = 0;
-% paths(2).pparam4 = -80;
-% paths(2).pparam5 = 50;
-% paths(2).pparam6 = 0;
-% paths(2).pparam7 = 0;
-
-% SPIRAL UP
-
-paths(1).pparam1 = 1;
+paths(1).pparam1 = 2;
 paths(1).pparam2 = 0;
 paths(1).pparam3 = 0;
-paths(1).pparam4 = 50;
-paths(1).pparam5 = 35;
-paths(1).pparam6 = pi/2;
-paths(1).pparam7 = deg2rad(-5);
-
-% paths(2).pparam1 = 1;
-% paths(2).pparam2 = 0;
-% paths(2).pparam3 = 0;
-% paths(2).pparam4 = -50;
-% paths(2).pparam5 = 35;
-% paths(2).pparam6 = pi/2;
-% paths(2).pparam7 = deg2rad(8);
+paths(1).pparam4 = -80;
+paths(1).pparam5 = 50;
+paths(1).pparam6 = 0;
+paths(1).pparam7 = 0;
 
 paths(2).pparam1 = 2;
 paths(2).pparam2 = 0;
 paths(2).pparam3 = 0;
-paths(2).pparam4 = 50;
-paths(2).pparam5 = 35;
+paths(2).pparam4 = -80;
+paths(2).pparam5 = 50;
 paths(2).pparam6 = 0;
 paths(2).pparam7 = 0;
+
+% SPIRAL UP
+
+% paths(1).pparam1 = 1;
+% paths(1).pparam2 = 0;
+% paths(1).pparam3 = 0;
+% paths(1).pparam4 = 50;
+% paths(1).pparam5 = 35;
+% paths(1).pparam6 = pi/2;
+% paths(1).pparam7 = deg2rad(-5);
+% 
+% % paths(2).pparam1 = 1;
+% % paths(2).pparam2 = 0;
+% % paths(2).pparam3 = 0;
+% % paths(2).pparam4 = -50;
+% % paths(2).pparam5 = 35;
+% % paths(2).pparam6 = pi/2;
+% % paths(2).pparam7 = deg2rad(8);
+% 
+% paths(2).pparam1 = 2;
+% paths(2).pparam2 = 0;
+% paths(2).pparam3 = 0;
+% paths(2).pparam4 = 50;
+% paths(2).pparam5 = 35;
+% paths(2).pparam6 = 0;
+% paths(2).pparam7 = 0;
 
 % LINE
 

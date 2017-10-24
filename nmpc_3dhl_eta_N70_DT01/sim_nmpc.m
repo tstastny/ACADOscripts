@@ -31,8 +31,8 @@ pparams_next = [paths(2).pparam1, ...
     paths(2).pparam7];
 
 % wind
-wn=-7;
-we=4;
+wn=-13.5;
+we=0;
 wd=0;
 
 % params
@@ -51,7 +51,7 @@ u_trim = [0.375, 0, 1.7*pi/180];
 
 % initial conditions
 ic_u    = u_trim;
-ic_ned  = [-100, 0, -50];
+ic_ned  = [-100, 0, -95];
 ic_vV   = [14, 0, 0];
 ic_att  = [0, 0];
 ic_attdot = [0, 0, 0];
