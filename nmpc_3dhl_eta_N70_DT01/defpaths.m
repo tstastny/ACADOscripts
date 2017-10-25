@@ -74,18 +74,18 @@
 % paths(2).pparam7 = deg2rad(3);
 
 paths(1).pparam1 = 0;
-paths(1).pparam2 = cosd(-90)*500;
-paths(1).pparam3 = sind(-90)*500;%-288.6751;
+paths(1).pparam2 = cosd(90)*500;
+paths(1).pparam3 = sind(90)*500;%-288.6751;
 paths(1).pparam4 = 0;%-70.2704;%-26.2039;
 paths(1).pparam5 = 0;
-paths(1).pparam6 = deg2rad(-90);
+paths(1).pparam6 = deg2rad(90);
 paths(1).pparam7 = deg2rad(0);
 
 paths(2).pparam1 = 0;
-paths(2).pparam2 = cosd(-90)*500;
-paths(2).pparam3 = sind(-90)*500;%-288.6751;
+paths(2).pparam2 = cosd(90)*500;
+paths(2).pparam3 = sind(90)*500;%-288.6751;
 paths(2).pparam4 = 0;%-70.2704;%-26.2039;
 paths(2).pparam5 = 0;
-paths(2).pparam6 = deg2rad(-90);
+paths(2).pparam6 = deg2rad(90);
 paths(2).pparam7 = deg2rad(0);
 

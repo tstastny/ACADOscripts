@@ -33,20 +33,20 @@ const int idx_OD_0 = ACADO_NX+ACADO_NU-minus_NU;
 bool b_switch_segment = false;
 int pparam_sel = 0;
 double sw_dot = 0.0;
-if ( in[ACADO_NX-1] < 0.05 ) { // check x_sw
-    const double vel[3] = {n_dot,e_dot,d_dot};
-    if ( in[idx_OD_0] < 0.5 ) { // path type
-        b_switch_segment = check_line_seg( &in[0], &vel[0], &in[idx_OD_0] );
-    } else if (in[ACADO_NX+ACADO_NU-minus_NU] < 1.5 ) {
-        b_switch_segment = check_curve_seg( &in[0], &vel[0], &in[idx_OD_0] );
-    }
-} else {
-    b_switch_segment = true;
-}
-if (b_switch_segment) {
-    pparam_sel = 7;
-    sw_dot = 1.0;
-} 
+// if ( in[ACADO_NX-1] < 0.05 ) { // check x_sw
+//     const double vel[3] = {n_dot,e_dot,d_dot};
+//     if ( in[idx_OD_0] < 0.5 ) { // path type
+//         b_switch_segment = check_line_seg( &in[0], &vel[0], &in[idx_OD_0] );
+//     } else if (in[idx_OD_0] < 1.5 ) {
+//         b_switch_segment = check_curve_seg( &in[0], &vel[0], &in[idx_OD_0] );
+//     }
+// } else {
+//     b_switch_segment = true;
+// }
+// if (b_switch_segment) {
+//     pparam_sel = 7;
+//     sw_dot = 1.0;
+// } 
 
 /* end manual input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
@@ -114,20 +114,20 @@ const int idx_OD_0 = ACADO_NX+ACADO_NU-minus_NU;
 bool b_switch_segment = false;
 int pparam_sel = 0;
 double sw_dot = 0.0;
-if ( in[ACADO_NX-1] < 0.05 ) { // check x_sw
-    const double vel[3] = {n_dot,e_dot,d_dot};
-    if ( in[idx_OD_0] < 0.5 ) { // path type
-        b_switch_segment = check_line_seg( &in[0], &vel[0], &in[idx_OD_0] );
-    } else if (in[ACADO_NX+ACADO_NU-minus_NU] < 1.5 ) {
-        b_switch_segment = check_curve_seg( &in[0], &vel[0], &in[idx_OD_0] );
-    }
-} else {
-    b_switch_segment = true;
-}
-if (b_switch_segment) {
-    pparam_sel = 7;
-    sw_dot = 1.0;
-} 
+// if ( in[ACADO_NX-1] < 0.05 ) { // check x_sw
+//     const double vel[3] = {n_dot,e_dot,d_dot};
+//     if ( in[idx_OD_0] < 0.5 ) { // path type
+//         b_switch_segment = check_line_seg( &in[0], &vel[0], &in[idx_OD_0] );
+//     } else if (in[idx_OD_0] < 1.5 ) {
+//         b_switch_segment = check_curve_seg( &in[0], &vel[0], &in[idx_OD_0] );
+//     }
+// } else {
+//     b_switch_segment = true;
+// }
+// if (b_switch_segment) {
+//     pparam_sel = 7;
+//     sw_dot = 1.0;
+// } 
 
 /* end manual input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
@@ -223,20 +223,20 @@ const int idx_OD_0 = ACADO_NX+ACADO_NU-minus_NU;
 bool b_switch_segment = false;
 int pparam_sel = 0;
 double sw_dot = 0.0;
-if ( in[ACADO_NX-1] < 0.05 ) { // check x_sw
-    const double vel[3] = {n_dot,e_dot,d_dot};
-    if ( in[idx_OD_0] < 0.5 ) { // path type
-        b_switch_segment = check_line_seg( &in[0], &vel[0], &in[idx_OD_0] );
-    } else if (in[ACADO_NX+ACADO_NU-minus_NU] < 1.5 ) {
-        b_switch_segment = check_curve_seg( &in[0], &vel[0], &in[idx_OD_0] );
-    }
-} else {
-    b_switch_segment = true;
-}
-if (b_switch_segment) {
-    pparam_sel = 7;
-    sw_dot = 1.0;
-} 
+// if ( in[ACADO_NX-1] < 0.05 ) { // check x_sw
+//     const double vel[3] = {n_dot,e_dot,d_dot};
+//     if ( in[idx_OD_0] < 0.5 ) { // path type
+//         b_switch_segment = check_line_seg( &in[0], &vel[0], &in[idx_OD_0] );
+//     } else if (in[idx_OD_0] < 1.5 ) {
+//         b_switch_segment = check_curve_seg( &in[0], &vel[0], &in[idx_OD_0] );
+//     }
+// } else {
+//     b_switch_segment = true;
+// }
+// if (b_switch_segment) {
+//     pparam_sel = 7;
+//     sw_dot = 1.0;
+// } 
 
 double p_n = 0.0;
 double p_e = 0.0;
@@ -246,6 +246,8 @@ double tP_e = 0.0;
 double tP_d = 0.0;
 
 const double pparam_type = in[idx_OD_0+pparam_sel];
+
+double phi_ff = 0.0;
 
 // LINE SEGMENT
 if ( pparam_type < 0.5 ) {
@@ -263,10 +265,13 @@ if ( pparam_type < 0.5 ) {
     p_e = in[idx_OD_0+pparam_sel+2] + dot_tP_bp * tP_e;
     p_d = in[idx_OD_0+pparam_sel+3] + dot_tP_bp * tP_d;
     
+    // feed forward
+    phi_ff = 0.0;
+    
 // ARC SEGMENT
 } else if ( pparam_type < 1.5 ) {
 
-    // variable definitions
+// variable definitions
 //     const double pparam_cc_n = in[idx_OD_0+pparam_sel+1];
 //     const double pparam_cc_e = in[idx_OD_0+pparam_sel+2];
 //     const double pparam_cc_d = in[idx_OD_0+pparam_sel+3];
@@ -302,15 +307,17 @@ if ( pparam_type < 0.5 ) {
     
     // angular exit
     double xi_exit = in[idx_OD_0+pparam_sel+5] - pparam_ldir * 1.570796326794897;
+    if (xi_exit>3.141592653589793) {
+        xi_exit = xi_exit - 6.283185307179586;
+    }
+    else if (xi_exit<-3.141592653589793) {
+        xi_exit = xi_exit + 6.283185307179586;
+    }
     
     // angular travel (back calculated) from exit [0,2pi)
-    double delta_xi = xi_pos - xi_exit;
-    if (pparam_ldir > 0.0 && xi_exit < xi_pos) {
-        delta_xi = delta_xi + 6.28318530718;
-    }
-    else if (pparam_ldir < 0.0 && xi_exit > xi_pos) {
-        delta_xi = delta_xi - 6.28318530718;
-    }
+    double delta_xi = pparam_ldir * (xi_exit - xi_pos);
+    if (delta_xi >= 6.28318530718) delta_xi = 0.0;
+    if (delta_xi < 0.0) delta_xi = delta_xi + 6.28318530718;
 
     // closest point on nearest spiral leg and tangent down component
     if (fabs(in[idx_OD_0+pparam_sel+6]) < 0.001) {
@@ -323,11 +330,11 @@ if ( pparam_type < 0.5 ) {
         const double RtanGam = fabs(in[idx_OD_0+pparam_sel+4]) * tan(in[idx_OD_0+pparam_sel+6]);
 
         // height down from exit
-        const double delta_d_xi = delta_xi * Rtangam;
+        const double delta_d_xi = delta_xi * RtanGam;
 
         // nearest spiral leg
-        const double delta_d_k = round( (in[2] - (in[idx_OD_0+pparam_sel+3] + delta_d_xi)) / (6.28318530718*Rtangam) ) * 6.28318530718*Rtangam;
-
+        const double delta_d_k = round( (in[2] - (in[idx_OD_0+pparam_sel+3] + delta_d_xi)) / (6.28318530718*RtanGam) ) * 6.28318530718*RtanGam;
+        
         // closest point on nearest spiral leg
         p_d = in[idx_OD_0+pparam_sel+3] + delta_d_k + delta_d_xi;
         
@@ -351,6 +358,9 @@ if ( pparam_type < 0.5 ) {
     // Normalize tP
     tP_n = tP_n * cos(Gam_temp);
     tP_e = tP_e * cos(Gam_temp);
+    
+    // feed forward
+    phi_ff = atan((n_dot*n_dot+e_dot*e_dot)/in[idx_OD_0+pparam_sel+4]/9.81);
     
 // LOITER UNLIM
 } else if ( pparam_type < 2.5 ) {
@@ -385,6 +395,9 @@ if ( pparam_type < 0.5 ) {
         tP_n=1.0;
         tP_e=0.0;
     }
+    
+    // feed forward
+    phi_ff = atan((n_dot*n_dot+e_dot*e_dot)/in[idx_OD_0+pparam_sel+4]/9.81);
 }
 
 /* end manual input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
@@ -393,7 +406,16 @@ const double t3 = in[1]-p_e;
 const double t4 = in[0]-p_n;
 const double norm_rp_ne = sqrt(t3*t3+t4*t4);
 
-const double t5 = 1.0/norm_rp_ne;
+double rp_n_unit;
+double rp_e_unit;
+if (norm_rp_ne < 0.00001) {
+    rp_n_unit = 0.0;
+    rp_e_unit = 0.0;
+} else {
+    rp_n_unit = -t4/norm_rp_ne;
+    rp_e_unit = -t3/norm_rp_ne;
+}
+
 const double t6 = -in[2]+p_d;
 
 double sgn_rp = 0.0;
@@ -418,32 +440,87 @@ if (t18>1.0) {
 double sat_e_lat = fabs(e_lat)/e_b_lat;
 if (sat_e_lat>1.0) sat_e_lat = 1.0;
 
-const double t7 = sat_e_lat-1.0;
-const double t8 = t7*t7;
-const double t9 = 3.141592653589793*t8*(1.0/2.0);
-const double t10 = cos(t9);
-const double t11 = sin(t9);
+// const double t7 = sat_e_lat-1.0;
+// const double t8 = t7*t7;
+// const double t9 = 3.141592653589793*t8*(1.0/2.0);
+// const double t10 = cos(t9);
+// const double t11 = sin(t9);
 
 const double e_lon = t6;
 
-double e_b_lon;
-if (fabs(d_dot)>1.0) {
-    e_b_lon = fabs(d_dot)*in[39];                               
-} else {
-    e_b_lon = in[39]*(1.0/2.0)+in[39]*fabs(d_dot)*(1.0/2.0);
-}
-double sat_e_lon = fabs(e_lon)/e_b_lon;
-if (sat_e_lon>1.0) sat_e_lon = 1.0;
+// double e_b_lon;
+// if (fabs(d_dot)>1.0) {
+//     e_b_lon = fabs(d_dot)*in[39];                               
+// } else {
+//     e_b_lon = in[39]*(1.0/2.0)+in[39]*fabs(d_dot)*(1.0/2.0);
+// }
+// double sat_e_lon = fabs(e_lon)/e_b_lon;
+// if (sat_e_lon>1.0) sat_e_lon = 1.0;
 
-const double t12 = sat_e_lon-1.0;
-const double t13 = t12*t12;
-const double t14 = 3.141592653589793*t13*(1.0/2.0);
-const double t15 = sin(t14);
+// double sat_e_lon = fabs(e_lon)/in[39];
+// if (sat_e_lon>1.0) sat_e_lon = 1.0;
+// 
+// const double t12 = sat_e_lon-1.0;
+// const double t13 = t12*t12;
+// const double t14 = 3.141592653589793*t13*(1.0/2.0);
+// const double t15 = sin(t14);
 
-const double rp_n_unit = -t4*t5;
-const double rp_e_unit = -t3*t5;
+// const double atan2_01 = atan2(rp_e_unit*t10+t11*tP_e, rp_n_unit*t10+t11*tP_n);
+// const double atan2_02 = atan2(e_dot, n_dot);
+// double eta_lat = atan2_01-atan2_02;
+// if (eta_lat>3.141592653589793) {
+//     eta_lat = eta_lat - 6.283185307179586;
+// }
+// else if (eta_lat<-3.141592653589793) {
+//     eta_lat = eta_lat + 6.283185307179586;
+// }
 
-const double atan2_01 = atan2(rp_e_unit*t10+t11*tP_e, rp_n_unit*t10+t11*tP_n);
+// const double atan2_03 = atan2(-t15*tP_d-sgn_rp*cos(t14), t15*sqrt(tP_e*tP_e+tP_n*tP_n));
+// const double atan2_04 = atan2(-d_dot, sqrt(t18));
+// double eta_lon = atan2_03-atan2_04;
+// if (eta_lon>3.141592653589793) {
+//     eta_lon = eta_lon - 6.283185307179586;
+// }
+// else if (eta_lon<-3.141592653589793) {
+//     eta_lon = eta_lon + 6.283185307179586;
+// }
+
+const double norm_vG_lat = sqrt(t18);
+// // double eta_lat;
+// // double tt1;
+// // double tt2;
+// // const double tt3 = (rp_n_unit*t10+t11*tP_n)*e_dot-(rp_e_unit*t10+t11*tP_e)*n_dot;
+// // if (norm_vG_lat<0.00001) {
+// // 
+// //     eta_lat = 0.0;
+// // }
+// // else if (norm_vG_lat<1.0) {
+// // //     eta_lat = sqrt(-(norm_vG_lat-2.0)*(norm_vG_lat-n_dot*(rp_n_unit*t10+t11*tP_n)-e_dot*(rp_e_unit*t10+t11*tP_e))/2.0);
+// //     const double VG1 = 0.5-0.5*cos(3.141592653589793*norm_vG_lat);
+// //     const double VG1_VG = VG1/norm_vG_lat;
+// //     
+// //     tt1 = VG1*(rp_e_unit*t10+t11*tP_e)-e_dot*VG1_VG;
+// //     tt2 = VG1*(rp_n_unit*t10+t11*tP_n)-n_dot*VG1_VG;
+// // 
+// //     eta_lat = (((tt3<0.0) ? -1.0 : 1.0)*sqrt(tt1*tt1+tt2*tt2)/2.0);
+// // }
+// // else {
+// // //     eta_lat = sqrt((norm_vG_lat*(1.0/2.0)-n_dot*(rp_n_unit*t10+t11*tP_n)*(1.0/2.0)-e_dot*(rp_e_unit*t10+t11*tP_e)*(1.0/2.0))/norm_vG_lat);
+// //     tt1 = norm_vG_lat*(rp_e_unit*t10+t11*tP_e)-e_dot;
+// //     tt2 = norm_vG_lat*(rp_n_unit*t10+t11*tP_n)-n_dot;
+// //     
+// //     eta_lat = (((tt3<0.0) ? -1.0 : 1.0)*sqrt(tt1*tt1+tt2*tt2)/norm_vG_lat/2.0);
+// // //     eta_lat = (sqrt(tt1*tt1+tt2*tt2)/norm_vG_lat/2.0);
+// // 
+// // }
+const double thetal=-sat_e_lat*(sat_e_lat-2.0);
+const double ln=(1.0-thetal)*tP_n/sqrt(tP_e*tP_e+tP_n*tP_n)+thetal*rp_n_unit;
+const double le=(1.0-thetal)*tP_e/sqrt(tP_e*tP_e+tP_n*tP_n)+thetal*rp_e_unit;
+// const double tt1 = norm_vG_lat*ln-n_dot;
+// const double tt2 = norm_vG_lat*le-e_dot;
+// const double eta_lat = sqrt(tt1*tt1 + tt2*tt2)/norm_vG_lat/2.0;
+
+const double atan2_01 = atan2(le, ln);
 const double atan2_02 = atan2(e_dot, n_dot);
 double eta_lat = atan2_01-atan2_02;
 if (eta_lat>3.141592653589793) {
@@ -453,14 +530,41 @@ else if (eta_lat<-3.141592653589793) {
     eta_lat = eta_lat + 6.283185307179586;
 }
 
-const double atan2_03 = atan2(-t15*tP_d-sgn_rp*cos(t14), t15*sqrt(tP_e*tP_e+tP_n*tP_n));
-const double atan2_04 = atan2(-d_dot, sqrt(t18));
-double eta_lon = atan2_03-atan2_04;
-if (eta_lon>3.141592653589793) {
-    eta_lon = eta_lon - 6.283185307179586;
+
+const double norm_vG_lon = sqrt(t18+d_dot*d_dot);
+// double eta_lon;
+// if (norm_vG_lon<1.0) {
+//     eta_lon = sqrt(-(norm_vG_lon-2.0)*(norm_vG_lon-t15*sqrt(tP_e*tP_e+tP_n*tP_n)*norm_vG_lat-d_dot*(-t15*tP_d-sgn_rp*cos(t14)))/2.0);
+// }
+// else {
+//     eta_lon = sqrt((norm_vG_lon*(1.0/2.0)-norm_vG_lat*t15*sqrt(tP_e*tP_e+tP_n*tP_n)*(1.0/2.0)-d_dot*(-t15*tP_d-sgn_rp*cos(t14))*(1.0/2.0))/norm_vG_lon);
+// }
+
+// const double d_dot_max = 3.0;
+// sat_e_lon = e_lon/in[39];
+// if (sat_e_lon>1.0) sat_e_lon = 1.0;
+// if (sat_e_lon<-1.0) sat_e_lon = -1.0;
+// const double eta_lon = sqrt((sat_e_lon*d_dot_max - d_dot)/d_dot_max);
+
+double ddot_sp = norm_vG_lon*tP_d/sqrt(tP_e*tP_e+tP_n*tP_n);
+const double ddot_clmb = 3.5;
+const double ddot_sink = 1.5;
+if (ddot_sp>1.4) ddot_sp=1.4;
+if (ddot_sp<-3.4) ddot_sp=-3.4;
+double eta_lon;
+double sat_e_lon;
+double thetal_lon;
+if (e_lon<0.0) {
+    sat_e_lon = fabs(e_lon/in[39]/(-ddot_clmb-ddot_sp));
+    if (sat_e_lon>1.0) sat_e_lon=1.0;
+    thetal_lon = -sat_e_lon*(sat_e_lon-2.0);
+    eta_lon = ((-ddot_clmb-ddot_sp)*thetal_lon + ddot_sp - d_dot)/(ddot_clmb+ddot_sink);
 }
-else if (eta_lon<-3.141592653589793) {
-    eta_lon = eta_lon + 6.283185307179586;
+else {
+    sat_e_lon = fabs(e_lon/in[39]/(ddot_sink-ddot_sp));
+    if (sat_e_lon>1.0) sat_e_lon=1.0;
+    thetal_lon = -sat_e_lon*(sat_e_lon-2.0);
+    eta_lon = ((ddot_sink-ddot_sp)*thetal_lon + ddot_sp - d_dot)/(ddot_clmb+ddot_sink);
 }
 
 const double t19 = alpha-in[35]+in[37];
@@ -489,7 +593,9 @@ out[5] = in[10];
 out[6] = a_soft;
 out[7] = in[11]*(-4.143016944939305)+in[13]*4.143016944939305;
 out[8] = in[13];
-out[9] = in[14];
+if (phi_ff>0.523598775598299) phi_ff = 0.523598775598299;
+else if (phi_ff<-0.523598775598299) phi_ff = -0.523598775598299;
+out[9] = in[14] - (0.5+0.5*cos(sat_e_lat*3.141592653589793))*phi_ff;
 out[10] = in[15];
 
 }
@@ -565,20 +671,20 @@ const int idx_OD_0 = ACADO_NX+ACADO_NU-minus_NU;
 bool b_switch_segment = false;
 int pparam_sel = 0;
 double sw_dot = 0.0;
-if ( in[ACADO_NX-1] < 0.05 ) { // check x_sw
-    const double vel[3] = {n_dot,e_dot,d_dot};
-    if ( in[idx_OD_0] < 0.5 ) { // path type
-        b_switch_segment = check_line_seg( &in[0], &vel[0], &in[idx_OD_0] );
-    } else if (in[ACADO_NX+ACADO_NU-minus_NU] < 1.5 ) {
-        b_switch_segment = check_curve_seg( &in[0], &vel[0], &in[idx_OD_0] );
-    }
-} else {
-    b_switch_segment = true;
-}
-if (b_switch_segment) {
-    pparam_sel = 7;
-    sw_dot = 1.0;
-} 
+// if ( in[ACADO_NX-1] < 0.05 ) { // check x_sw
+//     const double vel[3] = {n_dot,e_dot,d_dot};
+//     if ( in[idx_OD_0] < 0.5 ) { // path type
+//         b_switch_segment = check_line_seg( &in[0], &vel[0], &in[idx_OD_0] );
+//     } else if (in[idx_OD_0] < 1.5 ) {
+//         b_switch_segment = check_curve_seg( &in[0], &vel[0], &in[idx_OD_0] );
+//     }
+// } else {
+//     b_switch_segment = true;
+// }
+// if (b_switch_segment) {
+//     pparam_sel = 7;
+//     sw_dot = 1.0;
+// } 
 
 double p_n = 0.0;
 double p_e = 0.0;
@@ -608,7 +714,7 @@ if ( pparam_type < 0.5 ) {
 // ARC SEGMENT
 } else if ( pparam_type < 1.5 ) {
 
-    // variable definitions
+// variable definitions
 //     const double pparam_cc_n = in[idx_OD_0+pparam_sel+1];
 //     const double pparam_cc_e = in[idx_OD_0+pparam_sel+2];
 //     const double pparam_cc_d = in[idx_OD_0+pparam_sel+3];
@@ -644,15 +750,17 @@ if ( pparam_type < 0.5 ) {
     
     // angular exit
     double xi_exit = in[idx_OD_0+pparam_sel+5] - pparam_ldir * 1.570796326794897;
+    if (xi_exit>3.141592653589793) {
+        xi_exit = xi_exit - 6.283185307179586;
+    }
+    else if (xi_exit<-3.141592653589793) {
+        xi_exit = xi_exit + 6.283185307179586;
+    }
     
     // angular travel (back calculated) from exit [0,2pi)
-    double delta_xi = xi_pos - xi_exit;
-    if (pparam_ldir > 0.0 && xi_exit < xi_pos) {
-        delta_xi = delta_xi + 6.28318530718;
-    }
-    else if (pparam_ldir < 0.0 && xi_exit > xi_pos) {
-        delta_xi = delta_xi - 6.28318530718;
-    }
+    double delta_xi = pparam_ldir * (xi_exit - xi_pos);
+    if (delta_xi >= 6.28318530718) delta_xi = 0.0;
+    if (delta_xi < 0.0) delta_xi = delta_xi + 6.28318530718;
 
     // closest point on nearest spiral leg and tangent down component
     if (fabs(in[idx_OD_0+pparam_sel+6]) < 0.001) {
@@ -665,11 +773,11 @@ if ( pparam_type < 0.5 ) {
         const double RtanGam = fabs(in[idx_OD_0+pparam_sel+4]) * tan(in[idx_OD_0+pparam_sel+6]);
 
         // height down from exit
-        const double delta_d_xi = delta_xi * Rtangam;
+        const double delta_d_xi = delta_xi * RtanGam;
 
         // nearest spiral leg
-        const double delta_d_k = round( (in[2] - (in[idx_OD_0+pparam_sel+3] + delta_d_xi)) / (6.28318530718*Rtangam) ) * 6.28318530718*Rtangam;
-
+        const double delta_d_k = round( (in[2] - (in[idx_OD_0+pparam_sel+3] + delta_d_xi)) / (6.28318530718*RtanGam) ) * 6.28318530718*RtanGam;
+        
         // closest point on nearest spiral leg
         p_d = in[idx_OD_0+pparam_sel+3] + delta_d_k + delta_d_xi;
         
@@ -735,7 +843,16 @@ const double t3 = in[1]-p_e;
 const double t4 = in[0]-p_n;
 const double norm_rp_ne = sqrt(t3*t3+t4*t4);
 
-const double t5 = 1.0/norm_rp_ne;
+double rp_n_unit;
+double rp_e_unit;
+if (norm_rp_ne < 0.00001) {
+    rp_n_unit = 0.0;
+    rp_e_unit = 0.0;
+} else {
+    rp_n_unit = -t4/norm_rp_ne;
+    rp_e_unit = -t3/norm_rp_ne;
+}
+
 const double t6 = -in[2]+p_d;
 
 double sgn_rp = 0.0;
@@ -760,32 +877,87 @@ if (t18>1.0) {
 double sat_e_lat = fabs(e_lat)/e_b_lat;
 if (sat_e_lat>1.0) sat_e_lat = 1.0;
 
-const double t7 = sat_e_lat-1.0;
-const double t8 = t7*t7;
-const double t9 = 3.141592653589793*t8*(1.0/2.0);
-const double t10 = cos(t9);
-const double t11 = sin(t9);
+// const double t7 = sat_e_lat-1.0;
+// const double t8 = t7*t7;
+// const double t9 = 3.141592653589793*t8*(1.0/2.0);
+// const double t10 = cos(t9);
+// const double t11 = sin(t9);
 
 const double e_lon = t6;
 
-double e_b_lon;
-if (fabs(d_dot)>1.0) {
-    e_b_lon = fabs(d_dot)*in[36];                               
-} else {
-    e_b_lon = in[36]*(1.0/2.0)+in[36]*fabs(d_dot)*(1.0/2.0);
-}
-double sat_e_lon = fabs(e_lon)/e_b_lon;
-if (sat_e_lon>1.0) sat_e_lon = 1.0;
+// double e_b_lon;
+// if (fabs(d_dot)>1.0) {
+//     e_b_lon = fabs(d_dot)*in[36];                               
+// } else {
+//     e_b_lon = in[36]*(1.0/2.0)+in[36]*fabs(d_dot)*(1.0/2.0);
+// }
+// double sat_e_lon = fabs(e_lon)/e_b_lon;
+// if (sat_e_lon>1.0) sat_e_lon = 1.0;
 
-const double t12 = sat_e_lon-1.0;
-const double t13 = t12*t12;
-const double t14 = 3.141592653589793*t13*(1.0/2.0);
-const double t15 = sin(t14);
+// double sat_e_lon = fabs(e_lon)/in[36];
+// if (sat_e_lon>1.0) sat_e_lon = 1.0;
+// 
+// const double t12 = sat_e_lon-1.0;
+// const double t13 = t12*t12;
+// const double t14 = 3.141592653589793*t13*(1.0/2.0);
+// const double t15 = sin(t14);
 
-const double rp_n_unit = -t4*t5;
-const double rp_e_unit = -t3*t5;
+// const double atan2_01 = atan2(rp_e_unit*t10+t11*tP_e, rp_n_unit*t10+t11*tP_n);
+// const double atan2_02 = atan2(e_dot, n_dot);
+// double eta_lat = atan2_01-atan2_02;
+// if (eta_lat>3.141592653589793) {
+//     eta_lat = eta_lat - 6.283185307179586;
+// }
+// else if (eta_lat<-3.141592653589793) {
+//     eta_lat = eta_lat + 6.283185307179586;
+// }
+// 
+// const double atan2_03 = atan2(-t15*tP_d-sgn_rp*cos(t14), t15*sqrt(tP_e*tP_e+tP_n*tP_n));
+// const double atan2_04 = atan2(-d_dot, sqrt(t18));
+// double eta_lon = atan2_03-atan2_04;
+// if (eta_lon>3.141592653589793) {
+//     eta_lon = eta_lon - 6.283185307179586;
+// }
+// else if (eta_lon<-3.141592653589793) {
+//     eta_lon = eta_lon + 6.283185307179586;
+// }
 
-const double atan2_01 = atan2(rp_e_unit*t10+t11*tP_e, rp_n_unit*t10+t11*tP_n);
+const double norm_vG_lat = sqrt(t18);
+// double eta_lat;
+// double tt1;
+// double tt2;
+// const double tt3 = (rp_n_unit*t10+t11*tP_n)*e_dot-(rp_e_unit*t10+t11*tP_e)*n_dot;
+// if (norm_vG_lat<0.00001) {
+// 
+//     eta_lat = 0.0;
+// }
+// else if (norm_vG_lat<1.0) {
+// //     eta_lat = sqrt(-(norm_vG_lat-2.0)*(norm_vG_lat-n_dot*(rp_n_unit*t10+t11*tP_n)-e_dot*(rp_e_unit*t10+t11*tP_e))/2.0);
+//     const double VG1 = 0.5-0.5*cos(3.141592653589793*norm_vG_lat);
+//     const double VG1_VG = VG1/norm_vG_lat;
+//     
+//     tt1 = VG1*(rp_e_unit*t10+t11*tP_e)-e_dot*VG1_VG;
+//     tt2 = VG1*(rp_n_unit*t10+t11*tP_n)-n_dot*VG1_VG;
+// 
+//     eta_lat = (((tt3<0.0) ? -1.0 : 1.0)*sqrt(tt1*tt1+tt2*tt2)/2.0);
+// }
+// else {
+// //     eta_lat = sqrt((norm_vG_lat*(1.0/2.0)-n_dot*(rp_n_unit*t10+t11*tP_n)*(1.0/2.0)-e_dot*(rp_e_unit*t10+t11*tP_e)*(1.0/2.0))/norm_vG_lat);
+//     tt1 = norm_vG_lat*(rp_e_unit*t10+t11*tP_e)-e_dot;
+//     tt2 = norm_vG_lat*(rp_n_unit*t10+t11*tP_n)-n_dot;
+//     
+//     eta_lat = (((tt3<0.0) ? -1.0 : 1.0)*sqrt(tt1*tt1+tt2*tt2)/norm_vG_lat/2.0);
+// //     eta_lat = (sqrt(tt1*tt1+tt2*tt2)/norm_vG_lat/2.0);
+// }
+
+const double thetal=-sat_e_lat*(sat_e_lat-2.0);
+const double ln=(1.0-thetal)*tP_n/sqrt(tP_e*tP_e+tP_n*tP_n)+thetal*rp_n_unit;
+const double le=(1.0-thetal)*tP_e/sqrt(tP_e*tP_e+tP_n*tP_n)+thetal*rp_e_unit;
+// const double tt1 = norm_vG_lat*ln-n_dot;
+// const double tt2 = norm_vG_lat*le-e_dot;
+// const double eta_lat = sqrt(tt1*tt1 + tt2*tt2)/norm_vG_lat/2.0;
+
+const double atan2_01 = atan2(le, ln);
 const double atan2_02 = atan2(e_dot, n_dot);
 double eta_lat = atan2_01-atan2_02;
 if (eta_lat>3.141592653589793) {
@@ -795,14 +967,40 @@ else if (eta_lat<-3.141592653589793) {
     eta_lat = eta_lat + 6.283185307179586;
 }
 
-const double atan2_03 = atan2(-t15*tP_d-sgn_rp*cos(t14), t15*sqrt(tP_e*tP_e+tP_n*tP_n));
-const double atan2_04 = atan2(-d_dot, sqrt(t18));
-double eta_lon = atan2_03-atan2_04;
-if (eta_lon>3.141592653589793) {
-    eta_lon = eta_lon - 6.283185307179586;
+const double norm_vG_lon = sqrt(t18+d_dot*d_dot);
+// double eta_lon;
+// if (norm_vG_lon<1.0) {
+//     eta_lon = sqrt(-(norm_vG_lon-2.0)*(norm_vG_lon-t15*sqrt(tP_e*tP_e+tP_n*tP_n)*norm_vG_lat-d_dot*(-t15*tP_d-sgn_rp*cos(t14)))/2.0);
+// }
+// else {
+//     eta_lon = sqrt((norm_vG_lon*(1.0/2.0)-norm_vG_lat*t15*sqrt(tP_e*tP_e+tP_n*tP_n)*(1.0/2.0)-d_dot*(-t15*tP_d-sgn_rp*cos(t14))*(1.0/2.0))/norm_vG_lon);
+// }
+
+// const double d_dot_max = 3.0;
+// sat_e_lon = e_lon/in[36]/;
+// if (sat_e_lon>1.0) sat_e_lon = 1.0;
+// if (sat_e_lon<-1.0) sat_e_lon = -1.0;
+// const double eta_lon = (sat_e_lon*d_dot_max - d_dot)/d_dot_max;
+
+double ddot_sp = norm_vG_lon*tP_d/sqrt(tP_e*tP_e+tP_n*tP_n);
+const double ddot_clmb = 3.5;
+const double ddot_sink = 1.5;
+if (ddot_sp>1.4) ddot_sp=1.4;
+if (ddot_sp<-3.4) ddot_sp=-3.4;
+double eta_lon;
+double sat_e_lon;
+double thetal_lon;
+if (e_lon<0.0) {
+    sat_e_lon = fabs(e_lon/in[36]/(-ddot_clmb-ddot_sp));
+    if (sat_e_lon>1.0) sat_e_lon=1.0;
+    thetal_lon = -sat_e_lon*(sat_e_lon-2.0);
+    eta_lon = ((-ddot_clmb-ddot_sp)*thetal_lon + ddot_sp - d_dot)/(ddot_clmb+ddot_sink);
 }
-else if (eta_lon<-3.141592653589793) {
-    eta_lon = eta_lon + 6.283185307179586;
+else {
+    sat_e_lon = fabs(e_lon/in[36]/(ddot_sink-ddot_sp));
+    if (sat_e_lon>1.0) sat_e_lon=1.0;
+    thetal_lon = -sat_e_lon*(sat_e_lon-2.0);
+    eta_lon = ((ddot_sink-ddot_sp)*thetal_lon + ddot_sp - d_dot)/(ddot_clmb+ddot_sink);
 }
 
 const double t19 = alpha-in[32]+in[34];
@@ -872,13 +1070,13 @@ bool check_line_seg( const double *pos, const double *vel, const double *params 
     const double tB_e = cos(params[6])*sin(params[5]);
     const double tB_d = -sin(params[6]);
 
-    // p - b
-    const double bp_n = pos[0] - params[1];
-    const double bp_e = pos[1] - params[2];
-    const double bp_d = pos[2] - params[3];
+    // r - b
+    const double br_n = pos[0] - params[1];
+    const double br_e = pos[1] - params[2];
+    const double br_d = pos[2] - params[3];
     
-    // dot( (p-r) , tB )
-    const double dot_brtB = bp_n * tB_n + bp_e * tB_e + bp_d * tB_d;
+    // dot( (r-b) , tB )
+    const double dot_brtB = br_n * tB_n + br_e * tB_e + br_d * tB_d;
     
     // check travel 
     return ( dot_brtB > 0.0 );
@@ -892,23 +1090,26 @@ bool check_curve_seg( const double *pos, const double *vel, const double *params
     const double tB_e = cos(params[6])*sin(params[5]);
     const double tB_d = -sin(params[6]);
 
-    // p - b
+    // r - b
     const double rot90 = (params[4]<0.0) ? -1.570796326794897 : 1.570796326794897;
-    const double bp_n = pos[0] - (params[1] + fabs(params[4]) * cos(params[5] - rot90));
-    const double bp_e = pos[1] - (params[2] + fabs(params[4]) * sin(params[5] - rot90));
-    const double bp_d = pos[2] - params[3];
+    const double br_n = pos[0] - (params[1] + fabs(params[4]) * cos(params[5] - rot90));
+    const double br_e = pos[1] - (params[2] + fabs(params[4]) * sin(params[5] - rot90));
+    const double br_d = pos[2] - params[3];
     
-    // dot( v , tB )
-    const double dot_vtB = vel[0] * tB_n + vel[1] * tB_e + vel[2] * tB_d;
-    s
-    // dot( (p-r) , tB )
-    const double dot_brtB = bp_n * tB_n + bp_e * tB_e + bp_d * tB_d;
+    // bearing : dot( v , tB ) (lat)
+    const double dot_vtB = vel[0] * tB_n + vel[1] * tB_e;
     
-    // norm( p-r )
-    const double norm_br = sqrt( bp_n*bp_n + bp_e*bp_e + bp_d*bp_d );
+    // travel : dot( (r-b) , tB ) (lat)
+    const double dot_brtB = br_n * tB_n + br_e * tB_e;
+    
+    // proximity : norm( r-b ) (lat)
+    const double norm_br = sqrt( br_n*br_n + br_e*br_e );
+    
+    // proximity : norm( r-b ) (lon)
+    const double norm_br_d = fabs(br_d);
     
     // check (1) proximity, (2) bearing, (3) travel 
-    return ( norm_br < params[14] && dot_vtB > params[15] && dot_brtB > 0.0 );
+    return ( norm_br < params[14] && norm_br_d < 10.0 && dot_vtB > params[15]*sqrt(vel[0]*vel[0]+vel[1]*vel[1]) && dot_brtB > 0.0 );
 }
 
 /* end inline functions !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */

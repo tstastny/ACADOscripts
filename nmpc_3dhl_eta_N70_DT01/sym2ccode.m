@@ -30,22 +30,22 @@ n_X     = length(states);
 
 assume(states,'real');
 
-% auxillary states
-alpha_expr = theta - gamma; % assume no beta
+% AUXILLARY STATES
 
+alpha_expr = theta - gamma; % assume no beta
 % | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
 idx_tracked_expr = idx_tracked_expr + 1;
 alpha = sym('alpha','real');
 tracked_expr(idx_tracked_expr, :) = [alpha, alpha_expr];
 
 mu = phi; % assume no beta
-Vsafe_expr = V;
-% if (Vsafe<1.0) Vsafe = 1.0;
 
+Vsafe_expr = V;
 % | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
 idx_tracked_expr = idx_tracked_expr + 1;
 Vsafe = sym('Vsafe','real');
 tracked_expr(idx_tracked_expr, :) = [Vsafe, Vsafe_expr];  
+% if (Vsafe<1.0) Vsafe = 1.0;
 
 % CONTROLS ////////////////////////////////////////////////////////////////
 syms u_T;       % (throttle input)              [~]
@@ -82,6 +82,8 @@ syms alpha_m_co;        % angle of attack lower cut-off
 syms alpha_delta_co;    % angle of attack cut-off transition length\
 syms T_b_lat;           % lateral-directional track-error boundary constant
 syms T_b_lon;           % longitudinal track-error boundary constant
+syms ddot_clmb;         % max climb rate
+syms ddot_sink;         % max sink rate
 vG_min = 1;
 
 onlinedata  = [...
@@ -90,7 +92,8 @@ onlinedata  = [...
     R_acpt,ceta_acpt,...
     wn,we,wd,...
     alpha_p_co,alpha_m_co,alpha_delta_co,...
-    T_b_lat,T_b_lon];
+    T_b_lat,T_b_lon,...
+    ddot_clmb,ddot_sink];
 n_OD = length(onlinedata);
 
 assume(onlinedata,'real');
@@ -98,30 +101,27 @@ assume(onlinedata,'real');
 % /////////////////////////////////////////////////////////////////////////
 % STATE DIFFERENTIALS /////////////////////////////////////////////////////
 
-% position differentials
+% POSITION DIFFERENTIALS
 
 n_dot_expr = Vsafe * cos(xi) * cos(gamma) + wn;
-
 % | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
 idx_tracked_expr = idx_tracked_expr + 1;
 n_dot = sym('n_dot','real');
 tracked_expr(idx_tracked_expr, :) = [n_dot, n_dot_expr];   
 
 e_dot_expr = Vsafe * sin(xi) * cos(gamma) + we;
-
 % | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
 idx_tracked_expr = idx_tracked_expr + 1;
 e_dot = sym('e_dot','real');
 tracked_expr(idx_tracked_expr, :) = [e_dot, e_dot_expr];   
 
 d_dot_expr = -Vsafe * sin(gamma) + wd;
-
 % | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
 idx_tracked_expr = idx_tracked_expr + 1;
 d_dot = sym('d_dot','real');
 tracked_expr(idx_tracked_expr, :) = [d_dot, d_dot_expr];  
 
-% velocity frame differentials
+% VELOCITY FRAME DIFFERENTIALS
 
 g = 9.81;
 m = 2.65;
@@ -145,11 +145,11 @@ V_dot = (T*cos(alpha)-D)/m-g*sin(gamma);
 gamma_dot = ((T*sin(alpha)+L)*cos(mu) - m*g*cos(gamma))/m/Vsafe;
 xi_dot = (T*sin(alpha)+L)*sin(mu)/Vsafe/m/cos(gamma); % same as with alpha
 
-% attitude differentials
+% ATTITUDE DIFFERENTIALS
 phi_dot = p;
 theta_dot = q*cos(phi)-r*sin(phi);
 
-% body rate differentials
+% BODY RATE DIFFERENTIALS
 
 Lm = Lp * p + Lr * r + LeR * (phi_ref-phi);
 Mm = Vsafe^2 * (M0 + Ma * alpha + Mq * q + MeP * (theta_ref-theta));
@@ -159,11 +159,11 @@ p_dot = Lm;
 q_dot = Mm;
 r_dot = Nm;
 
-% throttle delay
+% THROTTLE DELAY
 
 delta_T_dot = (u_T - delta_T) / tauT;
 
-% switching state differential
+% SWITCHING STATE
 
 syms sw_dot_expr;
 sw_dot = sw_dot_expr;
@@ -188,111 +188,74 @@ tP_e = sym('tP_e','real');
 tP_d = sym('tP_d','real');
 % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-% track position error
+tP_n_unit = tP_n/sqrt(tP_e^2 + tP_n^2);
+tP_e_unit = tP_e/sqrt(tP_e^2 + tP_n^2);
+
+% TRACK POSITION ERROR
 
 rp_n = p_n - n;
 rp_e = p_e - e;
 rp_d = p_d - d;
 
-norm_rp_ne_expr = sqrt(rp_n^2 + rp_e^2);
-
-% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
-idx_tracked_expr = idx_tracked_expr + 1;
-norm_rp_ne = sym('norm_rp_ne','real');
-tracked_expr(idx_tracked_expr, :) = [norm_rp_ne, norm_rp_ne_expr];
-
-cz = tP_n * rp_e - rp_n * tP_e;
-
-e_lat_expr = cz;
-
-% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
-idx_tracked_expr = idx_tracked_expr + 1;
-e_lat = sym('e_lat','real');
-tracked_expr(idx_tracked_expr, :) = [e_lat, e_lat_expr];
-
-e_lon_expr = rp_d;
-
-% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
-idx_tracked_expr = idx_tracked_expr + 1;
-e_lon = sym('e_lon','real');
-tracked_expr(idx_tracked_expr, :) = [e_lon, e_lon_expr];
-
-% guidance
-
-% if norm(vG)>vGmin
-%     e_b = norm(vG)*T_b;                               
-% else
-%     e_b = T_b/2/vGmin*norm(vG)^2+0.5*T_b*vGmin;
-% end
-
-e_b_lat_expr = T_b_lat/2/vG_min*(e_dot^2+n_dot^2)+0.5*T_b_lat*vG_min;
-
-% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
-idx_tracked_expr = idx_tracked_expr + 1;
-e_b_lat = sym('e_b_lat','real');
-tracked_expr(idx_tracked_expr, :) = [e_b_lat, e_b_lat_expr];
-
-e_b_lon_expr = T_b_lon/2/vG_min*abs(d_dot)+0.5*T_b_lon*vG_min;
-
-% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
-idx_tracked_expr = idx_tracked_expr + 1;
-e_b_lon = sym('e_b_lon','real');
-tracked_expr(idx_tracked_expr, :) = [e_b_lon, e_b_lon_expr];
-
-sat_e_lat_expr = abs(e_lat)/e_b_lat;
-% double sat_e_lat = abs(sat_e_lat_expr);
-% if (sat_e_lat > 1) {
-%   sat_e_lat = 1;
-% }
-
-% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
-idx_tracked_expr = idx_tracked_expr + 1;
-sat_e_lat = sym('sat_e_lat','real');
-tracked_expr(idx_tracked_expr, :) = [sat_e_lat, sat_e_lat_expr];
-
-sat_e_lon_expr = abs(e_lon)/e_b_lon;
-% double sat_e_lon = abs(sat_e_lon_expr);
-% if (sat_e_lon > 1) {
-%   sat_e_lon = 1;
-% }
-
-% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
-idx_tracked_expr = idx_tracked_expr + 1;
-sat_e_lon = sym('sat_e_lon','real');
-tracked_expr(idx_tracked_expr, :) = [sat_e_lon, sat_e_lon_expr];
-
-thetal_lat = pi/2*(sat_e_lat-1)^2;
-thetal_lon = pi/2*(sat_e_lon-1)^2;
+norm_rp_ne = sqrt(rp_n^2 + rp_e^2);
 
 rp_n_unit_expr = rp_n/norm_rp_ne;
-
 % | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
 idx_tracked_expr = idx_tracked_expr + 1;
 rp_n_unit = sym('rp_n_unit','real');
 tracked_expr(idx_tracked_expr, :) = [rp_n_unit, rp_n_unit_expr];
 
 rp_e_unit_expr = rp_e/norm_rp_ne;
-
 % | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
 idx_tracked_expr = idx_tracked_expr + 1;
 rp_e_unit = sym('rp_e_unit','real');
 tracked_expr(idx_tracked_expr, :) = [rp_e_unit, rp_e_unit_expr];
 
-sgn_rp_expr = rp_d;
+e_lat_expr = tP_n_unit * rp_e - rp_n * tP_e_unit;
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+e_lat = sym('e_lat','real');
+tracked_expr(idx_tracked_expr, :) = [e_lat, e_lat_expr];
+
+e_lon_expr = rp_d;
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+e_lon = sym('e_lon','real');
+tracked_expr(idx_tracked_expr, :) = [e_lon, e_lon_expr];
+
+% LATERAL-DIRECTIONAL GUIDANCE
+
+norm_vG_lat_expr = sqrt(e_dot^2+n_dot^2);
 
 % | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
 idx_tracked_expr = idx_tracked_expr + 1;
-sgn_rp = sym('sgn_rp','real');
-tracked_expr(idx_tracked_expr, :) = [sgn_rp, sgn_rp_expr];
+norm_vG_lat = sym('norm_vG_lat','real');
+tracked_expr(idx_tracked_expr, :) = [norm_vG_lat, norm_vG_lat_expr];
 
-l_n = cos(thetal_lat)*rp_n_unit + sin(thetal_lat)*tP_n;
-l_e = cos(thetal_lat)*rp_e_unit + sin(thetal_lat)*tP_e;
+e_b_lat_expr = norm_vG_lat*T_b_lat;
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+e_b_lat = sym('e_b_lat','real');
+tracked_expr(idx_tracked_expr, :) = [e_b_lat, e_b_lat_expr];
 
-l_ne = sin(thetal_lon)*sqrt(tP_n^2 + tP_e^2);
-l_d = cos(thetal_lon)*sgn_rp + sin(thetal_lon)*tP_d;
+e_b_lat2_expr = T_b_lat/2/vG_min*(e_dot^2+n_dot^2)+0.5*T_b_lat*vG_min;
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+e_b_lat2 = sym('e_b_lat2','real');
+tracked_expr(idx_tracked_expr, :) = [e_b_lat2, e_b_lat2_expr];
+
+sat_e_lat_expr = abs(e_lat)/e_b_lat;
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+sat_e_lat = sym('sat_e_lat','real');
+tracked_expr(idx_tracked_expr, :) = [sat_e_lat, sat_e_lat_expr];
+% if (sat_e_lat > 1.0) sat_e_lat = 1.0;
+
+thetal=-sat_e_lat*(sat_e_lat-2.0);
+l_n=(1.0-thetal)*tP_n_unit+thetal*rp_n_unit;
+l_e=(1.0-thetal)*tP_e_unit+thetal*rp_e_unit;
 
 eta_lat_expr = atan2(l_e,l_n) - atan2(e_dot,n_dot);
-
 % | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
 FaR_expr = eta_lat_expr;
 findandreplace_atan2s
@@ -303,32 +266,83 @@ for i = idx_atan2s_last:idx_atan2s-1
     tracked_expr(idx_tracked_expr,:) = [0,atan2_args(i,2)];
 end
 idx_atan2s_last = idx_atan2s;                    
-
 idx_tracked_expr = idx_tracked_expr + 1;
 syms eta_lat;
 tracked_expr(idx_tracked_expr, :) = [eta_lat, FaR_expr];
+% if (eta_lat>3.141592653589793) {
+%     eta_lat = eta_lat - 6.283185307179586;
+% }
+% else if (eta_lat<-3.141592653589793) {
+%     eta_lat = eta_lat + 6.283185307179586;
+% }
 
-eta_lon_expr = atan2(-l_d,l_ne) - atan2(-d_dot,sqrt(e_dot^2+n_dot^2)); % this is thetaL (defined positive up) and Gamma (defined positive up)
+% LONGITUDINAL GUIDANCE
 
+norm_vG_lon_expr = sqrt(e_dot^2+n_dot^2+d_dot^2);
 % | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
-FaR_expr = eta_lon_expr;
-findandreplace_atan2s
-for i = idx_atan2s_last:idx_atan2s-1
-    idx_tracked_expr = idx_tracked_expr + 1;
-    tracked_expr(idx_tracked_expr,:) = [atan2s(i),atan2_args(i,1)];
-    idx_tracked_expr = idx_tracked_expr + 1;
-    tracked_expr(idx_tracked_expr,:) = [0,atan2_args(i,2)];
-end
-idx_atan2s_last = idx_atan2s;                    
-
 idx_tracked_expr = idx_tracked_expr + 1;
-syms eta_lon;
-tracked_expr(idx_tracked_expr, :) = [eta_lon, FaR_expr];
+norm_vG_lon = sym('norm_vG_lon','real');
+tracked_expr(idx_tracked_expr, :) = [norm_vG_lon, norm_vG_lon_expr];
 
-% soft constraints
+ddot_sp_expr = norm_vG_lon*tP_d/sqrt(tP_e*tP_e+tP_n*tP_n);
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+ddot_sp = sym('ddot_sp','real');
+tracked_expr(idx_tracked_expr, :) = [ddot_sp, ddot_sp_expr];
+% if (ddot_sp>ddot_sink) ddot_sp=ddot_sink;
+% if (ddot_sp<-ddot_clmb) ddot_sp=-ddot_clmb;
+
+delta_d_clmb_expr = (-ddot_clmb-0.1-ddot_sp);
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+delta_d_clmb = sym('delta_d_clmb','real');
+tracked_expr(idx_tracked_expr, :) = [delta_d_clmb, delta_d_clmb_expr];
+
+delta_d_sink_expr = (ddot_sink+0.1-ddot_sp);
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+delta_d_sink = sym('delta_d_sink','real');
+tracked_expr(idx_tracked_expr, :) = [delta_d_sink, delta_d_sink_expr];
+
+syms delta_d;
+% delta_d = (e_lon<0.0) ? delta_d_clmb : delta_d_sink;
+
+sat_e_lon_expr = abs(e_lon/T_b_lon/delta_d);
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+sat_e_lon = sym('sat_e_lon','real');
+tracked_expr(idx_tracked_expr, :) = [sat_e_lon, sat_e_lon_expr];
+% if (sat_e_lon>1.0) sat_e_lon=1.0;
+thetal_lon = -sat_e_lon*(sat_e_lon-2.0);
+eta_lon = (delta_d*thetal_lon + ddot_sp - d_dot)/(ddot_clmb+ddot_sink+0.2);
+
+% SOFT CONSTRAINTS
+
+a_soft_if1_expr = alpha_p_co-alpha_delta_co;
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+a_soft_if1 = sym('a_soft_if1','real');
+tracked_expr(idx_tracked_expr, :) = [a_soft_if1, a_soft_if1_expr];
+
+a_soft_if2_expr = alpha_m_co+alpha_delta_co;
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+a_soft_if2 = sym('a_soft_if2','real');
+tracked_expr(idx_tracked_expr, :) = [a_soft_if2, a_soft_if2_expr];
 
 a_soft_p_expr = ((alpha-(alpha_p_co-alpha_delta_co))/alpha_delta_co)^2;
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+a_soft_p = sym('a_soft_p','real');
+tracked_expr(idx_tracked_expr, :) = [a_soft_p, a_soft_p_expr];
+
 a_soft_m_expr = ((alpha-(alpha_m_co+alpha_delta_co))/alpha_delta_co)^2;
+% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
+idx_tracked_expr = idx_tracked_expr + 1;
+a_soft_m = sym('a_soft_m','real');
+tracked_expr(idx_tracked_expr, :) = [a_soft_m, a_soft_m_expr];
+
+syms a_soft;
 % double a_soft;
 % if (alpha>(alpha_p_co-alpha_delta_co)) {
 %     a_soft=((alpha-(alpha_p_co-alpha_delta_co))/alpha_delta_co)^2;
@@ -339,18 +353,6 @@ a_soft_m_expr = ((alpha-(alpha_m_co+alpha_delta_co))/alpha_delta_co)^2;
 % else {
 %     a_soft=((alpha-(alpha_m_co+alpha_delta_co))/alpha_delta_co)^2;
 % end
-
-% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
-idx_tracked_expr = idx_tracked_expr + 1;
-syms a_soft_p;
-tracked_expr(idx_tracked_expr, :) = [a_soft_p, a_soft_p_expr];
-
-% | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
-idx_tracked_expr = idx_tracked_expr + 1;
-syms a_soft_m;
-tracked_expr(idx_tracked_expr, :) = [a_soft_m, a_soft_m_expr];
-
-syms a_soft;
 
 % /////////////////////////////////////////////////////////////////////////
 % /////////////////////////////////////////////////////////////////////////

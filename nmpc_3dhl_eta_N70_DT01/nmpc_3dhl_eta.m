@@ -58,8 +58,11 @@ OnlineData alpha_p_co;      % angle of attack upper cutoff
 OnlineData alpha_m_co;      % angle of attack lower cutoff 
 OnlineData alpha_delta_co; 	% angle of attack cutoff transition length
 
-OnlineData T_b_ne;          % lateral-directional track-error boundary constant
-OnlineData e_b_d;           % longitudinal track-error boundary
+OnlineData T_b_lat;         % lateral-directional track-error boundary constant
+OnlineData T_b_lon;         % longitudinal track-error boundary
+
+OnlineData ddot_clmb;       % max climb rate
+OnlineData ddot_sink;       % max sink rate
 
 % OPTIMAL CONTROL PROBLEM -------------------------------------------------
 
@@ -68,7 +71,7 @@ n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
 n_Y = 7;                    % state objectives
 n_Z = 4;                    % control dependent objectives
-n_OD = 24;                  % onlinedata
+n_OD = 26;                  % onlinedata
 
 Q = eye(n_Y+n_Z,n_Y+n_Z);
 Q = acado.BMatrix(Q);

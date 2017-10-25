@@ -115,87 +115,47 @@ endofwaypoints=false;
 for k = 1:length(time)
     
     % check path
-    if pparams(1) < 0.5
-        path_checks(k) = check_line_seg(states(1:3),d_states(1:3),ic_od(1:end));
-    elseif pparams(1) < 1.5
-        path_checks(k) = check_curve_seg(states(1:3),d_states(1:3),ic_od(1:end));
-    elseif pparams(1) < 2.5
-        path_checks(k) = false;
-    else
-        path_checks(k) = false;
-    end
-    if path_checks(k)
-        if path_idx<length(paths)-1
-            for i = 1:length(pparams)
-                pparams(i) = pparams_next(i);
-                eval(['pparams_next(i) = paths(path_idx+2).pparam',int2str(i),';']);
-            end
-            path_idx = path_idx + 1;
-            ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
-                wn, we, wd, ...
-                alpha_p_co, alpha_m_co, alpha_delta_co, ...
-                T_b_lat, e_b_d];
-            input.od = repmat(ic_od, N+1, 1);
-            X0(end) = 0; % sw
-            output.x(:,end)=zeros(N+1,1);
-        elseif ~endofwaypoints
-            endofwaypoints=true;
-            for i = 1:length(pparams)
-                pparams(i) = pparams_next(i);
-            end
-            path_idx = path_idx + 1;
-            ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
-                wn, we, wd, ...
-                alpha_p_co, alpha_m_co, alpha_delta_co, ...
-                T_b_lat, e_b_d];
-            input.od = repmat(ic_od, N+1, 1);
-            X0(end) = 0; % sw
-            output.x(:,end)=zeros(N+1,1);
-        end
-    end
-    
-    % avoid shitty optimization solutions when far from point in z-axis
-%     [out0,aux0] = eval_obj([X0,U0,ic_od],[n_X,n_U]);
-%     if (aux0(5) - states(3)) < -e_b_d*0.8
-%         delta_d = aux0(5) - (states(3) - e_b_d*0.8);
-%     elseif (aux0(5) - states(3)) > e_b_d-1
-%         delta_d = aux0(5) - (states(3) + e_b_d*0.8);
+%     if pparams(1) < 0.5
+%         path_checks(k) = check_line_seg(states(1:3),d_states(1:3),ic_od(1:end));
+%     elseif pparams(1) < 1.5
+%         path_checks(k) = check_curve_seg(states(1:3),d_states(1:3),ic_od(1:end));
+%     elseif pparams(1) < 2.5
+%         path_checks(k) = false;
 %     else
-%         delta_d = 0;
+%         path_checks(k) = false;
 %     end
-%     ic_od1 = [pparams(1:3),pparams(4)-delta_d,pparams(5:7),...
-%         pparams_next(1:3),pparams_next(4)-delta_d,pparams_next(5:7),...
-%         R_acpt, ceta_acpt, ...
-%         wn, we, wd, ...
-%         alpha_p_co, alpha_m_co, alpha_delta_co, ...
-%         T_b_lat, e_b_d];
-%     input.od = repmat(ic_od1, N+1, 1);
-    
-%     if time(k) > 15
-%         wn = 13.5;
-%         ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
-%             wn, we, wd, ...
-%             alpha_p_co, alpha_m_co, alpha_delta_co, ...
-%             T_b_lat, T_b_lon];
-%     elseif time(k) > 10
-%         wn = 6.5*sin((time(k)-20)*pi/2/5)^2+7;
-%         ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
-%             wn, we, wd, ...
-%             alpha_p_co, alpha_m_co, alpha_delta_co, ...
-%             T_b_lat, e_b_d];
-%     end
-    
-    % motor failure
-%     if k>25*1/Ts
-%         input.W = repmat(diag([Q_output, R_controls(1), 1000000, R_controls(3:4)]), [N 1]);
-%         input.y     = repmat([yref, zref(1), 0, zref(3:4)], N,1);
-%         X0(12) = 0;
-%         states(12) = 0;
+%     if path_checks(k)
+%         if path_idx<length(paths)-1
+%             for i = 1:length(pparams)
+%                 pparams(i) = pparams_next(i);
+%                 eval(['pparams_next(i) = paths(path_idx+2).pparam',int2str(i),';']);
+%             end
+%             path_idx = path_idx + 1;
+%             ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
+%                 wn, we, wd, ...
+%                 alpha_p_co, alpha_m_co, alpha_delta_co, ...
+%                 T_b_lat, e_b_d];
+%             input.od = repmat(ic_od, N+1, 1);
+%             X0(end) = 0; % sw
+%             output.x(:,end)=zeros(N+1,1);
+%         elseif ~endofwaypoints
+%             endofwaypoints=true;
+%             for i = 1:length(pparams)
+%                 pparams(i) = pparams_next(i);
+%             end
+%             path_idx = path_idx + 1;
+%             ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
+%                 wn, we, wd, ...
+%                 alpha_p_co, alpha_m_co, alpha_delta_co, ...
+%                 T_b_lat, e_b_d];
+%             input.od = repmat(ic_od, N+1, 1);
+%             X0(end) = 0; % sw
+%             output.x(:,end)=zeros(N+1,1);
+%         end
 %     end
     
     % measure
     input.x0    = X0';
-%     input.x0(6) = input.x0(6)+deg2rad(2);
     
     if time(k)==floor(time(k)/Ts_nmpc)*Ts_nmpc
     
