@@ -65,27 +65,19 @@ ACADOworkspace acadoWorkspace;
 int main()
 {
 	/* Some temporary variables. */
-	int    i, iter, j;
+	int    i, iter;
 	timer t;
 	
 	/* Initialize the solver. */
 	initializeSolver();
 	
 	/* Initialize the states and controls. */
-    double xx[13] = {302.166281881227,-57.9165964508796,1.34837746810244e-05,13.4986651799426,-1.19262032962240e-14,-1.85342061304962e-09,2.14751740412947e-09,0.0129472350298353,-1.81571000360607e-09,3.15006262166046e-14,1.62974382887163e-09,0.366953922894259,0};
-	for (i = 0; i < (N + 1); ++i)
-        for (j = 0; j < NX; ++j) acadoVariables.x[ NX * i + j ] = xx[ j ];
-    
-    double uu[3] = {0.366953922894368,1.00893823530043e-09,0.0213880802709292};
-	for (i = 0; i < N; ++i)
-        for (j = 0; j < NU; ++j) acadoVariables.u[ NU * i + j ] = uu[ j ];
+	for (i = 0; i < NX * (N + 1); ++i)  acadoVariables.x[ i ] = 0.0;
+	for (i = 0; i < NU * N; ++i)  acadoVariables.u[ i ] = 0.0;
 	
 	/* Initialize the measurements/reference. */
-	double yy[11] = {0,0,13.5000000000000,0,0,0,0,0,0.375000000000000,0,0.0296705972839036};
-	for (i = 0; i < N; ++i)
-        for (j = 0; j < NY; ++j) acadoVariables.y[ NY * i + j ] = yy[ j ];
-    
-	for (i = 0; i < NYN; ++i)  acadoVariables.yN[ i ] = yy[ i ];
+	for (i = 0; i < NY * N; ++i)  acadoVariables.y[ i ] = 0.0;
+	for (i = 0; i < NYN; ++i)  acadoVariables.yN[ i ] = 0.0;
 
 	/* MPC: initialize the current state feedback. */
 #if ACADO_INITIAL_STATE_FIXED
@@ -98,7 +90,7 @@ int main()
 	preparationStep();
 	
 	/* Get the time before start of the loop. */
-// 	tic( &t );
+	tic( &t );
 
 	/* The "real-time iterations" loop. */
 	for(iter = 0; iter < NUM_STEPS; ++iter)
@@ -118,14 +110,14 @@ int main()
 		preparationStep();
 	}
 	/* Read the elapsed time. */
-// 	real_t te = toc( &t );
+	real_t te = toc( &t );
 	
-// 	if( VERBOSE ) printf("\n\nEnd of the RTI loop. \n\n\n");
+	if( VERBOSE ) printf("\n\nEnd of the RTI loop. \n\n\n");
 
 	/* Eye-candy. */
 	
-// 	if( !VERBOSE )
-// 	printf("\n\n Average time of one real-time iteration:   %.3g microseconds\n\n", 1e6 * te / NUM_STEPS);
+	if( !VERBOSE )
+	printf("\n\n Average time of one real-time iteration:   %.3g microseconds\n\n", 1e6 * te / NUM_STEPS);
 
 	printDifferentialVariables();
 	printControlVariables();

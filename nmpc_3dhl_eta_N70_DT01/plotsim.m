@@ -119,7 +119,7 @@ plot(time,Y_rec(:,1)); % ev_lat
 plot(time,Y_rec(:,2)); % ev_lon
 
 legend('e_{v_{lat}}','e_{v_{lon}}')
-ylabel('e_v [deg]')
+ylabel('e_v')
 
 hc(3)=subplot(4,1,3:4); hold on; grid on;
 

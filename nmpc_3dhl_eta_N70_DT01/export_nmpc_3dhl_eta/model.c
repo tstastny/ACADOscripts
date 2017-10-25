@@ -18,7 +18,7 @@ const double t2 = cos(in[4]);
 const double t22 = sin(in[4]);
 
 const double alpha = -in[4]+in[7];
-const double Vsafe = in[3];
+double Vsafe = in[3];
 if (Vsafe<1.0) Vsafe = 1.0;
 
 const double n_dot = in[32]+Vsafe*t2*cos(in[5]);
@@ -98,7 +98,7 @@ const double t2 = cos(in[4]);
 const double t22 = sin(in[4]);
 
 const double alpha = -in[4]+in[7];
-const double Vsafe = in[3];
+double Vsafe = in[3];
 if (Vsafe<1.0) Vsafe = 1.0;
 
 const double n_dot = in[32]+Vsafe*t2*cos(in[5]);
@@ -206,7 +206,7 @@ const int minus_NU = 0;
 const double t2 = cos(in[4]);
 const double alpha = -in[4]+in[7];
 
-const double Vsafe = in[3];
+double Vsafe = in[3];
 if (Vsafe<1.0) Vsafe = 1.0;
 
 const double n_dot = in[32]+Vsafe*t2*cos(in[5]);
@@ -216,7 +216,7 @@ const double d_dot = in[34]-Vsafe*sin(in[4]);
 /* begin manual input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
 // CHECK SEGMENT SWITCHING CONDITIONS //TODO: put this in a function!
-const int idx_OD_0 = ACADO_NX+ACADO_NU-minus_NU;
+int idx_OD_0 = ACADO_NX+ACADO_NU-minus_NU;
 bool b_switch_segment = false;
 int pparam_sel = 0;
 double sw_dot = 0.0;
@@ -250,9 +250,9 @@ double phi_ff = 0.0;
 if ( pparam_type < 0.5 ) {
 
     // calculate tangent
-    double tP_n = cos(in[idx_OD_0+pparam_sel+6])*cos(in[idx_OD_0+pparam_sel+5]);
-    double tP_e = cos(in[idx_OD_0+pparam_sel+6])*sin(in[idx_OD_0+pparam_sel+5]);
-    double tP_d = -sin(in[idx_OD_0+pparam_sel+6]);
+    tP_n = cos(in[idx_OD_0+pparam_sel+6])*cos(in[idx_OD_0+pparam_sel+5]);
+    tP_e = cos(in[idx_OD_0+pparam_sel+6])*sin(in[idx_OD_0+pparam_sel+5]);
+    tP_d = -sin(in[idx_OD_0+pparam_sel+6]);
     
     // dot product
     const double dot_tP_bp = tP_n*(in[0] - in[idx_OD_0+pparam_sel+1]) + tP_e*(in[1] - in[idx_OD_0+pparam_sel+2]) + tP_d*(in[2] - in[idx_OD_0+pparam_sel+3]);
@@ -430,7 +430,6 @@ if (norm_vG_lat>1.0) {
 }
 double sat_e_lat = fabs(e_lat)/e_b_lat;
 if (sat_e_lat>1.0) sat_e_lat = 1.0;
-
 const double t16 = sat_e_lat-2.0;
 const double t17 = sat_e_lat*t16;
 const double t18 = t17+1.0;
@@ -453,8 +452,9 @@ const double norm_vG_lon = sqrt(t13+t14+d_dot*d_dot);
 double ddot_sp = norm_vG_lon*t12*tP_d;
 if (ddot_sp>in[41]) ddot_sp=in[41];
 if (ddot_sp<-in[40]) ddot_sp=-in[40];
-const double delta_d = (e_lon<0.0) ? -ddot_sp-in[40]-1.0/1.0E1 : -ddot_sp+in[41]+1.0/1.0E1;
-const double sat_e_lon = fabs(e_lon/(delta_d*in[39]));
+const double delta_ddot = (e_lon<0.0) ? -ddot_sp-in[40]-1.0/1.0E1 : -ddot_sp+in[41]+1.0/1.0E1;
+double sat_e_lon = fabs(e_lon/(delta_ddot*in[39]));
+if (sat_e_lon>1.0) sat_e_lon=1.0;
 
 // SOFT CONSTRAINTS
 
@@ -476,7 +476,7 @@ else {
 /* outputs */
 
 out[0] = eta_lat;
-out[1] = -(d_dot-ddot_sp+delta_d*sat_e_lon*(sat_e_lon-2.0))/(in[40]+in[41]+1.0/5.0);
+out[1] = -(d_dot-ddot_sp+delta_ddot*sat_e_lon*(sat_e_lon-2.0))/(in[40]+in[41]+1.0/5.0);
 out[2] = Vsafe;
 out[3] = in[8];
 out[4] = in[9];
@@ -484,7 +484,9 @@ out[5] = in[10];
 out[6] = a_soft;
 out[7] = in[11]*(-4.143016944939305)+in[13]*4.143016944939305;
 out[8] = in[13];
-out[9] = in[14];
+if (phi_ff>0.523598775598299) phi_ff = 0.523598775598299;
+else if (phi_ff<-0.523598775598299) phi_ff = -0.523598775598299;
+out[9] = in[14] - (0.5+0.5*cos(sat_e_lat*3.141592653589793))*phi_ff;
 out[10] = in[15];
 
 }
@@ -544,7 +546,7 @@ const int minus_NU = ACADO_NU;
 
 const double t2 = cos(in[4]);
 const double alpha = -in[4]+in[7];
-const double Vsafe = in[3];
+double Vsafe = in[3];
 if (Vsafe<1.0) Vsafe = 1.0;
 
 const double n_dot = in[29]+Vsafe*t2*cos(in[5]);
@@ -586,9 +588,9 @@ const double pparam_type = in[idx_OD_0+pparam_sel];
 if ( pparam_type < 0.5 ) {
 
     // calculate tangent
-    double tP_n = cos(in[idx_OD_0+pparam_sel+6])*cos(in[idx_OD_0+pparam_sel+5]);
-    double tP_e = cos(in[idx_OD_0+pparam_sel+6])*sin(in[idx_OD_0+pparam_sel+5]);
-    double tP_d = -sin(in[idx_OD_0+pparam_sel+6]);
+    tP_n = cos(in[idx_OD_0+pparam_sel+6])*cos(in[idx_OD_0+pparam_sel+5]);
+    tP_e = cos(in[idx_OD_0+pparam_sel+6])*sin(in[idx_OD_0+pparam_sel+5]);
+    tP_d = -sin(in[idx_OD_0+pparam_sel+6]);
     
     // dot product
     const double dot_tP_bp = tP_n*(in[0] - in[idx_OD_0+pparam_sel+1]) + tP_e*(in[1] - in[idx_OD_0+pparam_sel+2]) + tP_d*(in[2] - in[idx_OD_0+pparam_sel+3]);
@@ -780,8 +782,9 @@ const double norm_vG_lon = sqrt(t13+t14+d_dot*d_dot);
 double ddot_sp = norm_vG_lon*t12*tP_d;
 if (ddot_sp>in[38]) ddot_sp=in[38];
 if (ddot_sp<-in[37]) ddot_sp=-in[37];
-const double delta_d = (e_lon<0.0) ? -ddot_sp-in[37]-1.0/1.0E1 : -ddot_sp+in[38]+1.0/1.0E1;
-const double sat_e_lon = fabs(e_lon/(delta_d*in[36]));
+const double delta_ddot = (e_lon<0.0) ? -ddot_sp-in[37]-1.0/1.0E1 : -ddot_sp+in[38]+1.0/1.0E1;
+double sat_e_lon = fabs(e_lon/(delta_ddot*in[36]));
+if (sat_e_lon>1.0) sat_e_lon=1.0;
 
 // SOFT CONSTRAINTS
 
@@ -803,7 +806,7 @@ else {
 /* outputs */
 
 out[0] = eta_lat;
-out[1] = -(d_dot-ddot_sp+delta_d*sat_e_lon*(sat_e_lon-2.0))/(in[37]+in[38]+1.0/5.0);
+out[1] = -(d_dot-ddot_sp+delta_ddot*sat_e_lon*(sat_e_lon-2.0))/(in[37]+in[38]+1.0/5.0);
 out[2] = Vsafe;
 out[3] = in[8];
 out[4] = in[9];

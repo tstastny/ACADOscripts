@@ -1,20 +1,17 @@
-function [out,aux] = eval_obj(in,Ns)
+function [out,aux] = eval_objN(in,Ns)
 
 ACADO_NX = Ns(1);
 ACADO_NU = Ns(2);
-minus_NU = 0;
-
-% optimized intermediate calculations */
+minus_NU = 3;
 
 t2 = cos(in(4+1));
 alpha = -in(4+1)+in(7+1);
-
 Vsafe = in(3+1);
 if (Vsafe<1.0), Vsafe = 1.0; end;
 
-n_dot = in(32+1)+Vsafe*t2*cos(in(5+1));
-e_dot = in(33+1)+Vsafe*t2*sin(in(5+1));
-d_dot = in(34+1)-Vsafe*sin(in(4+1));
+n_dot = in(29+1)+Vsafe*t2*cos(in(5+1));
+e_dot = in(30+1)+Vsafe*t2*sin(in(5+1));
+d_dot = in(31+1)-Vsafe*sin(in(4+1));
 
 % begin manual input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
@@ -23,14 +20,14 @@ idx_OD_0 = ACADO_NX+ACADO_NU-minus_NU;
 b_switch_segment = false;
 pparam_sel = 0;
 sw_dot = 0.0;
-if ( in(ACADO_NX-1+1) < 0.05 ) % check x_sw
+if ( in(ACADO_NX-1+1) < 0.05 )  % check x_sw
     vel = [n_dot,e_dot,d_dot];
-    if ( in(idx_OD_0+1) < 0.5 ) % path type
+    if ( in(idx_OD_0+1) < 0.5 )  % path type
         b_switch_segment = check_line_seg( in, vel, in(idx_OD_0+1:end) );
-    elseif (in(idx_OD_0+1) < 1.5 )
+    elseif (in(idx_OD_0+1) < 1.5 ) 
         b_switch_segment = check_curve_seg( in, vel, in(idx_OD_0+1:end) );
     end
-else
+else 
     b_switch_segment = true;
 end
 if (b_switch_segment) 
@@ -47,8 +44,6 @@ tP_d = 0.0;
 
 pparam_type = in(idx_OD_0+pparam_sel+1);
 
-phi_ff = 0.0;
-
 % LINE SEGMENT
 if ( pparam_type < 0.5 ) 
 
@@ -64,9 +59,6 @@ if ( pparam_type < 0.5 )
     p_n = in(idx_OD_0+pparam_sel+1+1) + dot_tP_bp * tP_n;
     p_e = in(idx_OD_0+pparam_sel+2+1) + dot_tP_bp * tP_e;
     p_d = in(idx_OD_0+pparam_sel+3+1) + dot_tP_bp * tP_d;
-    
-    % feed forward
-    phi_ff = 0.0;
     
 % ARC SEGMENT
 elseif ( pparam_type < 1.5 ) 
@@ -152,9 +144,6 @@ elseif ( pparam_type < 1.5 )
     tP_n = tP_n * cos(Gam_temp);
     tP_e = tP_e * cos(Gam_temp);
     
-    % feed forward
-    phi_ff = atan((n_dot*n_dot+e_dot*e_dot)/in(idx_OD_0+pparam_sel+4+1)/9.81);
-    
 % LOITER UNLIM
 elseif ( pparam_type < 2.5 ) 
 
@@ -168,6 +157,8 @@ elseif ( pparam_type < 2.5 )
     cr_n = in(0+1) - in(idx_OD_0+pparam_sel+1+1);
     cr_e = in(1+1) - in(idx_OD_0+pparam_sel+2+1);
     norm_cr = sqrt( cr_n*cr_n + cr_e*cr_e );
+    cr_n_unit;
+    cr_e_unit;
     if (norm_cr>0.1) 
         cr_n_unit = cr_n / norm_cr;
         cr_e_unit = cr_e / norm_cr;
@@ -189,9 +180,6 @@ elseif ( pparam_type < 2.5 )
         tP_n=1.0;
         tP_e=0.0;
     end
-    
-    % feed forward
-    phi_ff = atan((n_dot*n_dot+e_dot*e_dot)/in(idx_OD_0+pparam_sel+4+1)/9.81);
 end
 
 % end manual input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
@@ -224,9 +212,9 @@ e_lat = t4*t12*tP_e-t3*t12*tP_n;
 norm_vG_lat = sqrt(t15);
 
 if (norm_vG_lat>1.0) 
-    e_b_lat = in(38+1)*norm_vG_lat;                               
+    e_b_lat = in(35+1)*norm_vG_lat;                               
 else 
-    e_b_lat = in(38+1)*(1.0/2.0)+in(38+1)*t15*(1.0/2.0);
+    e_b_lat = in(35+1)*(1.0/2.0)+in(35+1)*t15*(1.0/2.0);
 end
 sat_e_lat = abs(e_lat)/e_b_lat;
 if (sat_e_lat>1.0), sat_e_lat = 1.0; end;
@@ -250,25 +238,24 @@ e_lon = -in(2+1)+p_d;
 
 norm_vG_lon = sqrt(t13+t14+d_dot*d_dot);
 ddot_sp = norm_vG_lon*t12*tP_d;
-if (ddot_sp>in(41+1)), ddot_sp=in(41+1); end;
-if (ddot_sp<-in(40+1)), ddot_sp=-in(40+1); end;
+if (ddot_sp>in(38+1)), ddot_sp=in(38+1); end;
+if (ddot_sp<-in(37+1)), ddot_sp=-in(37+1); end;
 if (e_lon<0.0)
-    delta_d = -ddot_sp-in(40+1)-1.0/1.0E1;
+    delta_d = -ddot_sp-in(37+1)-1.0/1.0E1;
 else
-    delta_d = -ddot_sp+in(41+1)+1.0/1.0E1;
+    delta_d = -ddot_sp+in(38+1)+1.0/1.0E1;
 end
-sat_e_lon = abs(e_lon/(delta_d*in(39+1)));
-if (sat_e_lon>1.0), sat_e_lon=1.0; end;
+sat_e_lon = abs(e_lon/(delta_d*in(36+1)));
 
 % SOFT CONSTRAINTS
 
-t19 = alpha-in(35+1)+in(37+1);
-t20 = 1.0/(in(37+1)*in(37+1));
-t21 = -alpha+in(36+1)+in(37+1);
+t19 = alpha-in(32+1)+in(34+1);
+t20 = 1.0/(in(34+1)*in(34+1));
+t21 = -alpha+in(33+1)+in(34+1);
 
-if (alpha>(in(35+1)-in(37+1))) 
+if (alpha>(in(32+1)-in(34+1))) 
     a_soft=(t19*t19)*t20;
-elseif (alpha>(in(36+1)+in(37+1))) 
+elseif (alpha>(in(33+1)+in(34+1))) 
     a_soft=0.0;
 else 
     a_soft=t20*(t21*t21);
@@ -277,19 +264,11 @@ end
 % outputs */
 
 out(0+1) = eta_lat;
-out(1+1) = -(d_dot-ddot_sp+delta_d*sat_e_lon*(sat_e_lon-2.0))/(in(40+1)+in(41+1)+1.0/5.0);
+out(1+1) = -(d_dot-ddot_sp+delta_d*sat_e_lon*(sat_e_lon-2.0))/(in(37+1)+in(38+1)+1.0/5.0);
 out(2+1) = Vsafe;
 out(3+1) = in(8+1);
 out(4+1) = in(9+1);
 out(5+1) = in(10+1);
 out(6+1) = a_soft;
-out(7+1) = in(11+1)*(-4.143016944939305)+in(13+1)*4.143016944939305;
-out(8+1) = in(13+1);
-if (phi_ff>0.523598775598299), phi_ff = 0.523598775598299;
-elseif (phi_ff<-0.523598775598299), phi_ff = -0.523598775598299;
-end
-out(9+1) = in(14+1) - (0.5+0.5*cos(sat_e_lat*3.141592653589793))*phi_ff;
-out(10+1) = in(15+1);
 
-aux = [e_lat,e_lon, p_n,p_e,p_d,tP_n,tP_e,tP_d, e_b_lat, 0, a_soft, n_dot,e_dot,d_dot, in(32+1),in(33+1),in(34+1), (0.5+0.5*cos(sat_e_lat*3.141592653589793))*phi_ff, -rp_e_unit*sat_e_lat*t16+t12*t18*tP_e,-rp_n_unit*sat_e_lat*t16+t12*t18*tP_n];
-
+aux = [e_lat,e_lon, p_n,p_e,p_d,tP_n,tP_e,tP_d, e_b_lat, 0, a_soft, n_dot,e_dot,d_dot, in(29+1),in(30+1),in(31+1), 0, -rp_e_unit*sat_e_lat*t16+t12*t18*tP_e,-rp_n_unit*sat_e_lat*t16+t12*t18*tP_n];

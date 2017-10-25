@@ -51,8 +51,7 @@ OBJECTS = \
 	acado_qpoases_interface.o \
 	acado_integrator.o \
 	acado_solver.o \
-	acado_auxiliary_functions.o \
-    model.o \
+	acado_auxiliary_functions.o
 
 .PHONY: all
 all: libacado_exported_rti.a test
@@ -65,17 +64,6 @@ acado_integrator.o          : acado_common.h
 acado_auxiliary_functions.o : acado_common.h \
                               acado_auxiliary_functions.h
 test.o                      : acado_common.h \
-                              acado_qpoases_interface.hpp \
-                              acado_auxiliary_functions.h
-
-test2: ${OBJECTS} test2.o
-
-acado_qpoases_interface.o   : acado_qpoases_interface.hpp
-acado_solver.o              : acado_common.h
-acado_integrator.o          : acado_common.h
-acado_auxiliary_functions.o : acado_common.h \
-                              acado_auxiliary_functions.h
-test2.o                      : acado_common.h \
                               acado_qpoases_interface.hpp \
                               acado_auxiliary_functions.h
 

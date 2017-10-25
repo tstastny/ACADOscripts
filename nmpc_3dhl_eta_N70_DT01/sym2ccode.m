@@ -304,17 +304,17 @@ idx_tracked_expr = idx_tracked_expr + 1;
 delta_d_sink = sym('delta_d_sink','real');
 tracked_expr(idx_tracked_expr, :) = [delta_d_sink, delta_d_sink_expr];
 
-syms delta_d;
-% delta_d = (e_lon<0.0) ? delta_d_clmb : delta_d_sink;
+syms delta_ddot;
+% delta_ddot = (e_lon<0.0) ? delta_d_clmb : delta_d_sink;
 
-sat_e_lon_expr = abs(e_lon/T_b_lon/delta_d);
+sat_e_lon_expr = abs(e_lon/T_b_lon/delta_ddot);
 % | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | TRACK VARIABLE 
 idx_tracked_expr = idx_tracked_expr + 1;
 sat_e_lon = sym('sat_e_lon','real');
 tracked_expr(idx_tracked_expr, :) = [sat_e_lon, sat_e_lon_expr];
 % if (sat_e_lon>1.0) sat_e_lon=1.0;
 thetal_lon = -sat_e_lon*(sat_e_lon-2.0);
-eta_lon = (delta_d*thetal_lon + ddot_sp - d_dot)/(ddot_clmb+ddot_sink+0.2);
+eta_lon = (delta_ddot*thetal_lon + ddot_sp - d_dot)/(ddot_clmb+ddot_sink+0.2);
 
 % SOFT CONSTRAINTS
 

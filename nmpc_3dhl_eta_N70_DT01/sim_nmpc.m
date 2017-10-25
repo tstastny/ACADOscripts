@@ -42,7 +42,9 @@ alpha_p_co = deg2rad(8);        % angle of attack upper cut-off
 alpha_m_co = deg2rad(-3);       % angle of attack lower cut-off
 alpha_delta_co = deg2rad(2);    % angle of attack cut-off transition length\
 T_b_lat = 5;                    % lateral-directional track-error boundary constant
-e_b_d = 0.5;                      % longitudinal track-error boundary
+T_b_lon = 0.5;                  % longitudinal track-error boundary
+ddot_clmb = 3.5;                % max climb rate
+ddot_sink = 1.5;                % max sink rate
 
 % model parameters
 load parameters_20161209.mat;
@@ -52,14 +54,15 @@ u_trim = [0.375, 0, 1.7*pi/180];
 % initial conditions
 ic_u    = u_trim;
 ic_ned  = [10*cosd(90), 10*sind(90), 5];
-ic_vV   = [14, 0, deg2rad(-170)];
+ic_vV   = [14, 0, deg2rad(90)];
 ic_att  = [0, 0];
 ic_attdot = [0, 0, 0];
 ic_augm = [ic_u(1), 0];
 ic_od   = [pparams, pparams_next, R_acpt, ceta_acpt, ...
     wn, we, wd, ...
     alpha_p_co, alpha_m_co, alpha_delta_co, ...
-    T_b_lat, e_b_d];
+    T_b_lat, T_b_lon,...
+    ddot_clmb,ddot_sink];
 
 % acado inputs
 nmpc_ic.x   = [ic_ned,ic_vV,ic_att,ic_attdot,ic_augm]; 
@@ -115,44 +118,46 @@ endofwaypoints=false;
 for k = 1:length(time)
     
     % check path
-%     if pparams(1) < 0.5
-%         path_checks(k) = check_line_seg(states(1:3),d_states(1:3),ic_od(1:end));
-%     elseif pparams(1) < 1.5
-%         path_checks(k) = check_curve_seg(states(1:3),d_states(1:3),ic_od(1:end));
-%     elseif pparams(1) < 2.5
-%         path_checks(k) = false;
-%     else
-%         path_checks(k) = false;
-%     end
-%     if path_checks(k)
-%         if path_idx<length(paths)-1
-%             for i = 1:length(pparams)
-%                 pparams(i) = pparams_next(i);
-%                 eval(['pparams_next(i) = paths(path_idx+2).pparam',int2str(i),';']);
-%             end
-%             path_idx = path_idx + 1;
-%             ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
-%                 wn, we, wd, ...
-%                 alpha_p_co, alpha_m_co, alpha_delta_co, ...
-%                 T_b_lat, e_b_d];
-%             input.od = repmat(ic_od, N+1, 1);
-%             X0(end) = 0; % sw
-%             output.x(:,end)=zeros(N+1,1);
-%         elseif ~endofwaypoints
-%             endofwaypoints=true;
-%             for i = 1:length(pparams)
-%                 pparams(i) = pparams_next(i);
-%             end
-%             path_idx = path_idx + 1;
-%             ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
-%                 wn, we, wd, ...
-%                 alpha_p_co, alpha_m_co, alpha_delta_co, ...
-%                 T_b_lat, e_b_d];
-%             input.od = repmat(ic_od, N+1, 1);
-%             X0(end) = 0; % sw
-%             output.x(:,end)=zeros(N+1,1);
-%         end
-%     end
+    if pparams(1) < 0.5
+        path_checks(k) = check_line_seg(states(1:3),d_states(1:3),ic_od(1:end));
+    elseif pparams(1) < 1.5
+        path_checks(k) = check_curve_seg(states(1:3),d_states(1:3),ic_od(1:end));
+    elseif pparams(1) < 2.5
+        path_checks(k) = false;
+    else
+        path_checks(k) = false;
+    end
+    if path_checks(k)
+        if path_idx<length(paths)-1
+            for i = 1:length(pparams)
+                pparams(i) = pparams_next(i);
+                eval(['pparams_next(i) = paths(path_idx+2).pparam',int2str(i),';']);
+            end
+            path_idx = path_idx + 1;
+            ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
+                wn, we, wd, ...
+                alpha_p_co, alpha_m_co, alpha_delta_co, ...
+                T_b_lat, T_b_lon,...
+                ddot_clmb,ddot_sink];
+            input.od = repmat(ic_od, N+1, 1);
+            X0(end) = 0; % sw
+            output.x(:,end)=zeros(N+1,1);
+        elseif ~endofwaypoints
+            endofwaypoints=true;
+            for i = 1:length(pparams)
+                pparams(i) = pparams_next(i);
+            end
+            path_idx = path_idx + 1;
+            ic_od = [pparams, pparams_next, R_acpt, ceta_acpt, ...
+                wn, we, wd, ...
+                alpha_p_co, alpha_m_co, alpha_delta_co, ...
+                T_b_lat, T_b_lon,...
+                ddot_clmb,ddot_sink];
+            input.od = repmat(ic_od, N+1, 1);
+            X0(end) = 0; % sw
+            output.x(:,end)=zeros(N+1,1);
+        end
+    end
     
     % measure
     input.x0    = X0';
@@ -199,23 +204,17 @@ for k = 1:length(time)
     horiz_rec(:,k,:) = output.x(:,:);
     horiz_rec_U(:,k,:) = output.u(:,:);
     U_rec(k,:) = U0;
-    if time(k)>=20.84
-        stooppppp=1;
+    if time(k)>20
+        stoppp=1;
     end
+    
     [out,aux] = eval_obj([X0,U0,ic_od],[n_X,n_U]);
     Y_rec(k,:) = out;
     aux_rec(k,:) = aux;
+%     [out,aux] = eval_objN([X0,ic_od],[n_X,n_U]);
+%     YN_rec(k,:) = out;
+%     auxN_rec(k,:) = aux;
     
-%     if abs(aux(1))<4.0
-%         ww = 1-(1-abs(aux(1))/4)^2;
-%         Q_out_1 = Q_output(1)*ww+10000*(1-ww);
-%         input.W     = repmat(diag([Q_out_1 Q_output(2:end), R_controls]), [N 1]);
-%         input.WN    = diag([Q_out_1, QN_output(2:end)]);
-%     else
-%         input.W     = repmat(diag([Q_output, R_controls]), [N 1]);
-%         input.WN    = diag(QN_output);
-%     end
-
 end
 
 plotsim
