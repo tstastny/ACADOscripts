@@ -11,8 +11,8 @@ if (params(4+1)<0.0)
 else
     rot90 = 1.570796326794897;
 end
-br_n = pos(0+1) - (params(1+1) + fabs(params(4+1)) * cos(params(5+1) - rot90));
-br_e = pos(1+1) - (params(2+1) + fabs(params(4+1)) * sin(params(5+1) - rot90));
+br_n = pos(0+1) - (params(1+1) + abs(params(4+1)) * cos(params(5+1) - rot90));
+br_e = pos(1+1) - (params(2+1) + abs(params(4+1)) * sin(params(5+1) - rot90));
 br_d = pos(2+1) - params(3+1);
 
 % bearing : dot( v , tB ) (lat)

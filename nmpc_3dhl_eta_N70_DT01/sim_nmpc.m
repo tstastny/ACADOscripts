@@ -3,7 +3,7 @@
 close all; clear all; clc;
 
 % initial conditions
-N = 40;
+N = 70;
 n_U = 3;
 n_X = 13; % number of nmpc states
 n_Y = 7+4;
@@ -41,7 +41,7 @@ ceta_acpt = 0.8;                % switching acceptance cosine of error angle
 alpha_p_co = deg2rad(8);        % angle of attack upper cut-off
 alpha_m_co = deg2rad(-3);       % angle of attack lower cut-off
 alpha_delta_co = deg2rad(2);    % angle of attack cut-off transition length\
-T_b_lat = 5;                    % lateral-directional track-error boundary constant
+T_b_lat = 4;                    % lateral-directional track-error boundary constant
 T_b_lon = 0.5;                  % longitudinal track-error boundary
 ddot_clmb = 3.5;                % max climb rate
 ddot_sink = 1.5;                % max sink rate
@@ -53,8 +53,8 @@ u_trim = [0.375, 0, 1.7*pi/180];
 
 % initial conditions
 ic_u    = u_trim;
-ic_ned  = [10*cosd(90), 10*sind(90), 5];
-ic_vV   = [14, 0, deg2rad(90)];
+ic_ned  = [10, 0, -10];
+ic_vV   = [14, 0, deg2rad(-90)];
 ic_att  = [0, 0];
 ic_attdot = [0, 0, 0];
 ic_augm = [ic_u(1), 0];
@@ -67,10 +67,10 @@ ic_od   = [pparams, pparams_next, R_acpt, ceta_acpt, ...
 % acado inputs
 nmpc_ic.x   = [ic_ned,ic_vV,ic_att,ic_attdot,ic_augm]; 
 nmpc_ic.u   = ic_u;
-yref        = [0 0, 13.5, 0 0 0, 0];%-0.764
+yref        = [0 0, 13, 0 0 0, 0];%-0.764
 zref        = [0, u_trim];
 
-Q_scale     = [1 1, 1, deg2rad(50) deg2rad(50) deg2rad(50), 1];
+Q_scale     = [pi/2 1, 1, deg2rad(50) deg2rad(50) deg2rad(50), 1];
 R_scale     = [1, 1 deg2rad(30) deg2rad(15)];
 
 % Q_output    = [200 200, 80, 20 20 5, 120]./Q_scale.^2;
@@ -79,8 +79,8 @@ R_scale     = [1, 1 deg2rad(30) deg2rad(15)];
 % % Q_output    = [300 80, 80, 70 70 5, 120]./Q_scale;
 % % QN_output   = [300 80, 80, 70 70 5, 120]./Q_scale;
 % % R_controls  = [100 200 400 420]./R_scale;
-Q_output    = [300 400, 150, 70 70 5, 120]./Q_scale;
-QN_output   = [300 400, 150, 70 70 5, 120]./Q_scale;
+Q_output    = [470 400, 150, 70 70 5, 120]./Q_scale;
+QN_output   = [470 400, 150, 70 70 5, 120]./Q_scale;
 R_controls  = [100 200 200 220]./R_scale;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);

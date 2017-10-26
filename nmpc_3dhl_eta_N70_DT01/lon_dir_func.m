@@ -7,7 +7,7 @@ ddot_clmb = 3.5*1.1;
 
 ddot_sp = 0;
 
-e_b_d = 5;
+e_b_d = 2;
 
 e = linspace(-ddot_clmb*5/1.1*2,ddot_sink*5/1.1*2,501);
 ddot = linspace(-ddot_clmb*2,ddot_sink*2,501);
@@ -53,38 +53,38 @@ zlabel('ev')
 colorbar;
 
 figure('color','w'); hold on; grid on; box on;
-plot(e,ddot_guide);
+plot(e,ddot_guide/(ddot_clmb+ddot_sink));
 
 xlabel('e')
 ylabel('ddot_{guide}')
 
 % colorbar;
 
-%%
-
-clear; clc;
-
-syms ddot_clmb e ddot_sp ddot ddot_sink ebd
-
-sat_e_clmb = e/ebd/ddot_clmb;
-thetal_clmb = -sat_e_clmb*(sat_e_clmb-2);
-ev_clmb = sqrt(abs(ddot_clmb*thetal_clmb+ddot_sp-ddot)/(ddot_clmb+ddot_sink));
-
-sat_e_sink = e/ebd/ddot_sink;
-thetal_sink = -sat_e_sink*(sat_e_sink-2);
-ev_sink = sqrt(abs(ddot_sink*thetal_sink+ddot_sp-ddot)/(ddot_clmb+ddot_sink));
-
-j_e_clmb = jacobian(ev_clmb,e);
-pretty(simplify(subs(j_e_clmb,e,0)))
-
-j_e_sink = jacobian(ev_sink,e);
-pretty(simplify(subs(j_e_sink,e,0)))
-
-j_d_clmb = jacobian(ev_clmb,ddot);
-pretty(simplify(subs(j_d_clmb,[ddot ddot_sp],[0 0])))
-
-j_d_sink = jacobian(ev_sink,ddot);
-pretty(simplify(subs(j_d_sink,[ddot ddot_sp],[0 0])))
+% %%
+% 
+% clear; clc;
+% 
+% syms ddot_clmb e ddot_sp ddot ddot_sink ebd
+% 
+% sat_e_clmb = e/ebd/ddot_clmb;
+% thetal_clmb = -sat_e_clmb*(sat_e_clmb-2);
+% ev_clmb = sqrt(abs(ddot_clmb*thetal_clmb+ddot_sp-ddot)/(ddot_clmb+ddot_sink));
+% 
+% sat_e_sink = e/ebd/ddot_sink;
+% thetal_sink = -sat_e_sink*(sat_e_sink-2);
+% ev_sink = sqrt(abs(ddot_sink*thetal_sink+ddot_sp-ddot)/(ddot_clmb+ddot_sink));
+% 
+% j_e_clmb = jacobian(ev_clmb,e);
+% pretty(simplify(subs(j_e_clmb,e,0)))
+% 
+% j_e_sink = jacobian(ev_sink,e);
+% pretty(simplify(subs(j_e_sink,e,0)))
+% 
+% j_d_clmb = jacobian(ev_clmb,ddot);
+% pretty(simplify(subs(j_d_clmb,[ddot ddot_sp],[0 0])))
+% 
+% j_d_sink = jacobian(ev_sink,ddot);
+% pretty(simplify(subs(j_d_sink,[ddot ddot_sp],[0 0])))
 
 
 

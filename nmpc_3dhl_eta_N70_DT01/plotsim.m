@@ -25,7 +25,7 @@ for k = 1:length(paths)
     if paths(k).pparam1 == 0
         hl(1) = plot3([paths(k).pparam3 paths(k).pparam3+500*sin(paths(k).pparam6+pi)*cos(paths(k).pparam7)], ...
             [paths(k).pparam2 paths(k).pparam2+500*cos(paths(k).pparam6+pi)*cos(paths(k).pparam7)], ...
-            [paths(k).pparam4 paths(k).pparam4+500*sin(paths(k).pparam7)], ...
+            [-paths(k).pparam4 -paths(k).pparam4-500*sin(paths(k).pparam7)], ...
             'color',c_ref,'linewidth',1);
     elseif paths(k).pparam1 == 1
         tset = linspace(paths(k).pparam6 - sign(paths(k).pparam5) * pi/2, ...
@@ -197,13 +197,15 @@ linkaxes(handle_vdt,'x')
 figure('color','w','name','Speeds')
 hold on; grid on;
 
-plot(time,yref(3)*ones(1,length(time)),'color',c_ref);
+plot(time,yref(3)*ones(length(time),1),'color',c_ref);
+plot(time,yref(3)*ones(length(time),1) + aux_rec(:,22));
 plot(time,X_rec(:,4));
 plot(time,sqrt(aux_rec(:,12).^2 + aux_rec(:,13).^2));
+plot(time,aux_rec(:,21));
 plot(time,aux_rec(:,14));
 plot(time,sqrt(aux_rec(:,15).^2 + aux_rec(:,16).^2 + aux_rec(:,17).^2));
 
-legend('v_{A}^{ref}','v_A','v_{ne}','v_{d}','|w|')
+legend('v_{A}^{ref}','v_{ff}','v_A','v_{ne}','v_{d}^{ref}','v_{d}','|w|')
 
 xlabel('time [s]')
 
