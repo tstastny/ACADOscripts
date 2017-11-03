@@ -318,13 +318,19 @@ if ( pparam_type < 0.5 ) {
 
     } else {
 
-        const double RtanGam = fabs(in[idx_OD_0+pparam_sel+4]) * tan(in[idx_OD_0+pparam_sel+6]);
+        const double RtanGam = (in[idx_OD_0+pparam_sel+4]) * tan(in[idx_OD_0+pparam_sel+6]);
 
         // height down from exit
         const double delta_d_xi = delta_xi * RtanGam;
 
         // nearest spiral leg
-        const double delta_d_k = round( (in[2] - (in[idx_OD_0+pparam_sel+3] + delta_d_xi)) / (6.28318530718*RtanGam) ) * 6.28318530718*RtanGam;
+        double k_leg = round( (in[2] - (in[idx_OD_0+pparam_sel+3] + delta_d_xi)) / (6.28318530718*RtanGam) );
+        
+        // dont fall back on previous legs
+//         if ((k_leg-in[idx_OD_0+ACADO_NOD-1]) * in[idx_OD_0+pparam_sel+6] > 0.0) k_leg = in[idx_OD_0+ACADO_NOD-1];
+        
+        // height down in multiple of legs
+        const double delta_d_k = k_leg * fabs(6.28318530718*RtanGam);
         
         // closest point on nearest spiral leg
         p_d = in[idx_OD_0+pparam_sel+3] + delta_d_k + delta_d_xi;
@@ -659,7 +665,13 @@ if ( pparam_type < 0.5 ) {
         const double delta_d_xi = delta_xi * RtanGam;
 
         // nearest spiral leg
-        const double delta_d_k = round( (in[2] - (in[idx_OD_0+pparam_sel+3] + delta_d_xi)) / (6.28318530718*RtanGam) ) * 6.28318530718*RtanGam;
+        double k_leg = round( (in[2] - (in[idx_OD_0+pparam_sel+3] + delta_d_xi)) / (6.28318530718*RtanGam) );
+        
+        // dont fall back on previous legs
+//         if ((k_leg-in[idx_OD_0+ACADO_NOD-1]) * in[idx_OD_0+pparam_sel+6] > 0.0) k_leg = in[idx_OD_0+ACADO_NOD-1];
+        
+        // height down in multiple of legs
+        const double delta_d_k = k_leg * (6.28318530718*RtanGam);
         
         // closest point on nearest spiral leg
         p_d = in[idx_OD_0+pparam_sel+3] + delta_d_k + delta_d_xi;
@@ -894,7 +906,7 @@ bool check_curve_seg( const double *pos, const double *vel, const double *params
     const double norm_br_d = fabs(br_d);
     
     // check (1) proximity, (2) bearing, (3) travel 
-    return ( norm_br < params[14] && norm_br_d < 10.0 && dot_vtB > params[15]*sqrt(vel[0]*vel[0]+vel[1]*vel[1]) && dot_brtB > 0.0 );
+    return ( norm_br < params[14] && norm_br_d < 5.0 && dot_vtB > params[15]*sqrt(vel[0]*vel[0]+vel[1]*vel[1]) && dot_brtB > 0.0 );
 }
 
 /* end inline functions !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */

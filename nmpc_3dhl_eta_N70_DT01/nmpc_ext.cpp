@@ -95,6 +95,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OnlineData T_b_lon; 
     OnlineData ddot_clmb; 
     OnlineData ddot_sink; 
+    OnlineData k_leg_prev; 
     BMatrix acadodata_M1;
     acadodata_M1.read( "nmpc_ext_data_acadodata_M1.txt" );
     BMatrix acadodata_M2;
@@ -105,11 +106,11 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     ocp1.subjectTo(0.000000E+00 <= u_T <= 1.000000E+00);
     ocp1.subjectTo((-5.235988E-01) <= phi_ref <= 5.235988E-01);
     ocp1.subjectTo((-2.617994E-01) <= theta_ref <= 2.617994E-01);
-    ocp1.setNOD( 26 );
+    ocp1.setNOD( 27 );
     ocp1.setNP( 0 );
     ocp1.setNU( 3 );
     ocp1.setModel( "model", "rhs", "rhs_jac" );
-    ocp1.setDimensions( 0, 13, 0, 0, 0, 3, 26, 0 );
+    ocp1.setDimensions( 0, 13, 0, 0, 0, 3, 27, 0 );
 
 
     OCPexport ExportModule1( ocp1 );

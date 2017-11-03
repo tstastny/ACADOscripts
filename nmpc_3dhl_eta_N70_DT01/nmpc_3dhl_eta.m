@@ -64,6 +64,8 @@ OnlineData T_b_lon;         % longitudinal track-error boundary
 OnlineData ddot_clmb;       % max climb rate
 OnlineData ddot_sink;       % max sink rate
 
+OnlineData k_leg_prev;      % previous leg
+
 % OPTIMAL CONTROL PROBLEM -------------------------------------------------
 
 % lengths
@@ -71,7 +73,7 @@ n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
 n_Y = 7;                    % state objectives
 n_Z = 4;                    % control dependent objectives
-n_OD = 26;                  % onlinedata
+n_OD = 27;                  % onlinedata
 
 Q = eye(n_Y+n_Z,n_Y+n_Z);
 Q = acado.BMatrix(Q);

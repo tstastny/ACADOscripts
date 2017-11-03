@@ -2,6 +2,7 @@ function [out,aux] = eval_obj(in,Ns)
 
 ACADO_NX = Ns(1);
 ACADO_NU = Ns(2);
+ACADO_NOD=27;
 minus_NU = 0;
 
 % optimized intermediate calculations */
@@ -121,13 +122,19 @@ elseif ( pparam_type < 1.5 )
 
     else 
 
-        RtanGam = abs(in(idx_OD_0+pparam_sel+4+1)) * tan(in(idx_OD_0+pparam_sel+6+1));
+        RtanGam = (in(idx_OD_0+pparam_sel+4+1)) * tan(in(idx_OD_0+pparam_sel+6+1));
 
         % height down from exit
         delta_d_xi = delta_xi * RtanGam;
 
         % nearest spiral leg
-        delta_d_k = round( (in(2+1) - (in(idx_OD_0+pparam_sel+3+1) + delta_d_xi)) / (6.28318530718*RtanGam) ) * 6.28318530718*RtanGam;
+        k_leg = round( (in(2+1) - (in(idx_OD_0+pparam_sel+3+1) + delta_d_xi)) / (6.28318530718*RtanGam) );
+        
+        % dont fall back on previous legs
+%         if ((k_leg-in(idx_OD_0+ACADO_NOD-1+1)) * in(idx_OD_0+pparam_sel+6+1) > 0.0), k_leg = in(idx_OD_0+ACADO_NOD-1+1); end;
+        
+        % height down in multiple of legs
+        delta_d_k = k_leg * abs(6.28318530718*RtanGam);
         
         % closest poon nearest spiral leg
         p_d = in(idx_OD_0+pparam_sel+3+1) + delta_d_k + delta_d_xi;

@@ -32,7 +32,7 @@ acado_NX  = 13;
 acado_NDX = 0;
 acado_NXA = 0;
 acado_NU  = 3;
-acado_NOD = 26;
+acado_NOD = 27;
 acado_NY  = 11;
 acado_NYN = 7;
 
