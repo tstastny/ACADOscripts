@@ -422,6 +422,25 @@ if (norm_rp_ne < 0.00001) {
 const double e_lat = t4*t12*tP_e-t3*t12*tP_n;
 const double norm_vG_lat = sqrt(t15);
 
+// const double too_close = fabs(e_lat/(in[38]*norm_vG_lat + norm_vG_lat*norm_vG_lat/5.6638));
+// double sig_e = 1.0;
+// if (too_close<1.0) {
+//     sig_e = cos(1.570796326794897*too_close);
+//     sig_e = sig_e*sig_e;
+// }
+// 
+// double sig_P = 0.0;
+// const double dot_tP_vG = t12*tP_n*n_dot + t12*tP_e*e_dot;
+// if (dot_tP_vG<0.0) sig_P = dot_tP_vG*dot_tP_vG/norm_vG_lat/norm_vG_lat;
+// 
+// const double T_b_lat = in[38]*(1.0 + 0.0*sig_P*sig_e);
+// 
+// double e_b_lat;
+// if (norm_vG_lat>1.0) {
+//     e_b_lat = T_b_lat*norm_vG_lat;                               
+// } else {
+//     e_b_lat = T_b_lat*(1.0/2.0)+T_b_lat*t15*(1.0/2.0);
+// }
 double e_b_lat;
 if (norm_vG_lat>1.0) {
     e_b_lat = in[38]*norm_vG_lat;                               
@@ -472,6 +491,16 @@ else if (alpha>(in[36]+in[37])) {
 else {
     a_soft=t20*(t21*t21);
 }
+
+// const double eta_soft_delta = 1.570796326794897;
+// if (eta_lat>(3.141592653589793-eta_soft_delta)) {
+//     const double Wsoftsquared = (eta_lat-(3.141592653589793-eta_soft_delta))/eta_soft_delta;
+//     eta_lat = eta_lat * (1.0+Wsoftsquared*Wsoftsquared*50.0);
+// }
+// else if (eta_lat<(-3.141592653589793+eta_soft_delta)) {
+//     const double Wsoftsquared = (eta_lat-(-3.141592653589793+eta_soft_delta))/eta_soft_delta;
+//     eta_lat = eta_lat * (1.0+Wsoftsquared*Wsoftsquared*50.0);
+// }
 
 /* outputs */
 
@@ -751,6 +780,25 @@ if (norm_rp_ne < 0.00001) {
 const double e_lat = t4*t12*tP_e-t3*t12*tP_n;
 const double norm_vG_lat = sqrt(t15);
 
+// const double too_close = fabs(e_lat/(in[35]*norm_vG_lat + norm_vG_lat*norm_vG_lat/5.6638));
+// double sig_e = 1.0;
+// if (too_close<1.0) {
+//     sig_e = cos(1.570796326794897*too_close);
+//     sig_e = sig_e*sig_e;
+// }
+// 
+// double sig_P = 0.0;
+// const double dot_tP_vG = t12*tP_n*n_dot + t12*tP_e*e_dot;
+// if (dot_tP_vG<0.0) sig_P = dot_tP_vG*dot_tP_vG/norm_vG_lat/norm_vG_lat;
+// 
+// const double T_b_lat = in[35]*(1.0 + 0.0*sig_P*sig_e);
+// 
+// double e_b_lat;
+// if (norm_vG_lat>1.0) {
+//     e_b_lat = T_b_lat*norm_vG_lat;                               
+// } else {
+//     e_b_lat = T_b_lat*(1.0/2.0)+T_b_lat*t15*(1.0/2.0);
+// }
 double e_b_lat;
 if (norm_vG_lat>1.0) {
     e_b_lat = in[35]*norm_vG_lat;                               
@@ -802,6 +850,16 @@ else if (alpha>(in[33]+in[34])) {
 else {
     a_soft=t20*(t21*t21);
 }
+
+// const double eta_soft_delta = 1.570796326794897;
+// if (eta_lat>(3.141592653589793-eta_soft_delta)) {
+//     const double Wsoftsquared = (eta_lat-(3.141592653589793-eta_soft_delta))/eta_soft_delta;
+//     eta_lat = eta_lat * (1.0+Wsoftsquared*Wsoftsquared*50.0);
+// }
+// else if (eta_lat<(-3.141592653589793+eta_soft_delta)) {
+//     const double Wsoftsquared = (eta_lat-(-3.141592653589793+eta_soft_delta))/eta_soft_delta;
+//     eta_lat = eta_lat * (1.0+Wsoftsquared*Wsoftsquared*50.0);
+// }
 
 /* outputs */
 

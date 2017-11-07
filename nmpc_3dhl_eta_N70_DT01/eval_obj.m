@@ -223,11 +223,30 @@ end
 e_lat = t4*t12*tP_e-t3*t12*tP_n;
 norm_vG_lat = sqrt(t15);
 
-if (norm_vG_lat>1.0) 
-    e_b_lat = in(38+1)*norm_vG_lat;                               
-else 
-    e_b_lat = in(38+1)*(1.0/2.0)+in(38+1)*t15*(1.0/2.0);
+too_close = abs(e_lat/(in(38+1)*norm_vG_lat + norm_vG_lat*norm_vG_lat/5.6638));
+sig_e = 1.0;
+if (too_close<1.0)
+    sig_e = cos(1.570796326794897*too_close);
+    sig_e = sig_e*sig_e;
 end
+
+sig_P = 0.0;
+dot_tP_vG = t12*tP_n*n_dot + t12*tP_e*e_dot;
+if (dot_tP_vG<0.0), sig_P = dot_tP_vG*dot_tP_vG/norm_vG_lat/norm_vG_lat; end;
+
+T_b_lat = in(38+1)*(1.0 + 8.0*sig_P*sig_e);
+
+if (norm_vG_lat>1.0)
+    e_b_lat = T_b_lat*norm_vG_lat;                               
+else
+    e_b_lat = T_b_lat*(1.0/2.0)+T_b_lat*t15*(1.0/2.0);
+end
+
+% if (norm_vG_lat>1.0) 
+%     e_b_lat = in(38+1)*norm_vG_lat;                               
+% else 
+%     e_b_lat = in(38+1)*(1.0/2.0)+in(38+1)*t15*(1.0/2.0);
+% end
 sat_e_lat = abs(e_lat)/e_b_lat;
 if (sat_e_lat>1.0), sat_e_lat = 1.0; end;
 
@@ -298,5 +317,5 @@ end
 out(9+1) = in(14+1) - (0.5+0.5*cos(sat_e_lat*3.141592653589793))*phi_ff;
 out(10+1) = in(15+1);
 
-aux = [e_lat,e_lon, p_n,p_e,p_d,tP_n,tP_e,tP_d, e_b_lat, 0, a_soft, n_dot,e_dot,d_dot, in(32+1),in(33+1),in(34+1), (0.5+0.5*cos(sat_e_lat*3.141592653589793))*phi_ff, -rp_e_unit*sat_e_lat*t16+t12*t18*tP_e,-rp_n_unit*sat_e_lat*t16+t12*t18*tP_n, ddot_sp-delta_d*sat_e_lon*(sat_e_lon-2.0), Vff];
+aux = [e_lat,e_lon, p_n,p_e,p_d,tP_n,tP_e,tP_d, e_b_lat, 0, a_soft, n_dot,e_dot,d_dot, in(32+1),in(33+1),in(34+1), (0.5+0.5*cos(sat_e_lat*3.141592653589793))*phi_ff, -rp_e_unit*sat_e_lat*t16+t12*t18*tP_e,-rp_n_unit*sat_e_lat*t16+t12*t18*tP_n, ddot_sp-delta_d*sat_e_lon*(sat_e_lon-2.0), Vff, T_b_lat];
 

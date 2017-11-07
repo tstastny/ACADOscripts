@@ -10,7 +10,7 @@ n_Y = 7+4;
 n_Z = 4;
 
 Ts_step = 0.1; % step size in nmpc
-
+Ts_nmpc = 0.1; % interval between nmpc calls
 
 % track
 defpaths
@@ -31,8 +31,8 @@ pparams_next = [paths(2).pparam1, ...
     paths(2).pparam7];
 
 % wind
-wn=0;
-we=0;
+wn=0*cos(-120);
+we=0*sin(-120);
 wd=0;
 
 % params
@@ -41,7 +41,7 @@ ceta_acpt = 0.8;                % switching acceptance cosine of error angle
 alpha_p_co = deg2rad(8);        % angle of attack upper cut-off
 alpha_m_co = deg2rad(-3);       % angle of attack lower cut-off
 alpha_delta_co = deg2rad(2);    % angle of attack cut-off transition length\
-T_b_lat = 4;                    % lateral-directional track-error boundary constant
+T_b_lat = 1;                    % lateral-directional track-error boundary constant
 T_b_lon = 0.5;                  % longitudinal track-error boundary
 ddot_clmb = 3.5;                % max climb rate
 ddot_sink = 1.5;                % max sink rate
@@ -53,7 +53,7 @@ u_trim = [0.375, 0, 1.7*pi/180];
 
 % initial conditions
 ic_u    = u_trim;
-ic_ned  = [10, 0, -10];
+ic_ned  = [-5, 50, 0];
 ic_vV   = [14, 0, deg2rad(-90)];
 ic_att  = [0, 0];
 ic_attdot = [0, 0, 0];
@@ -67,21 +67,24 @@ ic_od   = [pparams, pparams_next, R_acpt, ceta_acpt, ...
 % acado inputs
 nmpc_ic.x   = [ic_ned,ic_vV,ic_att,ic_attdot,ic_augm]; 
 nmpc_ic.u   = ic_u;
-yref        = [0 0, 13, 0 0 0, 0];%-0.764
+yref        = [0 0, 13.5, 0 0 0, 0];%-0.764
 zref        = [0, u_trim];
 
 Q_scale     = [pi/2 1, 1, deg2rad(50) deg2rad(50) deg2rad(50), 1];
 R_scale     = [1, 1 deg2rad(30) deg2rad(15)];
 
 % Q_output    = [200 200, 80, 20 20 5, 120]./Q_scale.^2;
-% QN_output   = [200 200, 80, 20 20 5, 120]./Q_scale.^2;
+% QN_output   = [200 200, 80, 20 20     5, 120]./Q_scale.^2;
 % R_controls  = [40 30 50 50]./R_scale.^2;
 % % Q_output    = [300 80, 80, 70 70 5, 120]./Q_scale;
 % % QN_output   = [300 80, 80, 70 70 5, 120]./Q_scale;
 % % R_controls  = [100 200 400 420]./R_scale;
-Q_output    = [470 400, 150, 70 70 5, 120]./Q_scale;
-QN_output   = [470 400, 150, 70 70 5, 120]./Q_scale;
-R_controls  = [100 200 200 220]./R_scale;
+% % % Q_output    = [470 400, 150, 70 70 5, 120]./Q_scale;
+% % % QN_output   = [470 400, 150, 70 70 5, 120]./Q_scale;
+% % % R_controls  = [100 200 200 220]./R_scale;
+Q_output    = [900 1300, 200, 60 60 5, 120]./Q_scale.^2;
+QN_output   = [900 1300, 200, 60 60 5, 120]./Q_scale.^2;
+R_controls  = [100 200 100 60]./R_scale.^2;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
 input.u     = repmat(nmpc_ic.u, N,1);
@@ -98,8 +101,6 @@ Ts      = 0.01;
 time    = T0:Ts:Tf;
 KKT_MPC = []; INFO_MPC = []; controls_MPC = [];
 
-Ts_nmpc = 0.05; % interval between nmpc calls
-
 % initial simout
 X0          = nmpc_ic.x;
 simout      = nmpc_ic.x(1:12);
@@ -115,6 +116,7 @@ d_states    = [...
 U0 = ic_u;
 path_idx = 1;
 endofwaypoints=false;
+T_b_lat1 = T_b_lat;
 for k = 1:length(time)
     
     % check path
@@ -161,6 +163,7 @@ for k = 1:length(time)
     
     % measure
     input.x0    = X0';
+    input.od(:,23) = repmat(T_b_lat1,N+1,1);
     
     if time(k)==floor(time(k)/Ts_nmpc)*Ts_nmpc
     
@@ -204,11 +207,8 @@ for k = 1:length(time)
     horiz_rec(:,k,:) = output.x(:,:);
     horiz_rec_U(:,k,:) = output.u(:,:);
     U_rec(k,:) = U0;
-    if time(k)>20
-        stoppp=1;
-    end
-    
     [out,aux] = eval_obj([X0,U0,ic_od],[n_X,n_U]);
+    T_b_lat1 = aux(23);
     Y_rec(k,:) = out;
     aux_rec(k,:) = aux;
 %     [out,aux] = eval_objN([X0,ic_od],[n_X,n_U]);
