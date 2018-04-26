@@ -297,14 +297,7 @@ end
 
 out(0+1) = eta_lat;
 out(1+1) = -(d_dot-ddot_sp+delta_d*sat_e_lon*(sat_e_lon-2.0))/(in(40+1)+in(41+1)+1.0/5.0);
-vmax=14.5;
-vnom=13.5;
-vmin=12.5;
-% if (ddot_sp<0.0), Vff = (vmax-vnom)*((ddot_sp-delta_d*sat_e_lon*(sat_e_lon-2.0))/in(40+1))*((ddot_sp-delta_d*sat_e_lon*(sat_e_lon-2.0))/in(40+1));
-% else, Vff = -(vnom-vmin)*((ddot_sp-delta_d*sat_e_lon*(sat_e_lon-2.0))/in(41+1))*((ddot_sp-delta_d*sat_e_lon*(sat_e_lon-2.0))/in(41+1));
-% end;
-Vff=0;
-out(2+1) = Vsafe - Vff;
+out(2+1) = Vsafe;
 out(3+1) = in(8+1);
 out(4+1) = in(9+1);
 out(5+1) = in(10+1);
@@ -317,5 +310,5 @@ end
 out(9+1) = in(14+1) - (0.5+0.5*cos(sat_e_lat*3.141592653589793))*phi_ff;
 out(10+1) = in(15+1);
 
-aux = [e_lat,e_lon, p_n,p_e,p_d,tP_n,tP_e,tP_d, e_b_lat, 0, a_soft, n_dot,e_dot,d_dot, in(32+1),in(33+1),in(34+1), (0.5+0.5*cos(sat_e_lat*3.141592653589793))*phi_ff, -rp_e_unit*sat_e_lat*t16+t12*t18*tP_e,-rp_n_unit*sat_e_lat*t16+t12*t18*tP_n, ddot_sp-delta_d*sat_e_lon*(sat_e_lon-2.0), Vff, T_b_lat];
+aux = [e_lat,e_lon, p_n,p_e,p_d,tP_n,tP_e,tP_d, e_b_lat, 0, a_soft, n_dot,e_dot,d_dot, in(32+1),in(33+1),in(34+1), (0.5+0.5*cos(sat_e_lat*3.141592653589793))*phi_ff, -rp_e_unit*sat_e_lat*t16+t12*t18*tP_e,-rp_n_unit*sat_e_lat*t16+t12*t18*tP_n, ddot_sp-delta_d*sat_e_lon*(sat_e_lon-2.0), 0, T_b_lat];
 

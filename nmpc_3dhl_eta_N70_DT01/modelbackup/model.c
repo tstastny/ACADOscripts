@@ -418,7 +418,7 @@ if (t18>1.0) {
     e_b_lat = in[38]*(1.0/2.0)+in[38]*t18*(1.0/2.0);
 }
 double sat_e_lat = fabs(e_lat)/e_b_lat;
-if (sat_e_lat>1.0) sat_e_lat = 1.0;
+if (sat_e_lat>1.0) sat_e_lat = 1.0; 
 
 const double t7 = sat_e_lat-1.0;
 const double t8 = t7*t7;
