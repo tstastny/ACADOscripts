@@ -14,24 +14,25 @@ N = 100; % horizon
 DifferentialState n; % northing [m]
 DifferentialState e; % easting [m]
 DifferentialState d; % downing [m]
-DifferentialState v; % airspeed [m/s]
 DifferentialState gamma; % flight path angle [rad]
 DifferentialState xi; % heading angle [rad]
 DifferentialState mu; % bank angle [rad]
 
 % CONTROLS - - - - - - -
-Control v_ref; % airspeed reference
 Control gamma_ref; % flight path angle reference
 Control mu_ref; % bank angle reference
 
 % ONLINE DATA - - - - - -
+
+% flight condition
+OnlineData v;
 
 % disturbances
 OnlineData wn;
 OnlineData we;
 OnlineData wd;
 
-% path
+% path reference
 OnlineData lpn;
 OnlineData lpe;
 OnlineData lpd;
@@ -48,7 +49,6 @@ OnlineData lvd;
 % DIFFERENTIAL EQUATIONS --------------------------------------------------
 
 % model parameters
-tau_v = 1;
 tau_gamma = 1;
 tau_mu = 0.7;
 
@@ -67,9 +67,8 @@ f = acado.DifferentialEquation;
 f.add(dot(n) == v*cos(gamma)*cos(xi) + wn);
 f.add(dot(e) == v*cos(gamma)*sin(xi) + we);
 f.add(dot(d) == -v*sin(gamma));
-f.add(dot(v) == (v_ref - v)/tau_v);
 f.add(dot(gamma) == (gamma_ref - gamma)/tau_gamma);
-f.add(dot(xi) == g*sin(mu)*cos(gamma)/v);
+f.add(dot(xi) == g*tan(mu)/v/cos(gamma));
 f.add(dot(mu) == (mu_ref - mu)/tau_mu);
 
 % OPTIMAL CONTROL PROBLEM -------------------------------------------------
@@ -82,7 +81,7 @@ e_lon = lvd * (lpd-d);
 y = [ e_lat; e_lon];
 
 % control output
-z = [ v_ref; gamma_ref; mu_ref ];
+z = [ gamma_ref; mu_ref ];
 
 % lengths
 n_X = length(diffStates);   % states
@@ -109,11 +108,10 @@ ocp.minimizeLSQ( Q, h );
 ocp.minimizeLSQEndTerm( QN, y );
 
 ocp.subjectTo( f );
-ocp.subjectTo( v_min <= v_ref <= v_max );
-ocp.subjectTo( -ddot_clmb <= v_ref * sin(gamma_ref) <= ddot_sink );
+ocp.subjectTo( -ddot_clmb <= v * sin(gamma_ref) <= ddot_sink );
 ocp.subjectTo( -mu_lim <= mu_ref <= mu_lim );
 
-setNOD(ocp, 3);
+setNOD(ocp, 10);
 
 % export settings
 nmpc = acado.OCPexport( ocp );
@@ -127,6 +125,9 @@ nmpc.set( 'HOTSTART_QP', 'YES' );
 nmpc.set( 'LEVENBERG_MARQUARDT', 1e-10 );
 nmpc.set( 'CG_HARDCODE_CONSTRAINT_VALUES', 'YES' );
 nmpc.set( 'CG_USE_VARIABLE_WEIGHTING_MATRIX', 'YES' );
+nmpc.set( 'GENERATE_MAKE_FILE', 'NO' );
+nmpc.set( 'GENERATE_TEST_FILE', 'NO' );
+nmpc.set( 'GENERATE_SIMULINK_INTERFACE', 'NO' );
 
 % export
 copyfile('../acado/external_packages/qpoases', ...

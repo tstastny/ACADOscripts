@@ -56,13 +56,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     DifferentialState n;
     DifferentialState e;
     DifferentialState d;
-    DifferentialState v;
     DifferentialState gamma;
     DifferentialState xi;
     DifferentialState mu;
-    Control v_ref;
     Control gamma_ref;
     Control mu_ref;
+    OnlineData v; 
     OnlineData wn; 
     OnlineData we; 
     OnlineData wd; 
@@ -79,7 +78,6 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     Function acadodata_f2;
     acadodata_f2 << ((-e+lpe)*lvn-(lpn-n)*lve);
     acadodata_f2 << (-d+lpd)*lvd;
-    acadodata_f2 << v_ref;
     acadodata_f2 << gamma_ref;
     acadodata_f2 << mu_ref;
     Function acadodata_f3;
@@ -89,24 +87,22 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     acadodata_f1 << dot(n) == (cos(gamma)*cos(xi)*v+wn);
     acadodata_f1 << dot(e) == (cos(gamma)*sin(xi)*v+we);
     acadodata_f1 << dot(d) == (-v)*sin(gamma);
-    acadodata_f1 << dot(v) == (-v+v_ref);
     acadodata_f1 << dot(gamma) == (-gamma+gamma_ref);
-    acadodata_f1 << dot(xi) == 9.81000000000000049738e+00*cos(gamma)*sin(mu)/v;
+    acadodata_f1 << dot(xi) == 9.81000000000000049738e+00/cos(gamma)*tan(mu)/v;
     acadodata_f1 << dot(mu) == (-mu+mu_ref)/6.99999999999999955591e-01;
 
     OCP ocp1(0, 10, 100);
     ocp1.minimizeLSQ(acadodata_M1, acadodata_f2);
     ocp1.minimizeLSQEndTerm(acadodata_M2, acadodata_f3);
     ocp1.subjectTo(acadodata_f1);
-    ocp1.subjectTo(8.00000000000000000000e+00 <= v_ref <= 1.30000000000000000000e+01);
-    ocp1.subjectTo((-4.00000000000000000000e+00) <= sin(gamma_ref)*v_ref <= 2.00000000000000000000e+00);
+    ocp1.subjectTo((-4.00000000000000000000e+00) <= sin(gamma_ref)*v <= 2.00000000000000000000e+00);
     ocp1.subjectTo((-7.85398163397448278999e-01) <= mu_ref <= 7.85398163397448278999e-01);
-    ocp1.setNOD( 3 );
+    ocp1.setNOD( 10 );
 
 
-    ocp1.setNU( 3 );
+    ocp1.setNU( 2 );
     ocp1.setNP( 0 );
-    ocp1.setNOD( 9 );
+    ocp1.setNOD( 10 );
     OCPexport ExportModule1( ocp1 );
     ExportModule1.set( GENERATE_MATLAB_INTERFACE, 1 );
     uint options_flag;
@@ -130,6 +126,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: CG_HARDCODE_CONSTRAINT_VALUES");
     options_flag = ExportModule1.set( CG_USE_VARIABLE_WEIGHTING_MATRIX, YES );
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: CG_USE_VARIABLE_WEIGHTING_MATRIX");
+    options_flag = ExportModule1.set( GENERATE_MAKE_FILE, NO );
+    if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: GENERATE_MAKE_FILE");
+    options_flag = ExportModule1.set( GENERATE_TEST_FILE, NO );
+    if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: GENERATE_TEST_FILE");
+    options_flag = ExportModule1.set( GENERATE_SIMULINK_INTERFACE, NO );
+    if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: GENERATE_SIMULINK_INTERFACE");
     uint export_flag;
     export_flag = ExportModule1.exportCode( "export_nmpc" );
     if(export_flag != 0) mexErrMsgTxt("ACADO export failed because of the above error(s)!");
