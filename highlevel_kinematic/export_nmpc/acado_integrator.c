@@ -40,7 +40,7 @@ a[6] = (tan(xd[5]));
 /* Compute outputs: */
 out[0] = (((a[0]*a[1])*od[0])+od[1]);
 out[1] = (((a[2]*a[3])*od[0])+od[2]);
-out[2] = (((real_t)(0.0000000000000000e+00)-od[0])*a[4]);
+out[2] = ((((real_t)(0.0000000000000000e+00)-od[0])*a[4])+od[3]);
 out[3] = (((real_t)(0.0000000000000000e+00)-xd[3])+u[0]);
 out[4] = ((((real_t)(9.8100000000000005e+00)/a[5])*a[6])/od[0]);
 out[5] = ((((real_t)(0.0000000000000000e+00)-xd[5])+u[1])/(real_t)(6.9999999999999996e-01));
@@ -414,7 +414,6 @@ acadoWorkspace.rk_xxx[13] = rk_eta[61];
 acadoWorkspace.rk_xxx[14] = rk_eta[62];
 acadoWorkspace.rk_xxx[15] = rk_eta[63];
 acadoWorkspace.rk_xxx[16] = rk_eta[64];
-acadoWorkspace.rk_xxx[17] = rk_eta[65];
 
 for (run = 0; run < 1; ++run)
 {
