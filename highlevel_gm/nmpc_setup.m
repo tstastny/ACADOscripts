@@ -38,7 +38,7 @@ OnlineData Gamma_p;
 OnlineData chi_p;
 
 % terrain data
-OnlineData terrain_data(5,5)
+OnlineData terrain_data(5,5);
 
 % MODEL -------------------------------------------------------------------
 

@@ -2,7 +2,7 @@
 % ----------------
 close all; clear all; clc;
 
-% NMPC SETUP --------------------------------------------------------------
+%% NMPC SETUP -------------------------------------------------------------
 N = 100;
 n_U = 2;
 n_X = 6; % number of nmpc states
@@ -12,7 +12,7 @@ n_Z = 4;
 Ts_step = 0.1; % step size in nmpc
 Ts_nmpc = 0.1; % interval between nmpc calls
 
-% ONLINE DATA -------------------------------------------------------------
+%% ONLINE DATA ------------------------------------------------------------
 
 % flight condition
 v = 9.6;
@@ -23,19 +23,16 @@ w_e = 5;
 w_d = 0;
 
 % path reference
-b_n = -10;
-b_e = 10;
-b_d = 5;
+b_n = 0;
+b_e = 0;
+b_d = 0;
 Gamma_p = deg2rad(-5);
 chi_p = 0;
 
 % terrain data
 terrain_data = zeros(5);
-terrain_data(1,1) = b_n;
-terrain_data(1,5) = b_e;
-terrain_data(5,5) = b_d;
 
-% INITIALIZATION ----------------------------------------------------------
+%% INITIALIZATION ---------------------------------------------------------
 
 % initial states
 ic_r = [-60, 20, 0];
@@ -68,7 +65,7 @@ input.od    = repmat(ic_od, N+1, 1);
 input.W     = repmat(diag([Q_output, R_controls]), [N 1]);
 input.WN    = diag(QN_output);
 
-% SIMULATION --------------------------------------------------------------
+%% SIMULATION -------------------------------------------------------------
 T0 = 0;
 Tf = 30;
 Ts = 0.01;
@@ -134,5 +131,7 @@ for k = 1:length(time)
     rec.aux(k,:) = aux;
     
 end
+
+%% PLOTTING ---------------------------------------------------------------
 
 plotsim
