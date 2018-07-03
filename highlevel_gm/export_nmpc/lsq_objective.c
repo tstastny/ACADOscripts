@@ -9,13 +9,13 @@ void lsq_obj_eval( real_t *in, real_t *out ){
     const double tP_e_bar = sin(in[16]);
     
     // "closest" point on track
-    const double tp_dot_br = tP_n_bar*(in[0]-in[12]) + tP_e_bar*(in[1]-in[13]);
+    const double tp_dot_br = tP_n_bar*(in[0]-in[17]) + tP_e_bar*(in[1]-in[21]);
     const double tp_dot_br_n = tp_dot_br*tP_n_bar;
     const double tp_dot_br_e = tp_dot_br*tP_e_bar;
-    const double p_n = in[12] + tp_dot_br_n;
-    const double p_e = in[13] + tp_dot_br_e;
+    const double p_n = in[17] + tp_dot_br_n;
+    const double p_e = in[21] + tp_dot_br_e;
     const double p_lat = tp_dot_br_n*tP_n_bar + tp_dot_br_e*tP_e_bar;
-    const double p_d = in[14] - p_lat*tan(in[15]);
+    const double p_d = in[41] - p_lat*tan(in[15]);
     
     // lateral-directional guidance
     const double e_lat = (in[1]-p_e)*cos(in[16]) - (in[0]-p_n)*sin(in[16]);
@@ -87,13 +87,13 @@ void lsq_objN_eval( real_t *in, real_t *out ){
     const double tP_e_bar = sin(in[16]);
     
     // "closest" point on track
-    const double tp_dot_br = tP_n_bar*(in[0]-in[12]) + tP_e_bar*(in[1]-in[13]);
+    const double tp_dot_br = tP_n_bar*(in[0]-in[17]) + tP_e_bar*(in[1]-in[21]);
     const double tp_dot_br_n = tp_dot_br*tP_n_bar;
     const double tp_dot_br_e = tp_dot_br*tP_e_bar;
-    const double p_n = in[12] + tp_dot_br_n;
-    const double p_e = in[13] + tp_dot_br_e;
+    const double p_n = in[17] + tp_dot_br_n;
+    const double p_e = in[21] + tp_dot_br_e;
     const double p_lat = tp_dot_br_n*tP_n_bar + tp_dot_br_e*tP_e_bar;
-    const double p_d = in[14] - p_lat*tan(in[15]);
+    const double p_d = in[41] - p_lat*tan(in[15]);
     
     // lateral-directional guidance
     const double e_lat = (in[1]-p_e)*cos(in[16]) - (in[0]-p_n)*sin(in[16]);

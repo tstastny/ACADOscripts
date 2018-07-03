@@ -70,6 +70,31 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OnlineData b_d; 
     OnlineData Gamma_p; 
     OnlineData chi_p; 
+    OnlineData terrain_data11; 
+    OnlineData terrain_data12; 
+    OnlineData terrain_data13; 
+    OnlineData terrain_data14; 
+    OnlineData terrain_data15; 
+    OnlineData terrain_data21; 
+    OnlineData terrain_data22; 
+    OnlineData terrain_data23; 
+    OnlineData terrain_data24; 
+    OnlineData terrain_data25; 
+    OnlineData terrain_data31; 
+    OnlineData terrain_data32; 
+    OnlineData terrain_data33; 
+    OnlineData terrain_data34; 
+    OnlineData terrain_data35; 
+    OnlineData terrain_data41; 
+    OnlineData terrain_data42; 
+    OnlineData terrain_data43; 
+    OnlineData terrain_data44; 
+    OnlineData terrain_data45; 
+    OnlineData terrain_data51; 
+    OnlineData terrain_data52; 
+    OnlineData terrain_data53; 
+    OnlineData terrain_data54; 
+    OnlineData terrain_data55; 
     BMatrix acadodata_M1;
     acadodata_M1.read( "nmpc_data_acadodata_M1.txt" );
     BMatrix acadodata_M2;
@@ -88,12 +113,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     ocp1.subjectTo(acadodata_f1);
     ocp1.subjectTo((-1.50000000000000000000e+00) <= sin(gamma_ref)*v <= 3.50000000000000000000e+00);
     ocp1.subjectTo((-6.10865238198015303439e-01) <= phi_ref <= 6.10865238198015303439e-01);
-    ocp1.setNOD( 9 );
+    ocp1.setNOD( 34 );
 
 
     ocp1.setNU( 2 );
     ocp1.setNP( 0 );
-    ocp1.setNOD( 9 );
+    ocp1.setNOD( 34 );
     OCPexport ExportModule1( ocp1 );
     ExportModule1.set( GENERATE_MATLAB_INTERFACE, 1 );
     uint options_flag;

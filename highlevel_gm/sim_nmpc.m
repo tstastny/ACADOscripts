@@ -23,11 +23,17 @@ w_e = 5;
 w_d = 0;
 
 % path reference
-b_n = 0;
-b_e = 0;
-b_d = 0;
+b_n = -10;
+b_e = 10;
+b_d = 5;
 Gamma_p = deg2rad(-5);
 chi_p = 0;
+
+% terrain data
+terrain_data = zeros(5);
+terrain_data(1,1) = b_n;
+terrain_data(1,5) = b_e;
+terrain_data(5,5) = b_d;
 
 % INITIALIZATION ----------------------------------------------------------
 
@@ -39,7 +45,7 @@ ic_att = [deg2rad(0), deg2rad(-30), deg2rad(0)];
 ic_u = [0 0];
 
 % initial online data
-ic_od = [v w_n w_e 0 b_n b_e b_d Gamma_p chi_p];
+ic_od = [v w_n w_e w_d b_n b_e b_d Gamma_p chi_p reshape(terrain_data.',1,[])];
 
 % acado inputs
 nmpc_ic.x = [ic_r, ic_att]; 
