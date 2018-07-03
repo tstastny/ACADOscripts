@@ -18,34 +18,34 @@ Ts_nmpc = 0.1; % interval between nmpc calls
 v = 9.6;
 
 % disturbances
-wn = 0;
-we = 0;
-wd = 0;
+w_n = -2;
+w_e = 5;
+w_d = 0;
 
 % path reference
-bn = 0;
-be = 0;
-bd = 0;
-gamma_p = deg2rad(0);
+b_n = 0;
+b_e = 0;
+b_d = 0;
+Gamma_p = deg2rad(-5);
 chi_p = 0;
 
 % INITIALIZATION ----------------------------------------------------------
 
 % initial states
-ic_r = [-20, 60, 0];
-ic_att = [deg2rad(0), deg2rad(-90), deg2rad(0)];
+ic_r = [-60, 20, 0];
+ic_att = [deg2rad(0), deg2rad(-30), deg2rad(0)];
 
 % initial controls
 ic_u = [0 0];
 
 % initial online data
-ic_od = [v wn we 0 bn be bd gamma_p chi_p];
+ic_od = [v w_n w_e 0 b_n b_e b_d Gamma_p chi_p];
 
 % acado inputs
 nmpc_ic.x = [ic_r, ic_att]; 
 nmpc_ic.u = ic_u;
 yref = [0 0];
-zref = [gamma_p 0 0 0];
+zref = [Gamma_p 0 0 0];
 
 Q_scale = [1 1];
 R_scale = [deg2rad(1) deg2rad(1) deg2rad(5) deg2rad(5)];
@@ -126,12 +126,6 @@ for k = 1:length(time)
     [out,aux] = eval_obj(simout,controls,input.od(1,:));
     rec.yz(k,:) = out;
     rec.aux(k,:) = aux;
-    
-    % bound track error TODO
-    err_bnd = 50;
-    if out(1)>err_bnd
-        % move the track closer
-    end
     
 end
 
