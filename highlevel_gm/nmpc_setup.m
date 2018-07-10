@@ -37,8 +37,9 @@ OnlineData b_d;
 OnlineData Gamma_p;
 OnlineData chi_p;
 
-% terrain data
-OnlineData terrain_data(5,5);
+% terrain
+OnlineData delta_h;
+OnlineData terrain_data(3721);
 
 % MODEL -------------------------------------------------------------------
 
@@ -71,9 +72,9 @@ f.add(dot(phi) == dot_phi);
 % lengths
 n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
-n_Y = 2;                    % outputs
+n_Y = 4;                    % outputs
 n_Z = 4;                    % objectives
-n_OD = 34;
+n_OD = 9+3721;
 
 acadoSet('problemname', 'nmpc');
 

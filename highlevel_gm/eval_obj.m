@@ -1,59 +1,41 @@
-function [out,aux] = eval_obj(states,controls,onlinedata)
+function [out,aux] = eval_obj(in)
 
-% states
-n = states(1);
-e = states(2);
-d = states(3);
-gamma = states(4);
-% xi = states(5);
-mu = states(6);
+% path tangent unit vector  
+tP_n_bar = cos(in(17)); 
+tP_e_bar = sin(in(17)); 
+ 
+% "closest" point on track 
+tp_dot_br = tP_n_bar*(in(1)-in(13)) + tP_e_bar*(in(2)-in(14)); 
+tp_dot_br_n = tp_dot_br*tP_n_bar; 
+tp_dot_br_e = tp_dot_br*tP_e_bar; 
+p_n = in(13) + tp_dot_br_n; 
+p_e = in(14) + tp_dot_br_e; 
+p_lat = tp_dot_br_n*tP_n_bar + tp_dot_br_e*tP_e_bar; 
+p_d = in(15) - p_lat*tan(in(16)); 
+ 
+% directional error 
+v_c_gamma = in(9)*cos(in(4)); 
+v_n = v_c_gamma*cos(in(5)); 
+v_e = v_c_gamma*sin(in(5)); 
+tp_dot_vg = tP_n_bar*(v_n+in(10)) + tP_e_bar*(v_e+in(11)); 
+ 
+% terrain 
+h_ter = 10.0; 
+h_ter_normalized = (in(3) + h_ter)/in(18);
+if h_ter_normalized <= 0
+    h_ter_normalized = 0.0;
+end
+ 
+% state output 
+out(1) = (in(2)-p_e)*cos(in(17)) - (in(1)-p_n)*sin(in(17)); 
+out(2) = p_d - in(3); 
+out(3) = tp_dot_vg*0.5+0.5; 
+out(4) = h_ter_normalized*h_ter_normalized; 
+ 
+% control output 
+out(5) = in(7); % gamma ref 
+out(6) = in(8); % mu ref 
+out(7) = (in(7) - in(4))/1; % gamma dot 
+out(8) = (in(8) - in(6))/0.7; % mu dot 
 
-% controls
-gamma_ref = controls(1);
-mu_ref = controls(2);
-
-% online data
-% v = onlinedata(1);
-% wn = onlinedata(2);
-% we = onlinedata(3);
-% wd = onlinedata(4);
-bn = onlinedata(5);
-be = onlinedata(6);
-bd = onlinedata(7);
-gamma_p = onlinedata(8);
-chi_p = onlinedata(9);
-
-% model parameters
-tau_gamma = 1;
-tau_mu = 0.7;
-
-% constants
-% g = 9.81; % acceleration of gravity [m/s2]
-
-% state differentials
-% d_states(1) = v*cos(gamma)*cos(xi) + wn;
-% d_states(2) = v*cos(gamma)*sin(xi) + we;
-% d_states(3) = -v*sin(gamma) + wd;
-dot_gamma = (gamma_ref - gamma)/tau_gamma;
-% d_states(5) = g*tan(mu)/v/cos(gamma);
-dot_mu = (mu_ref - mu)/tau_mu;
-
-% closest point on track
-dot_vp_br = cos(chi_p)*cos(gamma_p)*(n-bn) + sin(chi_p)*cos(gamma_p)*(e-be) - ...
-    sin(gamma_p)*(d-bd);
-pn = bn + dot_vp_br*cos(chi_p)*cos(gamma_p);
-pe = be + dot_vp_br*sin(chi_p)*cos(gamma_p);
-pd = bd - dot_vp_br*sin(gamma_p);
-
-% path objectives
-e_lat = (n-pn)*sin(chi_p) - (e-pe)*cos(chi_p);
-e_lon = -(pd-d);
-
-% state output
-y = [ e_lat, e_lon];
-
-% control output
-z = [ gamma_ref, mu_ref, dot_gamma, dot_mu ];
-
-out = [y, z];
 aux = 0;

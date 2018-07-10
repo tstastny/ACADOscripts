@@ -4,14 +4,18 @@ color_ref = [0.5 0.5 0.5];
 color_hor = [min(ones(1,3), cmap(2,:)*1.6) 0.2];%[0.2 0.2 1 0.6];
 
 
-%% /////////////////////////////////////////////////////////////////////////
+%% ////////////////////////////////////////////////////////////////////////
 % POSITION
 
 figure('color','w','name','Position')
 hold on; grid on; %axis equal;
 
+% terrain
+% surf(ee_plot,nn_plot,terrain_data_plot,'edgecolor','none');
+% surf(eek,nnk,terrain_data_matrix+50,'edgecolor','none');
+
 % path
-len_path = 500;
+len_path = 2000;
 plot3([b_e, b_e+len_path*sin(chi_p)*cos(Gamma_p)], ...
     [b_n, b_n+len_path*cos(chi_p)*cos(Gamma_p)], ...
     -[b_d, b_d-len_path*sin(Gamma_p)],'color',color_ref,'linewidth',1.5);
@@ -32,7 +36,7 @@ xlabel('East [m]')
 ylabel('North [m]')
 zlabel('Height [m]');
 
-%% /////////////////////////////////////////////////////////////////////////
+%% ////////////////////////////////////////////////////////////////////////
 % ATTITUDE
 
 figure('color','w','name','Attitude');
@@ -60,12 +64,12 @@ xlabel('Time [s]')
 
 linkaxes(hand_att,'x')
 
-%% /////////////////////////////////////////////////////////////////////////
+%% ////////////////////////////////////////////////////////////////////////
 % OBJECTIVE COSTS
 
 figure('color','w','name','Objective Costs')
 
-hand_obj(1)=subplot(4,1,1); hold on; grid on;
+hand_obj(1)=subplot(5,1,1); hold on; grid on;
 
 plot(time,rec.yz(:,1));
 plot(time,rec.yz(:,2));
@@ -73,18 +77,24 @@ plot(time,rec.yz(:,2));
 legend('e_{lat}','e_{lon}')
 ylabel('e [m]')
 
-hand_obj(2)=subplot(4,1,2:4); hold on; grid on;
+hand_obj(2)=subplot(5,1,2:3); hold on; grid on;
 
 plot(time,(yref(1)*ones(length(time),1)-rec.yz(:,1)).^2*Q_output(1)); % e_lat
 plot(time,(yref(2)*ones(length(time),1)-rec.yz(:,2)).^2*Q_output(2)); % e_lon
+plot(time,(yref(3)*ones(length(time),1)-rec.yz(:,3)).^2*Q_output(3)); % e_dir
+plot(time,(yref(4)*ones(length(time),1)-rec.yz(:,4)).^2*Q_output(4)); % terr
 
-plot(time,(zref(1)*ones(length(time),1)-rec.yz(:,3)).^2*R_controls(1)); % gamma_ref
-plot(time,(zref(2)*ones(length(time),1)-rec.yz(:,4)).^2*R_controls(2)); % mu_ref
-plot(time,(zref(3)*ones(length(time),1)-rec.yz(:,5)).^2*R_controls(3)); % gamma dot
-plot(time,(zref(4)*ones(length(time),1)-rec.yz(:,6)).^2*R_controls(4)); % mu dot
+legend('e_{lat}','e_{lon}','\chi','h_{terr}')
+ylabel('J(x)')
 
+hand_obj(3)=subplot(5,1,4:5); hold on; grid on;
 
-legend('e_{lat}','e_{lon}','\gamma_{ref}','\mu_{ref}','\gamma{dot}','\mu{dot}')
+plot(time,(zref(1)*ones(length(time),1)-rec.yz(:,5)).^2*R_controls(1)); % gamma_ref
+plot(time,(zref(2)*ones(length(time),1)-rec.yz(:,6)).^2*R_controls(2)); % mu_ref
+plot(time,(zref(3)*ones(length(time),1)-rec.yz(:,7)).^2*R_controls(3)); % gamma dot
+plot(time,(zref(4)*ones(length(time),1)-rec.yz(:,8)).^2*R_controls(4)); % mu dot
+
+legend('\gamma_{ref}','\mu_{ref}','\gamma{dot}','\mu{dot}')
 ylabel('J(x,u)')
 
 xlabel('time [s]')
