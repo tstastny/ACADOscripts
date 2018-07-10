@@ -25,7 +25,7 @@ w_d = 0;
 % path reference
 b_n = 0;
 b_e = 0;
-b_d = 10;
+b_d = -10;
 Gamma_p = deg2rad(0);
 chi_p = 0;
 
@@ -36,7 +36,7 @@ terrain_constructor;
 %% INITIALIZATION ---------------------------------------------------------
 
 % initial states
-posk = [-10, 20, -5];
+posk = [-5, 20, -15];
 attk = [deg2rad(0), deg2rad(-30), deg2rad(0)];
 
 % initial controls
@@ -55,8 +55,8 @@ zref = [Gamma_p 0 0 0];
 Q_scale = [1 1 1 1];
 R_scale = [deg2rad(1) deg2rad(1) deg2rad(5) deg2rad(5)];
 
-Q_output    = [10 10 1 100]./Q_scale.^2;
-QN_output   = [10 10 1 100]./Q_scale.^2;
+Q_output    = [10 10 1 1000]./Q_scale.^2;
+QN_output   = [10 10 1 1000]./Q_scale.^2;
 R_controls  = [1 1 1 1]./R_scale.^2;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
@@ -69,7 +69,7 @@ input.WN    = diag(QN_output);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 60;
+Tf = 200;
 Ts = 0.01;
 time = T0:Ts:Tf;
 KKT_MPC = []; INFO_MPC = []; controls_MPC = [];

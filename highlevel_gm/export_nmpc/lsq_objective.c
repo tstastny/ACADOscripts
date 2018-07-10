@@ -2,6 +2,16 @@
 #include <math.h>
 #include <string.h>
 
+#define IDX_CENTER_N 31
+#define IDX_CENTER_E 31
+#define LEN_IDX_N 61
+#define LEN_IDX_E 61
+#define DIS 10.0
+#define ONE_OVER_DIS 0.1
+#define DIS_OVER_2 5.0
+
+double lookup_terrain( const double pos_n, const double pos_e, const double *terrain_data );
+
 void lsq_obj_eval( real_t *in, real_t *out ){
     
     // path tangent unit vector 
@@ -24,15 +34,15 @@ void lsq_obj_eval( real_t *in, real_t *out ){
     const double tp_dot_vg = tP_n_bar*(v_n+in[9]) + tP_e_bar*(v_e+in[10]);
        
     // terrain
-    const double h_ter = 10.0;
-    double h_ter_normalized = (in[2] + h_ter)/in[17];
-    h_ter_normalized = (h_ter_normalized > 0.0) ? h_ter_normalized : 0.0;
+    const double h_terr = lookup_terrain(in[0], in[1], &in[18]);
+    double one_minus_h_normalized = 1.0 + (in[2] + h_terr)/in[17];
+    if (one_minus_h_normalized <= 0.0) one_minus_h_normalized = 0.0;  
     
     // state output
     out[0] = (in[1]-p_e)*cos(in[16]) - (in[0]-p_n)*sin(in[16]);
     out[1] = p_d - in[2];
     out[2] = tp_dot_vg*0.5+0.5;
-    out[3] = h_ter_normalized*h_ter_normalized;
+    out[3] = one_minus_h_normalized*one_minus_h_normalized;
 
     // control output
     out[4] = in[6]; // gamma ref
@@ -109,15 +119,15 @@ void lsq_objN_eval( real_t *in, real_t *out ){
     const double tp_dot_vg = tP_n_bar*(v_n+in[7]) + tP_e_bar*(v_e+in[8]);
     
     // terrain
-    const double h_ter = 10.0;    
-    double h_ter_normalized = (in[2] + h_ter)/in[15];
-    h_ter_normalized = (h_ter_normalized > 0.0) ? h_ter_normalized : 0.0;
+    const double h_terr = lookup_terrain(in[0], in[1], &in[16]);   
+    double one_minus_h_normalized = 1.0 + (in[2] + h_terr)/in[15];
+    if (one_minus_h_normalized <= 0.0) one_minus_h_normalized = 0.0;  
        
     // state output
     out[0] = (in[1]-p_e)*cos(in[14]) - (in[0]-p_n)*sin(in[14]);
     out[1] = p_d - in[2];
     out[2] = tp_dot_vg*0.5+0.5;
-    out[3] = h_ter_normalized*h_ter_normalized;
+    out[3] = one_minus_h_normalized*one_minus_h_normalized;
 
 }
 
@@ -151,3 +161,31 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out ){
     }
 
 }
+
+double lookup_terrain( const double pos_n, const double pos_e, const double *terrain_data ) {
+
+    double rel_n = pos_n - terrain_data[IDX_CENTER_N * LEN_IDX_E + IDX_CENTER_E];
+    rel_n = rel_n + ((rel_n<0.0) ? -1.0 : 1.0) * DIS_OVER_2;
+    int delta_idx_n = rel_n * ONE_OVER_DIS;
+    int idx_n = IDX_CENTER_N + delta_idx_n;
+    if (idx_n >= LEN_IDX_N) {
+      idx_n = LEN_IDX_N-1;
+    }
+    else if (idx_n < 0) {
+      idx_n = 0;
+    }
+    
+    float rel_e = pos_e - terrain_data[IDX_CENTER_N * LEN_IDX_E + IDX_CENTER_E];
+    rel_e = rel_e + ((rel_e<0.0f) ? -1.0 : 1.0) * DIS_OVER_2;
+    int delta_idx_e = rel_e * ONE_OVER_DIS;
+    int idx_e = IDX_CENTER_E + delta_idx_e;
+    if (idx_e >= LEN_IDX_E) {
+      idx_e = LEN_IDX_E-1;
+    }
+    else if (idx_e < 0) {
+      idx_e = 0;
+    }
+    
+    return terrain_data[idx_n * LEN_IDX_E + idx_e];
+}
+

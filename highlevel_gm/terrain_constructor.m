@@ -21,6 +21,6 @@ hh_hill = 25*exp(-((ee - 250)/500).^2-((nn - 750)'/500).^2);
 
 terrain_data0 = max(hh_sine,hh_hill);
 
-terrain_data_plot = terrain_data0(400:600,400:600);
-nn_plot = nn(400:600);
+terrain_data_plot = terrain_data0(400:800,400:600);
+nn_plot = nn(400:800);
 ee_plot = ee(400:600);
