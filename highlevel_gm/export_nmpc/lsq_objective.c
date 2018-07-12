@@ -2,15 +2,12 @@
 #include <math.h>
 #include <string.h>
 
-#define IDX_CENTER_N 31
-#define IDX_CENTER_E 31
 #define LEN_IDX_N 61
 #define LEN_IDX_E 61
-#define DIS 10.0
-#define ONE_OVER_DIS 0.1
-#define DIS_OVER_2 5.0
+#define ONE_DIS 0.1
 
-double lookup_terrain( const double pos_n, const double pos_e, const double *terrain_data );
+int lookup_terrain_idx( const double pos_n, const double pos_e, const double pos_n_origin,
+        const double pos_e_origin);
 
 void lsq_obj_eval( real_t *in, real_t *out ){
     
@@ -34,7 +31,8 @@ void lsq_obj_eval( real_t *in, real_t *out ){
     const double tp_dot_vg = tP_n_bar*(v_n+in[9]) + tP_e_bar*(v_e+in[10]);
        
     // terrain
-    const double h_terr = lookup_terrain(in[0], in[1], &in[18]);
+    int idx_terr = lookup_terrain_idx(in[0], in[1], in[18], in[19]);
+    const double h_terr = in[20+idx_terr];
     double one_minus_h_normalized = 1.0 + (in[2] + h_terr)/in[17];
     if (one_minus_h_normalized <= 0.0) one_minus_h_normalized = 0.0;  
     
@@ -119,7 +117,8 @@ void lsq_objN_eval( real_t *in, real_t *out ){
     const double tp_dot_vg = tP_n_bar*(v_n+in[7]) + tP_e_bar*(v_e+in[8]);
     
     // terrain
-    const double h_terr = lookup_terrain(in[0], in[1], &in[16]);   
+    int idx_terr = lookup_terrain_idx(in[0], in[1], in[16], in[17]);
+    const double h_terr = in[18+idx_terr];
     double one_minus_h_normalized = 1.0 + (in[2] + h_terr)/in[15];
     if (one_minus_h_normalized <= 0.0) one_minus_h_normalized = 0.0;  
        
@@ -162,30 +161,29 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out ){
 
 }
 
-double lookup_terrain( const double pos_n, const double pos_e, const double *terrain_data ) {
+int lookup_terrain_idx( const double pos_n, const double pos_e, const double pos_n_origin,
+        const double pos_e_origin) {
 
-    double rel_n = pos_n - terrain_data[IDX_CENTER_N * LEN_IDX_E + IDX_CENTER_E];
-    rel_n = rel_n + ((rel_n<0.0) ? -1.0 : 1.0) * DIS_OVER_2;
-    int delta_idx_n = rel_n * ONE_OVER_DIS;
-    int idx_n = IDX_CENTER_N + delta_idx_n;
-    if (idx_n >= LEN_IDX_N) {
-      idx_n = LEN_IDX_N-1;
+    const double rel_n = pos_n - pos_n_origin;
+
+    int idx_n = rel_n * ONE_DIS;
+    if (idx_n < 0) {
+        idx_n = 0;
     }
-    else if (idx_n < 0) {
-      idx_n = 0;
+    else if (idx_n >= LEN_IDX_N) {
+        idx_n = LEN_IDX_N - 1;
     }
-    
-    float rel_e = pos_e - terrain_data[IDX_CENTER_N * LEN_IDX_E + IDX_CENTER_E];
-    rel_e = rel_e + ((rel_e<0.0f) ? -1.0 : 1.0) * DIS_OVER_2;
-    int delta_idx_e = rel_e * ONE_OVER_DIS;
-    int idx_e = IDX_CENTER_E + delta_idx_e;
-    if (idx_e >= LEN_IDX_E) {
-      idx_e = LEN_IDX_E-1;
+
+    const double rel_e = pos_e - pos_e_origin;
+
+    int idx_e = rel_e * ONE_DIS;
+    if (idx_e < 0) {
+        idx_e = 0;
     }
-    else if (idx_e < 0) {
-      idx_e = 0;
+    else if (idx_e >= LEN_IDX_E) {
+        idx_e = LEN_IDX_E - 1;
     }
     
-    return terrain_data[idx_n * LEN_IDX_E + idx_e];
+    return idx_n*LEN_IDX_E + idx_e;
 }
 

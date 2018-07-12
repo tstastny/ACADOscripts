@@ -1,26 +1,27 @@
 % TERRAIN CONSTRUCTOR
 
-terr_origin_n = 0;
-terr_origin_e = 0;
-idx_center = 501;
-one_over_dis = 0.1;
-dis = 10;
-dis_2 = 5;
+% bottom left
+terr_origin_n = -5000;
+terr_origin_e = -5000;
 
-len_local_idx_n = 61;
-len_local_idx_e = 61;
+dis = 10; % discretization
+one_over_dis = 1/dis;
+dis_2 = dis/2;
 
-nn = -5000:10:5000;
-ee = -5000:10:5000;
+% northing / easting
+nn = terr_origin_n:dis:5000;
+ee = terr_origin_e:dis:5000;
 
 len_global_idx_n = length(nn);
 len_global_idx_e = length(ee);
 
+% terrain
 hh_sine = 10*sin(pi*((nn')/2000)).^2 + 0*ee;
 hh_hill = 25*exp(-((ee - 250)/500).^2-((nn - 750)'/500).^2);
 
 terrain_data0 = max(hh_sine,hh_hill);
 
-terrain_data_plot = terrain_data0(400:800,400:600);
-nn_plot = nn(400:800);
-ee_plot = ee(400:600);
+% for plotting
+terrain_data_plot = terrain_data0(501-100:501+300,501-100:501+100);
+nn_plot = nn(501-100:501+300);
+ee_plot = ee(501-100:501+100);

@@ -39,6 +39,8 @@ OnlineData chi_p;
 
 % terrain
 OnlineData delta_h;
+OnlineData terr_local_origin_n;
+OnlineData terr_local_origin_e;
 OnlineData terrain_data(3721);
 
 % MODEL -------------------------------------------------------------------
@@ -74,7 +76,7 @@ n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
 n_Y = 4;                    % outputs
 n_Z = 4;                    % objectives
-n_OD = 9+3721;
+n_OD = 12+3721;
 
 acadoSet('problemname', 'nmpc');
 

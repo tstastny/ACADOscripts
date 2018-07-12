@@ -1,9 +1,12 @@
 % clear; clc;
 
+% help speed up the c -> m process for the eval_obj.m function
+% >> call this from the root folder
+
 n_in = 18;
 n_out = 8;
 
-fid = fopen('ccopy.m');
+fid = fopen('misc/c_snippet.m');
 txt = textscan(fid,'%s','delimiter','\n'); 
 fclose(fid);
 txt = txt{1};
@@ -65,7 +68,7 @@ for i = 1:length(txt)
     
 end
 
-fid = fopen('mfromc.m','w');
+fid = fopen('misc/m_snippet.m','w');
 for k = 1:length(txt)
     if k==32
         stopppp=1;

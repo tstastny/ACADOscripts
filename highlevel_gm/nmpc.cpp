@@ -71,6 +71,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OnlineData Gamma_p; 
     OnlineData chi_p; 
     OnlineData delta_h; 
+    OnlineData terr_local_origin_n; 
+    OnlineData terr_local_origin_e; 
     OnlineData terrain_data1; 
     OnlineData terrain_data2; 
     OnlineData terrain_data3; 
@@ -3810,12 +3812,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     ocp1.subjectTo(acadodata_f1);
     ocp1.subjectTo((-1.50000000000000000000e+00) <= sin(gamma_ref)*v <= 3.50000000000000000000e+00);
     ocp1.subjectTo((-6.10865238198015303439e-01) <= phi_ref <= 6.10865238198015303439e-01);
-    ocp1.setNOD( 3730 );
+    ocp1.setNOD( 3733 );
 
 
     ocp1.setNU( 2 );
     ocp1.setNP( 0 );
-    ocp1.setNOD( 3731 );
+    ocp1.setNOD( 3733 );
     OCPexport ExportModule1( ocp1 );
     ExportModule1.set( GENERATE_MATLAB_INTERFACE, 1 );
     uint options_flag;

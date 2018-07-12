@@ -30,6 +30,8 @@ Gamma_p = deg2rad(0);
 chi_p = 0;
 
 % terrain data
+len_local_idx_n = 61;
+len_local_idx_e = 61;
 delta_h = 10;
 terrain_constructor;
 
@@ -44,7 +46,9 @@ inputk = [0 0];
 
 % initial online data
 get_local_terrain;
-onlinedatak = [v w_n w_e w_d b_n b_e b_d Gamma_p chi_p delta_h terrain_data];
+onlinedatak = [v w_n w_e w_d ...
+    b_n b_e b_d Gamma_p chi_p ...
+    delta_h terr_local_origin_n terr_local_origin_e terrain_data];
 
 % acado inputs
 nmpc_ic.x = [posk, attk]; 
@@ -89,7 +93,7 @@ for k = 1:length(time)
     input.x0 = measurements;
     
     if time(k)==floor(time(k)/Ts_nmpc)*Ts_nmpc
-    
+        
         % START NMPC - - - - -
         st_nmpc = tic;
 
@@ -102,7 +106,9 @@ for k = 1:length(time)
         % update online data
         posk = input.x0(1:3);
         get_local_terrain;
-        onlinedatak = [v w_n w_e w_d b_n b_e b_d Gamma_p chi_p delta_h terrain_data];
+        onlinedatak = [v w_n w_e w_d ...
+            b_n b_e b_d Gamma_p chi_p ...
+            delta_h terr_local_origin_n terr_local_origin_e terrain_data];
         input.od    = repmat(onlinedatak, N+1, 1);
 
         % generate controls
