@@ -64,3 +64,6 @@ function idx_terr = lookup_terrain_idx(pos_n, pos_e, pos_n_origin, pos_e_origin)
     end
     
     idx_terr = idx_n*LEN_IDX_E + idx_e;
+    
+end
+
