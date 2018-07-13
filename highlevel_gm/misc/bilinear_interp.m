@@ -5,7 +5,7 @@ clc;
 
 [X_gt,Y_gt,Z_gt] = peaks(701);
 
-dis = 0.2;
+dis = 0.5;
 x_dis = X_gt(1,1):dis:X_gt(1,end);
 y_dis = Y_gt(1,1):dis:Y_gt(end,1);
 len_x_dis = length(x_dis);
@@ -29,9 +29,10 @@ for i=1:length(X_gt(1,:))
         pos_x = X_gt(1,i);
         pos_y = Y_gt(j,1);
         
-        idx_terr = lookup_terrain_idx(pos_y, pos_x, pos_y_origin, pos_x_origin,...
-            dis, len_x_dis, len_y_dis, 0);
-        h_terr(i,j) = z_dis_array(idx_terr+1);
+        % nearest neighborhood lookup
+        idx_ = lookup_terrain_idx(pos_y, pos_x, pos_y_origin, pos_x_origin,...
+            dis, len_x_dis, len_y_dis);
+        h_terr(i,j) = z_dis_array(idx_(1)+1);
         
     end
 end
@@ -43,79 +44,94 @@ for i=1:length(X_gt(1,:))
         pos_x = X_gt(1,i);
         pos_y = Y_gt(j,1);
         
-        idx_terr = lookup_terrain_idx(pos_y, pos_x, pos_y_origin, pos_x_origin,...
-            dis, len_x_dis, len_y_dis, 1);
-        h_terr(i,j) = z_dis_array(idx_terr+1);
+        idx_ = lookup_terrain_idx(pos_y, pos_x, pos_y_origin, pos_x_origin,...
+            dis, len_x_dis, len_y_dis);
+        
+        % bi-linear interp
+        h1 = z_dis_array(idx_(1+1)+1);
+        h2 = z_dis_array(idx_(2+1)+1);
+        h3 = z_dis_array(idx_(3+1)+1);
+        h4 = z_dis_array(idx_(4+1)+1);
+        h12 = (1-idx_(5+1))*h1 + idx_(5+1)*h2;
+        h34 = (1-idx_(5+1))*h3 + idx_(5+1)*h4;
+        h_terr_bilin(i,j) = (1-idx_(6+1))*h12 + idx_(6+1)*h34;
         
     end
 end
 
 figure('color','w'); hold on; grid on; box on;
 surf(X_gt(1,:),Y_gt(:,1),Z_gt,'edgecolor','none')
-surf(X_gt(1,:),Y_gt(:,1),h_terr+10,'edgecolor','none')
+surf(X_gt(1,:),Y_gt(:,1),h_terr+15,'edgecolor','none')
+surf(X_gt(1,:),Y_gt(:,1),h_terr_bilin+15*2,'edgecolor','none')
 
 
-function idx_terr = lookup_terrain_idx(pos_n, pos_e, pos_n_origin, pos_e_origin, ...
-    dis, len_x_dis, len_y_dis, opt)
-
+function idx_ = lookup_terrain_idx(pos_n, pos_e, pos_n_origin, pos_e_origin, ...
+    dis, len_x_dis, len_y_dis)
+    
     ONE_DIS = 1/dis;
     LEN_IDX_N = len_y_dis;
     LEN_IDX_E = len_x_dis;
+    LEN_IDX_N_1 = LEN_IDX_N - 1;
+    LEN_IDX_E_1 = LEN_IDX_E - 1;
 
-    % current block
     rel_n = pos_n - pos_n_origin;
-    rel_n_normalized = rel_n * ONE_DIS;
-    idx_n = floor(rel_n_normalized);
+    rel_n_bar = rel_n * ONE_DIS;
+    idx_n = floor(rel_n_bar); % int idx_n = rel_n_bar;
     if (idx_n < 0)
         idx_n = 0;
-    elseif (idx_n >= LEN_IDX_N) 
-        idx_n = LEN_IDX_N - 1;
+    elseif (idx_n > LEN_IDX_N_1) 
+        idx_n = LEN_IDX_N_1;
     end
-    if (rel_n_normalized-idx_n<0.5)
-        neighbor_n=max(idx_n-1,0);
-        neighbor_n_first = true;
+    delta_n = rel_n_bar-idx_n;
+    if (delta_n<0.5) % int up = (rel_n_bar-idx_n<0.5) ? 0 : 1;
+        down = -1;
+        dh_n = 0.5 + delta_n;
     else
-        neighbor_n=min(idx_n+1,LEN_IDX_N-1);
-        neighbor_n_first = false;
+        down = 0;
+        dh_n = delta_n - 0.5;
     end
     
     rel_e = pos_e - pos_e_origin;
-    rel_e_normalized = rel_e * ONE_DIS;
-    idx_e = floor(rel_e_normalized);
+    rel_e_bar = rel_e * ONE_DIS;
+    idx_e = floor(rel_e_bar); % int idx_e = rel_e_bar;
     if (idx_e < 0) 
         idx_e = 0;
-    elseif (idx_e >= LEN_IDX_E) 
-        idx_e = LEN_IDX_E - 1;
+    elseif (idx_e > LEN_IDX_E_1) 
+        idx_e = LEN_IDX_E_1;
     end
-    if (rel_e_normalized-idx_e<0.5)
-        neighbor_e=max(idx_e-1,0);
-        neighbor_e_first = true;
+    delta_e = rel_e_bar-idx_e;
+    if (delta_e<0.5) % int left = (rel_e_bar-idx_n<0.5) ? -1 : 0;
+        left = -1;
+        dh_e = 0.5 + delta_e;
     else
-        neighbor_e=min(idx_e+1,LEN_IDX_E-1);
-        neighbor_e_first = false;
+        left = 0;
+        dh_e = delta_e - 0.5;
     end
     
-    idx_terr_P = idx_n*LEN_IDX_E + idx_e;
+    % current block
+    idx_terr = idx_n*LEN_IDX_E + idx_e;
     
-    if (neighbor_n_first && neighbor_e_first)
-        Q11=[neighbor_n,neighbor_e];
-        
-    idx_Q = [neighbor_n*LEN_IDX_E + idx_e
+    % neighbor origin (down,left)
+    Q1_n = idx_n + down;
+    Q1_e = idx_e + left;
     
+    % cap neighbors (north)
+    if (Q1_n >= LEN_IDX_N_1)
+        Q_n = [LEN_IDX_N_1 LEN_IDX_N_1 LEN_IDX_N_1 LEN_IDX_N_1];
+    else
+        Q_n = [Q1_n (Q1_n + 1) Q1_n (Q1_n + 1)];
+    end
+    % cap neighbors (east)
+    if (Q1_e >= LEN_IDX_N_1)
+        Q_e = [LEN_IDX_N_1 LEN_IDX_N_1 LEN_IDX_N_1 LEN_IDX_N_1];
+    else
+        Q_e = [Q1_e Q1_e (Q1_e + 1) (Q1_e + 1)];
+    end
     
-    idx_terr = 
+    Q = [Q_n(1)*LEN_IDX_E + Q_e(1), ...
+        Q_n(2)*LEN_IDX_E + Q_e(2), ...
+        Q_n(3)*LEN_IDX_E + Q_e(3), ...
+        Q_n(4)*LEN_IDX_E + Q_e(4)];
     
+    idx_ = [idx_terr, Q, dh_n, dh_e];
 end
-
-% function bilinear_interp()
-% 
-% 
-% R1 = ((x2 – x)/(x2 – x1))*Q11 + ((x – x1)/(x2 – x1))*Q21
-% 
-% R2 = ((x2 – x)/(x2 – x1))*Q12 + ((x – x1)/(x2 – x1))*Q22
-% 
-% After the two R values are calculated, the value of P can finally be calculated by a weighted average of R1 and R2.
-% 
-% P = ((y2 – y)/(y2 – y1))*R1 + ((y – y1)/(y2 – y1))*R2
-% 
-% end;
