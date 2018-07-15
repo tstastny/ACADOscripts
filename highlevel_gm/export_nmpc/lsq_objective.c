@@ -4,10 +4,12 @@
 
 #define LEN_IDX_N 61
 #define LEN_IDX_E 61
+#define LEN_IDX_N_1 60
+#define LEN_IDX_E_1 60
 #define ONE_DIS 0.1
-
-int lookup_terrain_idx( const double pos_n, const double pos_e, const double pos_n_origin,
-        const double pos_e_origin);
+    
+void lookup_terrain_idx( const double pos_n, const double pos_e, const double pos_n_origin,
+        const double pos_e_origin, int *idx_q, double *dh);
 
 void lsq_obj_eval( real_t *in, real_t *out ){
     
@@ -31,8 +33,16 @@ void lsq_obj_eval( real_t *in, real_t *out ){
     const double tp_dot_vg = tP_n_bar*(v_n+in[9]) + tP_e_bar*(v_e+in[10]);
        
     // terrain
-    int idx_terr = lookup_terrain_idx(in[0], in[1], in[18], in[19]);
-    const double h_terr = in[20+idx_terr];
+    
+    // lookup 2.5d grid
+    int idx_q[4];
+    double dh[2];
+    lookup_terrain_idx(in[0], in[1], in[18], in[19], idx_q, dh);
+    // bi-linear interpolation
+    const double h12 = (1-dh[0])*in[20+idx_q[0]] + dh[0]*in[20+idx_q[1]];
+    const double h34 = (1-dh[0])*in[20+idx_q[2]] + dh[0]*in[20+idx_q[3]];
+    const double h_terr = (1-dh[1])*h12 + dh[1]*h34;
+    // soft constraint formulation
     double one_minus_h_normalized = 1.0 + (in[2] + h_terr)/in[17];
     if (one_minus_h_normalized <= 0.0) one_minus_h_normalized = 0.0;  
     
@@ -117,8 +127,16 @@ void lsq_objN_eval( real_t *in, real_t *out ){
     const double tp_dot_vg = tP_n_bar*(v_n+in[7]) + tP_e_bar*(v_e+in[8]);
     
     // terrain
-    int idx_terr = lookup_terrain_idx(in[0], in[1], in[16], in[17]);
-    const double h_terr = in[18+idx_terr];
+    
+    // lookup 2.5d grid
+    int idx_q[4];
+    double dh[2];
+    lookup_terrain_idx(in[0], in[1], in[16], in[17], idx_q, dh);
+    // bi-linear interpolation
+    const double h12 = (1-dh[0])*in[18+idx_q[0]] + dh[0]*in[18+idx_q[1]];
+    const double h34 = (1-dh[0])*in[18+idx_q[2]] + dh[0]*in[18+idx_q[3]];
+    const double h_terr = (1-dh[1])*h12 + dh[1]*h34;
+    // soft constraint formulation
     double one_minus_h_normalized = 1.0 + (in[2] + h_terr)/in[15];
     if (one_minus_h_normalized <= 0.0) one_minus_h_normalized = 0.0;  
        
@@ -161,29 +179,94 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out ){
 
 }
 
-int lookup_terrain_idx( const double pos_n, const double pos_e, const double pos_n_origin,
-        const double pos_e_origin) {
+void lookup_terrain_idx( const double pos_n, const double pos_e, const double pos_n_origin,
+        const double pos_e_origin, int *idx_q, double *dh) {
 
+    // relative position / indices
     const double rel_n = pos_n - pos_n_origin;
-
-    int idx_n = rel_n * ONE_DIS;
+    const double rel_n_bar = rel_n * ONE_DIS;
+    int idx_n = rel_n_bar;
     if (idx_n < 0) {
         idx_n = 0;
     }
-    else if (idx_n >= LEN_IDX_N) {
-        idx_n = LEN_IDX_N - 1;
+    else if (idx_n > LEN_IDX_N_1) {
+        idx_n = LEN_IDX_N_1;
     }
-
     const double rel_e = pos_e - pos_e_origin;
-
-    int idx_e = rel_e * ONE_DIS;
+    const double rel_e_bar = rel_e * ONE_DIS;
+    int idx_e = rel_e_bar;
     if (idx_e < 0) {
         idx_e = 0;
     }
-    else if (idx_e >= LEN_IDX_E) {
-        idx_e = LEN_IDX_E - 1;
+    else if (idx_e > LEN_IDX_E_1) {
+        idx_e = LEN_IDX_E_1;
     }
     
-    return idx_n*LEN_IDX_E + idx_e;
+    // neighbor orientation / interpolation weights
+    const double delta_n = rel_n_bar-idx_n;
+    int down;
+    double dh_n;
+    if (delta_n<0.5) {
+        down = -1;
+        dh_n = 0.5 + delta_n;
+    }
+    else {
+        down = 0;
+        dh_n = delta_n - 0.5;
+    }
+    const double delta_e = rel_e_bar-idx_e;
+    int left;
+    double dh_e;
+    if (delta_e<0.5) {
+        left = -1;
+        dh_e = 0.5 + delta_e;
+    }
+    else {
+        left = 0;
+        dh_e = delta_e - 0.5;
+    }
+    
+    // neighbor origin (down,left)
+    int q1_n = idx_n + down;
+    int q1_e = idx_e + left;
+    
+    // neighbors (north)
+    int q_n[4];
+    if (q1_n >= LEN_IDX_N_1) {
+        q_n[0] = LEN_IDX_N_1;
+        q_n[1] = LEN_IDX_N_1;
+        q_n[2] = LEN_IDX_N_1;
+        q_n[3] = LEN_IDX_N_1;
+    }
+    else {
+        q_n[0] = q1_n;
+        q_n[1] = q1_n + 1;
+        q_n[2] = q1_n;
+        q_n[3] = q1_n + 1;
+    }
+    // neighbors (east)
+    int q_e[4];
+    if (q1_e >= LEN_IDX_N_1) {
+        q_e[0] = LEN_IDX_E_1;
+        q_e[1] = LEN_IDX_E_1;
+        q_e[2] = LEN_IDX_E_1;
+        q_e[3] = LEN_IDX_E_1;
+    }
+    else {
+        q_e[0] = q1_e;
+        q_e[1] = q1_e;
+        q_e[2] = q1_e + 1;
+        q_e[3] = q1_e + 1;
+    }
+    
+    // neighbors row-major indices
+    idx_q[0] = q_n[0]*LEN_IDX_E + q_e[0];
+    idx_q[1] = q_n[1]*LEN_IDX_E + q_e[1];
+    idx_q[2] = q_n[2]*LEN_IDX_E + q_e[2];
+    idx_q[3] = q_n[3]*LEN_IDX_E + q_e[3];
+    
+    // interpolation weights
+    dh[0] = dh_n;
+    dh[1] = dh_e;
 }
 

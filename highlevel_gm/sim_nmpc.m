@@ -59,8 +59,8 @@ zref = [Gamma_p 0 0 0];
 Q_scale = [1 1 1 1];
 R_scale = [deg2rad(1) deg2rad(1) deg2rad(5) deg2rad(5)];
 
-Q_output    = [10 10 1 1000]./Q_scale.^2;
-QN_output   = [10 10 1 1000]./Q_scale.^2;
+Q_output    = [10 10 1 10000]./Q_scale.^2;
+QN_output   = [10 10 1 10000]./Q_scale.^2;
 R_controls  = [1 1 1 1]./R_scale.^2;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
@@ -144,8 +144,14 @@ for k = 1:length(time)
     rec.yz(k,:) = out;
     rec.aux(k,:) = aux;
     
+    % tell time
+    if time(k)==floor(time(k)/10)*10
+        clc;
+        disp(['sim time = ',num2str(time(k)),' s']);
+    end
+    
 end
 
 %% PLOTTING ---------------------------------------------------------------
 
-plotsim
+plot_sim

@@ -17,7 +17,7 @@ len_global_idx_e = length(ee);
 
 % terrain
 hh_sine = 10*sin(pi*((nn')/2000)).^2 + 0*ee;
-hh_hill = 25*exp(-((ee - 250)/500).^2-((nn - 750)'/500).^2);
+hh_hill = 100*exp(-((ee - 100)/300).^2-((nn - 750)'/300).^2);
 
 terrain_data0 = max(hh_sine,hh_hill);
 
