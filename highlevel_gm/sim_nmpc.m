@@ -73,7 +73,7 @@ input.WN    = diag(QN_output);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 200;
+Tf = 100;
 Ts = 0.01;
 time = T0:Ts:Tf;
 KKT_MPC = []; INFO_MPC = []; controls_MPC = [];
@@ -86,7 +86,8 @@ controls = nmpc_ic.u;
 
 % properly init position states
 input.x(:,1:3) = input.x(:,1:3) + repmat(dstates(1:3),N+1,1).*repmat((0:Ts_nmpc:N*Ts_nmpc)',1,3);
-
+tsolve_k = 0;
+tarray_k = 0;
 for k = 1:length(time)
     
     % measure
@@ -105,11 +106,13 @@ for k = 1:length(time)
         
         % update online data
         posk = input.x0(1:3);
+        st_array_allo = tic;
         get_local_terrain;
         onlinedatak = [v w_n w_e w_d ...
             b_n b_e b_d Gamma_p chi_p ...
             delta_h terr_local_origin_n terr_local_origin_e terrain_data];
         input.od    = repmat(onlinedatak, N+1, 1);
+        tarray_k = toc(st_array_allo);
 
         % generate controls
         output = acado_nmpc_step(input);
@@ -121,10 +124,12 @@ for k = 1:length(time)
         KKT_MPC = [KKT_MPC; output.info.kktValue];
 
         % timing
-        tsolve(k) = toc(st_nmpc);
+        tsolve_k = toc(st_nmpc);
     
     end
     % END NMPC - - - - -
+    tarray(k) = tarray_k;
+    tsolve(k) = tsolve_k;
     
     % apply control
     [dstates, simout]  = uav_dyn(time(k), states, controls, input.od(1,:));

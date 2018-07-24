@@ -129,3 +129,15 @@ ylim([0 max(obj_cost(:))]);
 xlabel('time [s]');
 
 linkaxes(hand_obj,'x');
+
+%% ////////////////////////////////////////////////////////////////////////
+% TIMING
+
+figure('color','w','name','Timing'); hold on; grid on; box on;
+
+plot(time,tsolve);
+plot(time,tarray);
+
+legend('nmpc (incl. array allo.)','array allocation');
+ylabel('processing time [s]');
+xlabel('time [s]');
