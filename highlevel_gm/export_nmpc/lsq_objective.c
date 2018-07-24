@@ -34,14 +34,15 @@ void lsq_obj_eval( real_t *in, real_t *out ){
        
     // terrain
     
-    // lookup 2.5d grid
-    int idx_q[4];
-    double dh[2];
-    lookup_terrain_idx(in[0], in[1], in[18], in[19], idx_q, dh);
-    // bi-linear interpolation
-    const double h12 = (1-dh[0])*in[20+idx_q[0]] + dh[0]*in[20+idx_q[1]];
-    const double h34 = (1-dh[0])*in[20+idx_q[2]] + dh[0]*in[20+idx_q[3]];
-    const double h_terr = (1-dh[1])*h12 + dh[1]*h34;
+//     // lookup 2.5d grid
+//     int idx_q[4];
+//     double dh[2];
+//     lookup_terrain_idx(in[0], in[1], in[18], in[19], idx_q, dh);
+//     // bi-linear interpolation
+//     const double h12 = (1-dh[0])*in[20+idx_q[0]] + dh[0]*in[20+idx_q[1]];
+//     const double h34 = (1-dh[0])*in[20+idx_q[2]] + dh[0]*in[20+idx_q[3]];
+//     const double h_terr = (1-dh[1])*h12 + dh[1]*h34;
+    const double h_terr = 10;
     // soft constraint formulation
     double one_minus_h_normalized = 1.0 + (in[2] + h_terr)/in[17];
     if (one_minus_h_normalized <= 0.0) one_minus_h_normalized = 0.0;  
@@ -128,14 +129,15 @@ void lsq_objN_eval( real_t *in, real_t *out ){
     
     // terrain
     
-    // lookup 2.5d grid
-    int idx_q[4];
-    double dh[2];
-    lookup_terrain_idx(in[0], in[1], in[16], in[17], idx_q, dh);
-    // bi-linear interpolation
-    const double h12 = (1-dh[0])*in[18+idx_q[0]] + dh[0]*in[18+idx_q[1]];
-    const double h34 = (1-dh[0])*in[18+idx_q[2]] + dh[0]*in[18+idx_q[3]];
-    const double h_terr = (1-dh[1])*h12 + dh[1]*h34;
+//     // lookup 2.5d grid
+//     int idx_q[4];
+//     double dh[2];
+//     lookup_terrain_idx(in[0], in[1], in[16], in[17], idx_q, dh);
+//     // bi-linear interpolation
+//     const double h12 = (1-dh[0])*in[18+idx_q[0]] + dh[0]*in[18+idx_q[1]];
+//     const double h34 = (1-dh[0])*in[18+idx_q[2]] + dh[0]*in[18+idx_q[3]];
+//     const double h_terr = (1-dh[1])*h12 + dh[1]*h34;
+    const double h_terr = 10;
     // soft constraint formulation
     double one_minus_h_normalized = 1.0 + (in[2] + h_terr)/in[15];
     if (one_minus_h_normalized <= 0.0) one_minus_h_normalized = 0.0;  

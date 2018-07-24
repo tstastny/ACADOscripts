@@ -133,11 +133,25 @@ linkaxes(hand_obj,'x');
 %% ////////////////////////////////////////////////////////////////////////
 % TIMING
 
-figure('color','w','name','Timing'); hold on; grid on; box on;
+% figure('color','w','name','NMPC timing'); hold on; grid on; box on;
+% 
+% plot(time,tsolve);
+% plot(time,tarray);
+% 
+% legend('nmpc','array allocation');
+% ylabel('cpu time [s]');
+% xlabel('time [s]');
+% 
+% %%
 
-plot(time,tsolve);
-plot(time,tarray);
+figure('color','w','name','Sim. timing'); hold on; grid on; box on;
+idx_ = find(nmpc_executed);
+area(time(idx_),tsim(idx_),'FaceColor',cmap(1,:));
+area(time(idx_),tsolve(idx_),'FaceColor',cmap(2,:));
+area(time(idx_),tarray(idx_),'FaceColor',cmap(3,:));
+area(time(idx_),trec(idx_),'FaceColor',cmap(4,:));
 
-legend('nmpc (incl. array allo.)','array allocation');
-ylabel('processing time [s]');
+legend('total sim.','solve','array allo.','rec.');
 xlabel('time [s]');
+ylabel('cpu time [s]');
+

@@ -73,10 +73,10 @@ input.WN    = diag(QN_output);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 100;
+Tf = 50;
 Ts = 0.01;
 time = T0:Ts:Tf;
-KKT_MPC = []; INFO_MPC = []; controls_MPC = [];
+len_t = length(time);
 
 % initial simout
 states = nmpc_ic.x;
@@ -86,14 +86,38 @@ controls = nmpc_ic.u;
 
 % properly init position states
 input.x(:,1:3) = input.x(:,1:3) + repmat(dstates(1:3),N+1,1).*repmat((0:Ts_nmpc:N*Ts_nmpc)',1,3);
+
+% init arrays
 tsolve_k = 0;
 tarray_k = 0;
-for k = 1:length(time)
+trec = zeros(len_t,1);
+tarray = zeros(len_t,1);
+tsolve = zeros(len_t,1);
+tsim = zeros(len_t,1);
+nmpc_executed = zeros(len_t,1);
+nmpc_counter_interval = floor(Ts_nmpc/Ts);
+len_nmpc_storage = floor(len_t/nmpc_counter_interval)+1;
+KKT_MPC = zeros(len_nmpc_storage,1);
+INFO_MPC(len_nmpc_storage) = struct('status',0,'cpuTime',0,'kktValue',0,'objValue',0,'QP_iter',0,'QP_violation',0);
+nmpc_counter = 0;
+rec.x = zeros(len_t,n_X);
+rec.x_hor = zeros(N+1,len_t,n_X);
+rec.u_hor = zeros(N,len_t,n_U);
+rec.u = zeros(len_t,2);
+rec.yz = zeros(len_t,n_Y+n_Z);
+rec.aux = zeros(len_t,1);
+
+% simulate
+for k = 1:len_t
+    
+    st_sim = tic;
     
     % measure
     input.x0 = measurements;
     
-    if time(k)==floor(time(k)/Ts_nmpc)*Ts_nmpc
+    if mod(k,nmpc_counter_interval)==0 || k==1
+        
+        nmpc_counter = nmpc_counter+1;
         
         % START NMPC - - - - -
         st_nmpc = tic;
@@ -120,16 +144,13 @@ for k = 1:length(time)
         controls  = output.u(1,:);
 
         % record info
-        INFO_MPC = [INFO_MPC; output.info];
-        KKT_MPC = [KKT_MPC; output.info.kktValue];
+        INFO_MPC(nmpc_counter) = output.info;
+        KKT_MPC(nmpc_counter) = output.info.kktValue;
 
-        % timing
         tsolve_k = toc(st_nmpc);
-    
+        nmpc_executed(k) = 1;
     end
     % END NMPC - - - - -
-    tarray(k) = tarray_k;
-    tsolve(k) = tsolve_k;
     
     % apply control
     [dstates, simout]  = uav_dyn(time(k), states, controls, input.od(1,:));
@@ -141,6 +162,7 @@ for k = 1:length(time)
     measurements = states;
     
     % record states/controls
+    st_rec = tic;
     rec.x(k,:) = simout;
     rec.x_hor(:,k,:) = output.x(:,:);
     rec.u_hor(:,k,:) = output.u(:,:);
@@ -148,6 +170,7 @@ for k = 1:length(time)
     [out,aux] = eval_obj([simout,controls,input.od(1,:)]);
     rec.yz(k,:) = out;
     rec.aux(k,:) = aux;
+    trec(k) = toc(st_rec);
     
     % tell time
     if time(k)==floor(time(k)/10)*10
@@ -155,6 +178,9 @@ for k = 1:length(time)
         disp(['sim time = ',num2str(time(k)),' s']);
     end
     
+    tarray(k) = tarray_k;
+    tsolve(k) = tsolve_k;
+    tsim(k) = toc(st_sim);
 end
 
 %% PLOTTING ---------------------------------------------------------------
