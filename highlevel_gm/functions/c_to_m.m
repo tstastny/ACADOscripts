@@ -3,8 +3,8 @@
 % help speed up the c -> m process for the eval_obj.m function
 % >> call this from the root folder
 
-n_in = 18;
-n_out = 8;
+n_in = 22;
+n_out = 6;
 
 fid = fopen('misc/c_snippet.m');
 txt = textscan(fid,'%s','delimiter','\n'); 
@@ -70,9 +70,6 @@ end
 
 fid = fopen('misc/m_snippet.m','w');
 for k = 1:length(txt)
-    if k==32
-        stopppp=1;
-    end
     fprintf(fid,[char(txt{k}),' \n']);
 end
 fclose(fid);

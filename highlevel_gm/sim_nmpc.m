@@ -1,12 +1,15 @@
 % NMPC Simulation
 % ----------------
 close all; clear all; clc;
+if isempty(strfind(path, ['/home/thomas/Documents/ACADOscripts/highlevel_gm/functions', pathsep]))
+    addpath('/home/thomas/Documents/ACADOscripts/highlevel_gm/functions');
+end
 
 %% NMPC SETUP -------------------------------------------------------------
-N = 100;
+N = 70;
 n_U = 2;
 n_X = 6; % number of nmpc states
-n_Y = 4;
+n_Y = 3;
 n_Z = 4;
 
 Ts_step = 0.1; % step size in nmpc
@@ -15,19 +18,23 @@ Ts_nmpc = 0.1; % interval between nmpc calls
 %% ONLINE DATA ------------------------------------------------------------
 
 % flight condition
-v = 9.6;
+v = 14;
 
 % disturbances
-w_n = -2;
-w_e = 5;
+w_n = 0;
+w_e = 0;
 w_d = 0;
 
 % path reference
 b_n = 0;
 b_e = 0;
-b_d = -10;
+b_d = -15;
 Gamma_p = deg2rad(0);
 chi_p = 0;
+
+% guidance
+T_b_lat = 5;
+T_b_lon = 5;
 
 % terrain data
 len_local_idx_n = 61;
@@ -38,29 +45,30 @@ terrain_constructor;
 %% INITIALIZATION ---------------------------------------------------------
 
 % initial states
-posk = [-5, 20, -15];
-attk = [deg2rad(0), deg2rad(-30), deg2rad(0)];
+posk = [-5, 100, -15];
+attk = [deg2rad(0), deg2rad(rad2deg(-1.123276351637727)+180), deg2rad(0)];
 
 % initial controls
 inputk = [0 0];
 
 % initial online data
 get_local_terrain;
-onlinedatak = [v w_n w_e w_d ...
-    b_n b_e b_d Gamma_p chi_p ...
-    delta_h terr_local_origin_n terr_local_origin_e terrain_data];
+onlinedatak = [v, w_n, w_e, w_d, ...
+    b_n, b_e, b_d, Gamma_p, chi_p, ...
+    T_b_lat, T_b_lon, ...
+    delta_h, terr_local_origin_n, terr_local_origin_e, terrain_data];
 
 % acado inputs
 nmpc_ic.x = [posk, attk]; 
 nmpc_ic.u = inputk;
-yref = [0 0 0 0];
-zref = [Gamma_p 0 0 0];
+yref = [0 0 0];
+zref = [0 0 0 0];
 
-Q_scale = [1 1 1 1];
+Q_scale = [deg2rad(1) deg2rad(1) 1];
 R_scale = [deg2rad(1) deg2rad(1) deg2rad(5) deg2rad(5)];
 
-Q_output    = [10 10 1 10000]./Q_scale.^2;
-QN_output   = [10 10 1 10000]./Q_scale.^2;
+Q_output    = [10 10 10000]./Q_scale.^2;
+QN_output   = [10 10 10000]./Q_scale.^2;
 R_controls  = [1 1 1 1]./R_scale.^2;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
@@ -73,7 +81,7 @@ input.WN    = diag(QN_output);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 50;
+Tf = 200;
 Ts = 0.01;
 time = T0:Ts:Tf;
 len_t = length(time);
@@ -86,6 +94,8 @@ controls = nmpc_ic.u;
 
 % properly init position states
 input.x(:,1:3) = input.x(:,1:3) + repmat(dstates(1:3),N+1,1).*repmat((0:Ts_nmpc:N*Ts_nmpc)',1,3);
+
+% [out,aux] = eval_obj([simout,controls,input.od(1,:)]);
 
 % init arrays
 tsolve_k = 0;
@@ -103,9 +113,9 @@ nmpc_counter = 0;
 rec.x = zeros(len_t,n_X);
 rec.x_hor = zeros(N+1,len_t,n_X);
 rec.u_hor = zeros(N,len_t,n_U);
-rec.u = zeros(len_t,2);
+rec.u = zeros(len_t,n_U);
 rec.yz = zeros(len_t,n_Y+n_Z);
-rec.aux = zeros(len_t,1);
+rec.aux = zeros(len_t,4);
 
 % simulate
 for k = 1:len_t
@@ -132,9 +142,10 @@ for k = 1:len_t
         posk = input.x0(1:3);
         st_array_allo = tic;
         get_local_terrain;
-        onlinedatak = [v w_n w_e w_d ...
-            b_n b_e b_d Gamma_p chi_p ...
-            delta_h terr_local_origin_n terr_local_origin_e terrain_data];
+        onlinedatak = [v, w_n, w_e, w_d, ...
+            b_n, b_e, b_d, Gamma_p, chi_p, ...
+            T_b_lat, T_b_lon, ...
+            delta_h, terr_local_origin_n, terr_local_origin_e, terrain_data];
         input.od    = repmat(onlinedatak, N+1, 1);
         tarray_k = toc(st_array_allo);
 

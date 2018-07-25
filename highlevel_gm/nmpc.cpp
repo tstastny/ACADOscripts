@@ -70,6 +70,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OnlineData b_d; 
     OnlineData Gamma_p; 
     OnlineData chi_p; 
+    OnlineData T_lat; 
+    OnlineData T_lon; 
     OnlineData delta_h; 
     OnlineData terr_local_origin_n; 
     OnlineData terr_local_origin_e; 
@@ -3804,20 +3806,20 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     acadodata_f1 << dot(d) == ((-v)*sin(gamma)+w_d);
     acadodata_f1 << dot(gamma) == (-gamma+gamma_ref);
     acadodata_f1 << dot(xi) == 9.81000000000000049738e+00/cos(gamma)*tan(phi)/v;
-    acadodata_f1 << dot(phi) == (-phi+phi_ref)/6.99999999999999955591e-01;
+    acadodata_f1 << dot(phi) == (-phi+phi_ref)/5.00000000000000000000e-01;
 
-    OCP ocp1(0, 10, 100);
+    OCP ocp1(0, 7, 70);
     ocp1.minimizeLSQ(acadodata_M1, "evaluateLSQ");
     ocp1.minimizeLSQEndTerm(acadodata_M2, "evaluateLSQEndTerm");
     ocp1.subjectTo(acadodata_f1);
     ocp1.subjectTo((-1.50000000000000000000e+00) <= sin(gamma_ref)*v <= 3.50000000000000000000e+00);
     ocp1.subjectTo((-6.10865238198015303439e-01) <= phi_ref <= 6.10865238198015303439e-01);
-    ocp1.setNOD( 3733 );
+    ocp1.setNOD( 3735 );
 
 
     ocp1.setNU( 2 );
     ocp1.setNP( 0 );
-    ocp1.setNOD( 3733 );
+    ocp1.setNOD( 3735 );
     OCPexport ExportModule1( ocp1 );
     ExportModule1.set( GENERATE_MATLAB_INTERFACE, 1 );
     uint options_flag;
@@ -3829,7 +3831,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: SPARSE_QP_SOLUTION");
     options_flag = ExportModule1.set( INTEGRATOR_TYPE, INT_IRK_GL4 );
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: INTEGRATOR_TYPE");
-    options_flag = ExportModule1.set( NUM_INTEGRATOR_STEPS, 100 );
+    options_flag = ExportModule1.set( NUM_INTEGRATOR_STEPS, 70 );
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: NUM_INTEGRATOR_STEPS");
     options_flag = ExportModule1.set( QP_SOLVER, QP_QPOASES );
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: QP_SOLVER");

@@ -12,7 +12,7 @@ hold on; grid on; %axis equal;
 
 % terrain
 surf1 = surf(ee_plot,nn_plot,terrain_data_plot,'edgecolor','none');
-% surf2 = surf(eek,nnk,terrain_data_matrix+1,'edgecolor','none');
+surf2 = surf(eek,nnk,terrain_data_matrix+1,'edgecolor','none');
 
 % path
 len_path = 2000;
@@ -43,9 +43,10 @@ figure('color','w','name','Attitude');
 
 % flight path angle
 hand_att(1) = subplot(3,1,1); hold on; grid on; box on;
+plot(time,rad2deg(rec.aux(:,4)),'color', cmap(5,:));
 plot(time,rad2deg(rec.u(:,1)),'color',color_ref);
 plot(time,rad2deg(rec.x(:,4)));
-legend('ref','state')
+legend('ff','ref','state')
 ylabel('\gamma [deg]')
 
 % heading angle
@@ -71,18 +72,18 @@ figure('color','w','name','Position Errors')
 
 hand_pos_err(1)=subplot(2,1,1); hold on; grid on; box on;
 
-plot(time,rec.yz(:,1));
-plot(time,rec.yz(:,2));
+plot(time,rec.aux(:,1));
+plot(time,rec.aux(:,2));
 
 legend('e_{lat}','e_{lon}')
 ylabel('e [m]')
 
 hand_pos_err(2)=subplot(2,1,2); hold on; grid on; box on;
 
-plot(time,rec.aux(:,1));
+plot(time,rec.aux(:,3));
 plot(time,-rec.x(:,3));
 
-legend('h_terr','h')
+legend('h_{terr}','h')
 ylabel('Height [m]')
 
 xlabel('time [s]')
@@ -95,32 +96,30 @@ linkaxes(hand_pos_err,'x');
 obj_cost(:,1) = (yref(1)*ones(length(time),1)-rec.yz(:,1)).^2*Q_output(1);
 obj_cost(:,2) = (yref(2)*ones(length(time),1)-rec.yz(:,2)).^2*Q_output(2);
 obj_cost(:,3) = (yref(3)*ones(length(time),1)-rec.yz(:,3)).^2*Q_output(3);
-obj_cost(:,4) = (yref(4)*ones(length(time),1)-rec.yz(:,4)).^2*Q_output(4);
 
-obj_cost(:,5) = (zref(1)*ones(length(time),1)-rec.yz(:,5)).^2*R_controls(1);
-obj_cost(:,6) = (zref(2)*ones(length(time),1)-rec.yz(:,6)).^2*R_controls(2);
-obj_cost(:,7) = (zref(3)*ones(length(time),1)-rec.yz(:,7)).^2*R_controls(3);
-obj_cost(:,8) = (zref(4)*ones(length(time),1)-rec.yz(:,8)).^2*R_controls(4);
+obj_cost(:,4) = (zref(1)*ones(length(time),1)-rec.yz(:,4)).^2*R_controls(1);
+obj_cost(:,5) = (zref(2)*ones(length(time),1)-rec.yz(:,5)).^2*R_controls(2);
+obj_cost(:,6) = (zref(3)*ones(length(time),1)-rec.yz(:,6)).^2*R_controls(3);
+obj_cost(:,7) = (zref(4)*ones(length(time),1)-rec.yz(:,7)).^2*R_controls(4);
 
 figure('color','w','name','Objective Costs')
 
 hand_obj(1)=subplot(2,1,1); hold on; grid on; box on;
 
-plot(time,obj_cost(:,1)); % e_lat
-plot(time,obj_cost(:,2)); % e_lon
-plot(time,obj_cost(:,3)); % e_dir
-plot(time,obj_cost(:,4)); % terr
+plot(time,obj_cost(:,1)); % chi
+plot(time,obj_cost(:,2)); % gamma
+plot(time,obj_cost(:,3)); % terr
 
-legend('e_{lat}','e_{lon}','\chi','h_{terr}');
+legend('\chi','h_{terr}');
 ylabel('J(x)');
 ylim([0 max(obj_cost(:))]);
 
 hand_obj(2)=subplot(2,1,2); hold on; grid on; box on;
 
-plot(time,obj_cost(:,5)); % gamma_ref
-plot(time,obj_cost(:,6)); % mu_ref
-plot(time,obj_cost(:,7)); % gamma dot
-plot(time,obj_cost(:,8)); % mu dot
+plot(time,obj_cost(:,4)); % gamma_ref
+plot(time,obj_cost(:,5)); % mu_ref
+plot(time,obj_cost(:,6)); % gamma dot
+plot(time,obj_cost(:,7)); % mu dot
 
 legend('\gamma_{ref}','\mu_{ref}','\gamma{dot}','\mu{dot}');
 ylabel('J(x,u)');

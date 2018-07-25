@@ -24,7 +24,7 @@ wd = onlinedata(4);
 
 % model parameters
 tau_gamma = 1;
-tau_mu = 0.7;
+tau_mu = 0.5;
 
 % constants
 g = 9.81; % acceleration of gravity [m/s2]

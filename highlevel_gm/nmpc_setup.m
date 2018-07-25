@@ -6,7 +6,7 @@ clear all;
 close all;
 
 Ts = 0.1; % model discretization step [0.1 s]
-N = 100; % horizon
+N = 70; % horizon
 
 % STATES - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 DifferentialState n; % northing [m]
@@ -37,6 +37,10 @@ OnlineData b_d;
 OnlineData Gamma_p;
 OnlineData chi_p;
 
+% guidance
+OnlineData T_lat;
+OnlineData T_lon;
+
 % terrain
 OnlineData delta_h;
 OnlineData terr_local_origin_n;
@@ -47,7 +51,7 @@ OnlineData terrain_data(3721);
 
 % model parameters
 tau_gamma = 1;
-tau_phi = 0.7;
+tau_phi = 0.5;
 
 % constants
 g = 9.81; % acceleration of gravity [m/s2]
@@ -74,9 +78,9 @@ f.add(dot(phi) == dot_phi);
 % lengths
 n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
-n_Y = 4;                    % outputs
+n_Y = 3;                    % outputs
 n_Z = 4;                    % objectives
-n_OD = 12+3721;
+n_OD = 14+3721;
 
 acadoSet('problemname', 'nmpc');
 

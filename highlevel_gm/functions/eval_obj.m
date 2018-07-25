@@ -1,5 +1,17 @@
 function [out,aux] = eval_obj(in)
 
+M_PI_2 = 1.570796326794897;
+M_PI = 3.141592653589793;
+M_2_PI = 6.283185307179586;
+TWO_OVER_PI = 0.636619772367581;
+
+% longitudinal guidance constants
+VD_SINK = 1.5;
+VD_CLMB = -3.5;
+VD_EPS = 0.01;
+
+% PATH CALCULATIONS */ 
+ 
 % path tangent unit vector  
 tP_n_bar = cos(in(17)); 
 tP_e_bar = sin(in(17)); 
@@ -8,42 +20,122 @@ tP_e_bar = sin(in(17));
 tp_dot_br = tP_n_bar*(in(1)-in(13)) + tP_e_bar*(in(2)-in(14)); 
 tp_dot_br_n = tp_dot_br*tP_n_bar; 
 tp_dot_br_e = tp_dot_br*tP_e_bar; 
-p_n = in(13) + tp_dot_br_n; 
-p_e = in(14) + tp_dot_br_e; 
 p_lat = tp_dot_br_n*tP_n_bar + tp_dot_br_e*tP_e_bar; 
 p_d = in(15) - p_lat*tan(in(16)); 
  
-% directional error 
-v_c_gamma = in(9)*cos(in(4)); 
-v_n = v_c_gamma*cos(in(5)); 
-v_e = v_c_gamma*sin(in(5)); 
-tp_dot_vg = tP_n_bar*(v_n+in(10)) + tP_e_bar*(v_e+in(11)); 
+% DIRECTIONAL GUIDANCE */ 
  
-% terrain 
+% lateral-directional error 
+e_lat = ((in(1)-in(13))*tP_e_bar - (in(2)-in(14))*tP_n_bar); 
+ 
+% ground speed 
+v_c_gamma = in(9)*cos(in(4)); 
+vG_n = v_c_gamma*cos(in(5)) + in(10); 
+vG_e = v_c_gamma*sin(in(5)) + in(11); 
+vG_d = -in(9)*sin(in(4)) + in(12); 
+norm_vg_lat2 = vG_n*vG_n + vG_e*vG_e; 
+norm_vg_lat = sqrt(norm_vg_lat2); 
+ 
+% lateral-directional track-error boundary 
+if (norm_vg_lat > 1.0)
+    e_b_lat = norm_vg_lat*in(18);                                
+else
+    e_b_lat = 0.5*in(18)*(norm_vg_lat2 + 1.0); 
+end
+ 
+% lateral-directional setpoint 
+normalized_e_lat = e_lat/e_b_lat; 
+chi_sp = in(17) + atan(M_2_PI * normalized_e_lat); 
+ 
+% lateral-directional error 
+chi_err = chi_sp - atan2(vG_e,vG_n); 
+if (chi_err > M_PI)
+    chi_err = chi_err - M_2_PI; 
+end
+if (chi_err < -M_PI)
+    chi_err = chi_err + M_2_PI; 
+end
 
-% lookup 2.5d grid
-[idx_q, dh] = lookup_terrain_idx(in(1), in(2), in(19), in(20));
-% bi-linear interpolation
-h12 = (1-dh(1))*in(21+idx_q(1)) + dh(1)*in(21+idx_q(2));
-h34 = (1-dh(1))*in(21+idx_q(3)) + dh(1)*in(21+idx_q(4));
-h_terr = (1-dh(2))*h12 + dh(2)*h34;
-% soft constraint formulation
-one_minus_h_normalized = 1.0 + (in(3) + h_terr)/in(18);
-if (one_minus_h_normalized <= 0.0), one_minus_h_normalized = 0.0; end;
+% LONGITUDINAL GUIDANCE */ 
+
+% longitudinal track-error
+e_lon = p_d-in(3);
+    
+% normalized lateral-directional track-error 
+normalized_e_lat = abs(normalized_e_lat); 
+if (normalized_e_lat > 1.0)
+    normalized_e_lat = 1.0; 
+end
+ 
+% smooth track proximity factor 
+track_prox = cos(M_PI_2 * normalized_e_lat); 
+track_prox = track_prox * track_prox; 
+ 
+% path down velocity setpoint 
+vP_d = in(16) * sqrt(norm_vg_lat2 + vG_d*vG_d) * track_prox  - in(12); 
+ 
+% longitudinal velocity increment 
+if (in(3) < 0.0) 
+    delta_vd = VD_SINK + VD_EPS - vP_d;  
+else
+    delta_vd = VD_CLMB - VD_EPS - vP_d; 
+end 
+ 
+% longitudinal track-error boundary 
+e_b_lon = in(19) * delta_vd; 
+nomralized_e_lon = abs(e_lon/e_b_lon); 
+ 
+% longitudinal approach velocity 
+vsp_d_app = TWO_OVER_PI * atan(M_2_PI * nomralized_e_lon) * delta_vd + vP_d; 
+ 
+% down velocity setpoint (air-mass relative) 
+vsp_d = vP_d + vsp_d_app; 
+ 
+% flight path angle setpoint 
+vsp_d_over_v = vsp_d/in(9); 
+if (vsp_d_over_v > 1.0)
+    vsp_d_over_v = 1.0; 
+end
+if (vsp_d_over_v < -1.0)
+    vsp_d_over_v = -1.0; 
+end
+gamma_sp = -asin(vsp_d_over_v); 
+ 
+% TERRAIN */ 
+ 
+% lookup 2.5d grid  
+[idx_q, dh] = lookup_terrain_idx(in(1), in(2), in(21), in(22)); 
+ 
+% bi-linear interpolation 
+h12 = (1-dh(1))*in(23+idx_q(1)) + dh(1)*in(23+idx_q(2)); 
+h34 = (1-dh(1))*in(23+idx_q(3)) + dh(1)*in(23+idx_q(4)); 
+h_terr = (1-dh(2))*h12 + dh(2)*h34; 
+ 
+% soft constraint formulation 
+one_minus_h_normalized = 1.0 + (in(3) + h_terr)/in(20); 
+if (one_minus_h_normalized <= 0.0)
+    one_minus_h_normalized = 0.0; 
+end
+ 
+% constraint priority 
+if (one_minus_h_normalized > 1.0)
+    sig_h = 1.0;
+else
+    sig_h =  cos(M_PI*one_minus_h_normalized)*0.5+0.5;
+end
 
 % state output 
-out(1) = (in(2)-p_e)*cos(in(17)) - (in(1)-p_n)*sin(in(17)); 
-out(2) = p_d - in(3); 
-out(3) = tp_dot_vg*0.5+0.5; 
-out(4) = one_minus_h_normalized*one_minus_h_normalized; 
+out(1) = sig_h*chi_err; 
+out(2) = sig_h*(gamma_sp - in(4));
+out(3) = one_minus_h_normalized*one_minus_h_normalized; 
  
 % control output 
-out(5) = in(7); % gamma ref 
-out(6) = in(8); % mu ref 
-out(7) = (in(7) - in(4))/1; % gamma dot 
-out(8) = (in(8) - in(6))/0.7; % mu dot 
+out(4) = in(7) - sig_h*gamma_sp;    % gamma ref 
+out(5) = in(8);                     % phi ref 
+out(6) = (in(7) - in(4))/1;         % gamma dot 
+out(7) = (in(8) - in(6))/0.5;       % phi dot 
 
-aux = h_terr;
+aux = [e_lat, e_lon, h_terr, gamma_sp];
 
     function [idx_q, dh] = lookup_terrain_idx( pos_n, pos_e, pos_n_origin, pos_e_origin)
         
