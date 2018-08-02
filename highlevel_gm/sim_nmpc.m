@@ -67,8 +67,8 @@ zref = [0 0 0 0];
 Q_scale = [deg2rad(1) deg2rad(1) 1];
 R_scale = [deg2rad(1) deg2rad(1) deg2rad(5) deg2rad(5)];
 
-Q_output    = [10 10 10000]./Q_scale.^2;
-QN_output   = [10 10 10000]./Q_scale.^2;
+Q_output    = [5 5 100000]./Q_scale.^2;
+QN_output   = [5 5 100000]./Q_scale.^2;
 R_controls  = [1 1 1 1]./R_scale.^2;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
@@ -115,7 +115,7 @@ rec.x_hor = zeros(N+1,len_t,n_X);
 rec.u_hor = zeros(N,len_t,n_U);
 rec.u = zeros(len_t,n_U);
 rec.yz = zeros(len_t,n_Y+n_Z);
-rec.aux = zeros(len_t,4);
+rec.aux = zeros(len_t,7);
 
 % simulate
 for k = 1:len_t
@@ -178,6 +178,9 @@ for k = 1:len_t
     rec.x_hor(:,k,:) = output.x(:,:);
     rec.u_hor(:,k,:) = output.u(:,:);
     rec.u(k,:) = controls;
+    if time(k)>52
+        stoppp=1;
+    end
     [out,aux] = eval_obj([simout,controls,input.od(1,:)]);
     rec.yz(k,:) = out;
     rec.aux(k,:) = aux;

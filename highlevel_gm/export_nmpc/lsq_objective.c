@@ -89,15 +89,15 @@ void lsq_obj_eval( real_t *in, real_t *out )
     track_prox = track_prox * track_prox;
     
     // path down velocity setpoint
-    const double vP_d = in[15] * sqrt(norm_vg_lat2 + vG_d*vG_d) * track_prox  - in[11];
+    const double vP_d = -sin(in[15]) * sqrt(norm_vg_lat2 + vG_d*vG_d) * track_prox  - in[11];
     
     // longitudinal velocity increment
     double delta_vd;
     if (e_lon < 0.0) {
-        delta_vd = VD_SINK + VD_EPS - vP_d;
+        delta_vd = VD_CLMB - VD_EPS - vP_d; //SOMETHING WRONG WITH DELTA_VD
     }
     else {
-        delta_vd = VD_CLMB - VD_EPS - vP_d;
+        delta_vd = VD_SINK + VD_EPS - vP_d;
     }
     
     // longitudinal track-error boundary
@@ -105,7 +105,7 @@ void lsq_obj_eval( real_t *in, real_t *out )
     const double nomralized_e_lon = fabs(e_lon/e_b_lon);
     
     // longitudinal approach velocity
-    const double vsp_d_app = TWO_OVER_PI * atan(M_2_PI * nomralized_e_lon) * delta_vd + vP_d;
+    const double vsp_d_app = TWO_OVER_PI * atan(M_2_PI * nomralized_e_lon) * delta_vd;
     
     // down velocity setpoint (air-mass relative)
     const double vsp_d = vP_d + vsp_d_app;
@@ -214,7 +214,7 @@ void lsq_objN_eval( real_t *in, real_t *out )
     const double v_c_gamma = in[6]*cos(in[3]);
     const double vG_n = v_c_gamma*cos(in[4]) + in[7];
     const double vG_e = v_c_gamma*sin(in[4]) + in[8];
-    const double vG_d = -in[6]*sin(in[3]) + in[11];
+    const double vG_d = -in[6]*sin(in[3]) + in[9];
     const double norm_vg_lat2 = vG_n*vG_n + vG_e*vG_e;
     const double norm_vg_lat = sqrt(norm_vg_lat2);
     
@@ -249,15 +249,15 @@ void lsq_objN_eval( real_t *in, real_t *out )
     track_prox = track_prox * track_prox;
     
     // path down velocity setpoint
-    const double vP_d = in[13] * sqrt(norm_vg_lat2 + vG_d*vG_d) * track_prox  - in[9];
+    const double vP_d = -sin(in[13]) * sqrt(norm_vg_lat2 + vG_d*vG_d) * track_prox  - in[9];
     
     // longitudinal velocity increment
     double delta_vd;
     if (e_lon < 0.0) {
-        delta_vd = VD_SINK + VD_EPS - vP_d;
+        delta_vd = VD_CLMB - VD_EPS - vP_d; //SOMETHING WRONG WITH DELTA_VD
     }
     else {
-        delta_vd = VD_CLMB - VD_EPS - vP_d;
+        delta_vd = VD_SINK + VD_EPS - vP_d;
     }
     
     // longitudinal track-error boundary
@@ -265,13 +265,13 @@ void lsq_objN_eval( real_t *in, real_t *out )
     const double nomralized_e_lon = fabs(e_lon/e_b_lon);
     
     // longitudinal approach velocity
-    const double vsp_d_app = TWO_OVER_PI * atan(M_2_PI * nomralized_e_lon) * delta_vd + vP_d;
+    const double vsp_d_app = TWO_OVER_PI * atan(M_2_PI * nomralized_e_lon) * delta_vd;
     
     // down velocity setpoint (air-mass relative)
     const double vsp_d = vP_d + vsp_d_app;
     
     // flight path angle setpoint
-    double vsp_d_over_v = vsp_d/in[8];
+    double vsp_d_over_v = vsp_d/in[6];
     if (vsp_d_over_v > 1.0) vsp_d_over_v = 1.0;
     if (vsp_d_over_v < -1.0) vsp_d_over_v = -1.0;
     const double gamma_sp = -asin(vsp_d_over_v);
@@ -281,11 +281,11 @@ void lsq_objN_eval( real_t *in, real_t *out )
     // lookup 2.5d grid
     int idx_q[4];
     double dh[2];
-    lookup_terrain_idx(in[0], in[1], in[20], in[21], idx_q, dh);
+    lookup_terrain_idx(in[0], in[1], in[18], in[19], idx_q, dh);
     
     // bi-linear interpolation
-    const double h12 = (1-dh[0])*in[22+idx_q[0]] + dh[0]*in[22+idx_q[1]];
-    const double h34 = (1-dh[0])*in[22+idx_q[2]] + dh[0]*in[22+idx_q[3]];
+    const double h12 = (1-dh[0])*in[20+idx_q[0]] + dh[0]*in[20+idx_q[1]];
+    const double h34 = (1-dh[0])*in[20+idx_q[2]] + dh[0]*in[20+idx_q[3]];
     const double h_terr = (1-dh[1])*h12 + dh[1]*h34;
     
     // soft constraint formulation

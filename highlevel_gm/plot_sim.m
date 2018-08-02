@@ -43,7 +43,7 @@ figure('color','w','name','Attitude');
 
 % flight path angle
 hand_att(1) = subplot(3,1,1); hold on; grid on; box on;
-plot(time,rad2deg(rec.aux(:,4)),'color', cmap(5,:));
+plot(time,rad2deg(rec.aux(:,4).*aux(:,5)),'color', cmap(5,:));
 plot(time,rad2deg(rec.u(:,1)),'color',color_ref);
 plot(time,rad2deg(rec.x(:,4)));
 legend('ff','ref','state')

@@ -72,13 +72,13 @@ track_prox = cos(M_PI_2 * normalized_e_lat);
 track_prox = track_prox * track_prox; 
  
 % path down velocity setpoint 
-vP_d = in(16) * sqrt(norm_vg_lat2 + vG_d*vG_d) * track_prox  - in(12); 
+vP_d = -sin(in(16)) * sqrt(norm_vg_lat2 + vG_d*vG_d) * track_prox  - in(12); 
  
 % longitudinal velocity increment 
-if (in(3) < 0.0) 
-    delta_vd = VD_SINK + VD_EPS - vP_d;  
-else
+if (e_lon < 0.0) 
     delta_vd = VD_CLMB - VD_EPS - vP_d; 
+else
+    delta_vd = VD_SINK + VD_EPS - vP_d; 
 end 
  
 % longitudinal track-error boundary 
@@ -86,7 +86,7 @@ e_b_lon = in(19) * delta_vd;
 nomralized_e_lon = abs(e_lon/e_b_lon); 
  
 % longitudinal approach velocity 
-vsp_d_app = TWO_OVER_PI * atan(M_2_PI * nomralized_e_lon) * delta_vd + vP_d; 
+vsp_d_app = TWO_OVER_PI * atan(M_2_PI * nomralized_e_lon) * delta_vd; 
  
 % down velocity setpoint (air-mass relative) 
 vsp_d = vP_d + vsp_d_app; 
@@ -135,7 +135,7 @@ out(5) = in(8);                     % phi ref
 out(6) = (in(7) - in(4))/1;         % gamma dot 
 out(7) = (in(8) - in(6))/0.5;       % phi dot 
 
-aux = [e_lat, e_lon, h_terr, gamma_sp];
+aux = [e_lat, e_lon, h_terr, gamma_sp, sig_h, vsp_d_app, vP_d];
 
     function [idx_q, dh] = lookup_terrain_idx( pos_n, pos_e, pos_n_origin, pos_e_origin)
         
