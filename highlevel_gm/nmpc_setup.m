@@ -6,7 +6,7 @@ clear all;
 close all;
 
 Ts = 0.1; % model discretization step [0.1 s]
-N = 100; % horizon
+N = 70; % horizon
 
 % STATES - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 DifferentialState n; % northing [m]
@@ -14,11 +14,11 @@ DifferentialState e; % easting [m]
 DifferentialState d; % downing [m]
 DifferentialState gamma; % flight path angle [rad]
 DifferentialState xi; % heading angle [rad]
-DifferentialState mu; % bank angle [rad]
+DifferentialState phi; % bank angle [rad]
 
 % CONTROLS - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Control gamma_ref; % flight path angle reference
-Control mu_ref; % bank angle reference
+Control phi_ref; % bank angle reference
 
 % ONLINE DATA - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -26,33 +26,43 @@ Control mu_ref; % bank angle reference
 OnlineData v;
 
 % disturbances
-OnlineData wn;
-OnlineData we;
-OnlineData wd;
+OnlineData w_n;
+OnlineData w_e;
+OnlineData w_d;
 
 % path reference
-OnlineData bn;
-OnlineData be;
-OnlineData bd;
-OnlineData gamma_p;
+OnlineData b_n;
+OnlineData b_e;
+OnlineData b_d;
+OnlineData Gamma_p;
 OnlineData chi_p;
+
+% guidance
+OnlineData T_lat;
+OnlineData T_lon;
+
+% terrain
+OnlineData delta_h;
+OnlineData terr_local_origin_n;
+OnlineData terr_local_origin_e;
+OnlineData terrain_data(19881);
 
 % MODEL -------------------------------------------------------------------
 
 % model parameters
 tau_gamma = 1;
-tau_mu = 0.7;
+tau_phi = 0.5;
 
 % constants
 g = 9.81; % acceleration of gravity [m/s2]
 
 % state differentials
-dot_n = v*cos(gamma)*cos(xi) + wn;
-dot_e = v*cos(gamma)*sin(xi) + we;
-dot_d = -v*sin(gamma) + wd;
+dot_n = v*cos(gamma)*cos(xi) + w_n;
+dot_e = v*cos(gamma)*sin(xi) + w_e;
+dot_d = -v*sin(gamma) + w_d;
 dot_gamma = (gamma_ref - gamma)/tau_gamma;
-dot_xi = g*tan(mu)/v/cos(gamma);
-dot_mu = (mu_ref - mu)/tau_mu;
+dot_xi = g*tan(phi)/v/cos(gamma);
+dot_phi = (phi_ref - phi)/tau_phi;
 
 % ode
 f = acado.DifferentialEquation;
@@ -61,16 +71,16 @@ f.add(dot(e) == dot_e);
 f.add(dot(d) == dot_d);
 f.add(dot(gamma) == dot_gamma);
 f.add(dot(xi) == dot_xi);
-f.add(dot(mu) == dot_mu);
+f.add(dot(phi) == dot_phi);
 
 % OPTIMAL CONTROL PROBLEM -------------------------------------------------
 
 % lengths
 n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
-n_Y = 2;                    % outputs
+n_Y = 3;                    % outputs
 n_Z = 4;                    % objectives
-n_OD = 9;
+n_OD = 14+19881;
 
 acadoSet('problemname', 'nmpc');
 
@@ -89,15 +99,15 @@ ocp.minimizeLSQEndTerm( QN, 'evaluateLSQEndTerm' );
 % ocp.setDimensions( n_X, n_U, n_OD, 0 );
 
 % hard coded constraints
-ddot_clmb = 4;
-ddot_sink = 2;
-mu_lim = deg2rad(45);
+ddot_clmb = 3.5;
+ddot_sink = 1.5;
+phi_lim = deg2rad(35);
 
 ocp.subjectTo( f );
 ocp.subjectTo( -ddot_sink <= v * sin(gamma_ref) <= ddot_clmb );
-ocp.subjectTo( -mu_lim <= mu_ref <= mu_lim );
+ocp.subjectTo( -phi_lim <= phi_ref <= phi_lim );
 
-setNOD(ocp, 9);
+setNOD(ocp, n_OD);
 
 % export settings
 nmpc = acado.OCPexport( ocp );

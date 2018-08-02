@@ -43,7 +43,7 @@ out[1] = (((a[2]*a[3])*od[0])+od[2]);
 out[2] = ((((real_t)(0.0000000000000000e+00)-od[0])*a[4])+od[3]);
 out[3] = (((real_t)(0.0000000000000000e+00)-xd[3])+u[0]);
 out[4] = ((((real_t)(9.8100000000000005e+00)/a[5])*a[6])/od[0]);
-out[5] = ((((real_t)(0.0000000000000000e+00)-xd[5])+u[1])/(real_t)(6.9999999999999996e-01));
+out[5] = ((((real_t)(0.0000000000000000e+00)-xd[5])+u[1])/(real_t)(5.0000000000000000e-01));
 }
 
 
@@ -72,8 +72,8 @@ a[12] = (a[11]*a[11]);
 a[13] = (tan(xd[5]));
 a[14] = ((real_t)(1.0000000000000000e+00)/od[0]);
 a[15] = ((real_t)(1.0000000000000000e+00)/(pow((cos(xd[5])),2)));
-a[16] = ((real_t)(1.0000000000000000e+00)/(real_t)(6.9999999999999996e-01));
-a[17] = ((real_t)(1.0000000000000000e+00)/(real_t)(6.9999999999999996e-01));
+a[16] = ((real_t)(1.0000000000000000e+00)/(real_t)(5.0000000000000000e-01));
+a[17] = ((real_t)(1.0000000000000000e+00)/(real_t)(5.0000000000000000e-01));
 
 /* Compute outputs: */
 out[0] = (real_t)(0.0000000000000000e+00);
@@ -395,6 +395,7 @@ int error;
 int i;
 int j;
 int k;
+int lRun8;
 int run;
 int run1;
 int tmp_index1;
@@ -403,17 +404,9 @@ int tmp_index2;
 real_t det;
 
 acadoWorkspace.rk_ttt = 0.0000000000000000e+00;
-acadoWorkspace.rk_xxx[6] = rk_eta[54];
-acadoWorkspace.rk_xxx[7] = rk_eta[55];
-acadoWorkspace.rk_xxx[8] = rk_eta[56];
-acadoWorkspace.rk_xxx[9] = rk_eta[57];
-acadoWorkspace.rk_xxx[10] = rk_eta[58];
-acadoWorkspace.rk_xxx[11] = rk_eta[59];
-acadoWorkspace.rk_xxx[12] = rk_eta[60];
-acadoWorkspace.rk_xxx[13] = rk_eta[61];
-acadoWorkspace.rk_xxx[14] = rk_eta[62];
-acadoWorkspace.rk_xxx[15] = rk_eta[63];
-acadoWorkspace.rk_xxx[16] = rk_eta[64];
+for (lRun8 = 0; lRun8 < 19897; ++lRun8)
+acadoWorkspace.rk_xxx[lRun8 + 6] = rk_eta[lRun8 + 54];
+
 
 for (run = 0; run < 1; ++run)
 {
