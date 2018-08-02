@@ -64,7 +64,7 @@ extern "C"
 /** Number of control/estimation intervals. */
 #define ACADO_N 70
 /** Number of online data values. */
-#define ACADO_NOD 3735
+#define ACADO_NOD 19895
 /** Number of path constraints. */
 #define ACADO_NPAC 1
 /** Number of control variables. */
@@ -118,11 +118,11 @@ real_t x[ 426 ];
  */
 real_t u[ 140 ];
 
-/** Matrix of size: 71 x 3735 (row major format)
+/** Matrix of size: 71 x 19895 (row major format)
  * 
  *  Matrix containing 71 online data vectors.
  */
-real_t od[ 265185 ];
+real_t od[ 1412545 ];
 
 /** Column vector of size: 490
  * 
@@ -169,8 +169,8 @@ real_t rhs_aux[ 18 ];
 
 real_t rk_ttt;
 
-/** Row vector of size: 3743 */
-real_t rk_xxx[ 3743 ];
+/** Row vector of size: 19903 */
+real_t rk_xxx[ 19903 ];
 
 /** Matrix of size: 6 x 2 (row major format) */
 real_t rk_kkk[ 12 ];
@@ -196,8 +196,8 @@ real_t rk_diffK[ 12 ];
 /** Matrix of size: 6 x 8 (row major format) */
 real_t rk_diffsNew2[ 48 ];
 
-/** Row vector of size: 3791 */
-real_t state[ 3791 ];
+/** Row vector of size: 19951 */
+real_t state[ 19951 ];
 
 /** Column vector of size: 420 */
 real_t d[ 420 ];
@@ -214,8 +214,8 @@ real_t evGx[ 2520 ];
 /** Matrix of size: 420 x 2 (row major format) */
 real_t evGu[ 840 ];
 
-/** Row vector of size: 3743 */
-real_t objValueIn[ 3743 ];
+/** Row vector of size: 19903 */
+real_t objValueIn[ 19903 ];
 
 /** Row vector of size: 63 */
 real_t objValueOut[ 63 ];
@@ -244,8 +244,8 @@ real_t QN2[ 18 ];
 /** Column vector of size: 10 */
 real_t conAuxVar[ 10 ];
 
-/** Row vector of size: 3743 */
-real_t conValueIn[ 3743 ];
+/** Row vector of size: 19903 */
+real_t conValueIn[ 19903 ];
 
 /** Row vector of size: 9 */
 real_t conValueOut[ 9 ];
@@ -326,7 +326,7 @@ real_t y[ 210 ];
 
 /** Performs the integration and sensitivity propagation for one shooting interval.
  *
- *  \param rk_eta Working array of size 3743 to pass the input values and return the results.
+ *  \param rk_eta Working array of size 19903 to pass the input values and return the results.
  *  \param resetIntegrator The internal memory of the integrator can be reset.
  *
  *  \return Status code of the integrator.

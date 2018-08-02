@@ -139,11 +139,11 @@ aux = [e_lat, e_lon, h_terr, gamma_sp, sig_h, vsp_d_app, vP_d];
 
     function [idx_q, dh] = lookup_terrain_idx( pos_n, pos_e, pos_n_origin, pos_e_origin)
         
-        LEN_IDX_N = 61;
-        LEN_IDX_E = 61;
-        LEN_IDX_N_1 = 60;
-        LEN_IDX_E_1 = 60;
-        ONE_DIS = 0.1;
+        LEN_IDX_N = 141;
+        LEN_IDX_E = 141;
+        LEN_IDX_N_1 = 140;
+        LEN_IDX_E_1 = 140;
+        ONE_DIS = 1;
 
         % relative position / indices
         rel_n = pos_n - pos_n_origin;

@@ -8,11 +8,11 @@
 #define TWO_OVER_PI 0.636619772367581
 
 // lookup table constants
-#define LEN_IDX_N 61
-#define LEN_IDX_E 61
-#define LEN_IDX_N_1 60
-#define LEN_IDX_E_1 60
-#define ONE_DIS 0.1
+#define LEN_IDX_N 141
+#define LEN_IDX_E 141
+#define LEN_IDX_N_1 140
+#define LEN_IDX_E_1 140
+#define ONE_DIS 1.0
 
 // longitudinal guidance constants
 #define VD_SINK 1.5

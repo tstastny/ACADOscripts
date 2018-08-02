@@ -18,7 +18,7 @@ Ts_nmpc = 0.1; % interval between nmpc calls
 %% ONLINE DATA ------------------------------------------------------------
 
 % flight condition
-v = 14;
+v = 10;
 
 % disturbances
 w_n = 0;
@@ -37,8 +37,8 @@ T_b_lat = 5;
 T_b_lon = 5;
 
 % terrain data
-len_local_idx_n = 61;
-len_local_idx_e = 61;
+len_local_idx_n = 141;
+len_local_idx_e = 141;
 delta_h = 10;
 terrain_constructor;
 
@@ -67,8 +67,8 @@ zref = [0 0 0 0];
 Q_scale = [deg2rad(1) deg2rad(1) 1];
 R_scale = [deg2rad(1) deg2rad(1) deg2rad(5) deg2rad(5)];
 
-Q_output    = [5 5 100000]./Q_scale.^2;
-QN_output   = [5 5 100000]./Q_scale.^2;
+Q_output    = [5 70 100000]./Q_scale.^2;
+QN_output   = [5 70 100000]./Q_scale.^2;
 R_controls  = [1 1 1 1]./R_scale.^2;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
@@ -178,9 +178,6 @@ for k = 1:len_t
     rec.x_hor(:,k,:) = output.x(:,:);
     rec.u_hor(:,k,:) = output.u(:,:);
     rec.u(k,:) = controls;
-    if time(k)>52
-        stoppp=1;
-    end
     [out,aux] = eval_obj([simout,controls,input.od(1,:)]);
     rec.yz(k,:) = out;
     rec.aux(k,:) = aux;

@@ -4,7 +4,7 @@
 terr_origin_n = -5000;
 terr_origin_e = -5000;
 
-dis = 10; % discretization
+dis = 1; % discretization
 one_over_dis = 1/dis;
 dis_2 = dis/2;
 
@@ -22,6 +22,6 @@ hh_hill = 180*exp(-((ee - 100)/300).^2-((nn - 750)'/300).^2);
 terrain_data0 = max(hh_sine,hh_hill);
 
 % for plotting
-terrain_data_plot = terrain_data0(501-100:501+300,501-100:501+100);
-nn_plot = nn(501-100:501+300);
-ee_plot = ee(501-100:501+100);
+terrain_data_plot = terrain_data0(5001-1000:5001+3000,5001-1000:5001+1000);
+nn_plot = nn(5001-1000:5001+3000);
+ee_plot = ee(5001-1000:5001+1000);
