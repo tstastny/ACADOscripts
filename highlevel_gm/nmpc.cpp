@@ -20001,7 +20001,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: LEVENBERG_MARQUARDT");
     options_flag = ExportModule1.set( CG_HARDCODE_CONSTRAINT_VALUES, YES );
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: CG_HARDCODE_CONSTRAINT_VALUES");
-    options_flag = ExportModule1.set( CG_USE_VARIABLE_WEIGHTING_MATRIX, YES );
+    options_flag = ExportModule1.set( CG_USE_VARIABLE_WEIGHTING_MATRIX, NO );
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: CG_USE_VARIABLE_WEIGHTING_MATRIX");
     options_flag = ExportModule1.set( GENERATE_MAKE_FILE, NO );
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: GENERATE_MAKE_FILE");

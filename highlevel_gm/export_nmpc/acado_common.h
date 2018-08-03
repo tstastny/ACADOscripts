@@ -92,7 +92,7 @@ extern "C"
 /** Indicator for usage of non-hard-coded linear terms in the objective. */
 #define ACADO_USE_LINEAR_TERMS 0
 /** Indicator for type of fixed weighting matrices. */
-#define ACADO_WEIGHTING_MATRICES_TYPE 2
+#define ACADO_WEIGHTING_MATRICES_TYPE 1
 
 
 /*
@@ -136,8 +136,8 @@ real_t y[ 490 ];
  */
 real_t yN[ 3 ];
 
-/** Matrix of size: 490 x 7 (row major format) */
-real_t W[ 3430 ];
+/** Matrix of size: 7 x 7 (row major format) */
+real_t W[ 49 ];
 
 /** Matrix of size: 3 x 3 (row major format) */
 real_t WN[ 9 ];

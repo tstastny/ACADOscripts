@@ -11,6 +11,7 @@ n_U = 2;
 n_X = 6; % number of nmpc states
 n_Y = 3;
 n_Z = 4;
+n_OD = 19895;
 
 Ts_step = 0.1; % step size in nmpc
 Ts_nmpc = 0.1; % interval between nmpc calls
@@ -75,8 +76,10 @@ input.x     = repmat(nmpc_ic.x, N+1,1);
 input.u     = repmat(nmpc_ic.u, N,1);
 input.y     = repmat([yref, zref], N,1);
 input.yN    = yref;
-input.od    = repmat(onlinedatak, N+1, 1);
-input.W     = repmat(diag([Q_output, R_controls]), [N 1]);
+% input.od    = repmat(onlinedatak, N+1, 1);
+input.od    = [onlinedatak; zeros(N, n_OD)];
+% input.W     = repmat(diag([Q_output, R_controls]), [N 1]);
+input.W     = diag([Q_output, R_controls]);
 input.WN    = diag(QN_output);
 
 %% SIMULATION -------------------------------------------------------------
@@ -146,7 +149,8 @@ for k = 1:len_t
             b_n, b_e, b_d, Gamma_p, chi_p, ...
             T_b_lat, T_b_lon, ...
             delta_h, terr_local_origin_n, terr_local_origin_e, terrain_data];
-        input.od    = repmat(onlinedatak, N+1, 1);
+%         input.od = repmat(onlinedatak, N+1, 1);
+        input.od(1,:) = onlinedatak;
         tarray_k = toc(st_array_allo);
 
         % generate controls

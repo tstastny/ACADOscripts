@@ -145,12 +145,12 @@ linkaxes(hand_obj,'x');
 
 figure('color','w','name','Sim. timing'); hold on; grid on; box on;
 idx_ = find(nmpc_executed);
-area(time(idx_),tsim(idx_),'FaceColor',cmap(1,:));
-area(time(idx_),tsolve(idx_),'FaceColor',cmap(2,:));
-area(time(idx_),tarray(idx_),'FaceColor',cmap(3,:));
-area(time(idx_),trec(idx_),'FaceColor',cmap(4,:));
+area(time(idx_),tsim(idx_)*1000,'FaceColor',cmap(1,:));
+area(time(idx_),tsolve(idx_)*1000,'FaceColor',cmap(2,:));
+area(time(idx_),tarray(idx_)*1000,'FaceColor',cmap(3,:));
+area(time(idx_),trec(idx_)*1000,'FaceColor',cmap(4,:));
 
 legend('total sim.','solve','array allo.','rec.');
 xlabel('time [s]');
-ylabel('cpu time [s]');
+ylabel('cpu time [ms]');
 

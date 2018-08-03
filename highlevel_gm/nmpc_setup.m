@@ -120,7 +120,7 @@ nmpc.set( 'QP_SOLVER', 'QP_QPOASES' );
 nmpc.set( 'HOTSTART_QP', 'YES' );
 nmpc.set( 'LEVENBERG_MARQUARDT', 1e-10 );
 nmpc.set( 'CG_HARDCODE_CONSTRAINT_VALUES', 'YES' );
-nmpc.set( 'CG_USE_VARIABLE_WEIGHTING_MATRIX', 'YES' );
+nmpc.set( 'CG_USE_VARIABLE_WEIGHTING_MATRIX', 'NO' );
 nmpc.set( 'GENERATE_MAKE_FILE', 'NO' );
 nmpc.set( 'GENERATE_TEST_FILE', 'NO' );
 nmpc.set( 'GENERATE_SIMULINK_INTERFACE', 'NO' );
