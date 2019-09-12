@@ -94,7 +94,7 @@ void lsq_obj_eval( real_t *in, real_t *out )
     // longitudinal velocity increment
     double delta_vd;
     if (e_lon < 0.0) {
-        delta_vd = VD_CLMB - VD_EPS - vP_d; //SOMETHING WRONG WITH DELTA_VD
+        delta_vd = VD_CLMB - VD_EPS - vP_d;
     }
     else {
         delta_vd = VD_SINK + VD_EPS - vP_d;

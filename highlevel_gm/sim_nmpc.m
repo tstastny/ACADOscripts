@@ -30,8 +30,8 @@ w_d = 0;
 b_n = 0;
 b_e = 0;
 b_d = -15;
-Gamma_p = deg2rad(0);
-chi_p = 0;
+Gamma_p = deg2rad(5);
+chi_p = deg2rad(15);
 
 % guidance
 T_b_lat = 5;

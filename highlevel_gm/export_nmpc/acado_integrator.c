@@ -405,7 +405,7 @@ real_t det;
 
 acadoWorkspace.rk_ttt = 0.0000000000000000e+00;
 for (lRun8 = 0; lRun8 < 19897; ++lRun8)
-acadoWorkspace.rk_xxx[lRun8 + 6] = rk_eta[lRun8 + 54];
+acadoWorkspace.rk_xxx[lRun8 + 6] = rk_eta[lRun8 + 54]; //XXX: kill the terrain data copying here - isnt used in diffs anyway
 
 
 for (run = 0; run < 1; ++run)
