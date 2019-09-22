@@ -3,8 +3,8 @@
 close all; clear all; clc;
 
 % add function paths
-if isempty(strfind(path, ['/home/thomas/Documents/ACADOscripts/highlevel_gm/functions', pathsep]))
-    addpath('/home/thomas/Documents/ACADOscripts/highlevel_gm/functions');
+if isempty(strfind(path, ['/home/thomas/Documents/ACADOscripts/local_planner/functions', pathsep]))
+    addpath('/home/thomas/Documents/ACADOscripts/local_planner/functions');
 end
 
 % load model parameters / config
