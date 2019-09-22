@@ -3,8 +3,8 @@
 % help speed up the c -> m process for the eval_obj.m function
 % >> call this from the root folder
 
-n_in = 22;
-n_out = 6;
+n_in = 31; % set this to IDX_TERR_DATA
+n_out = 11;
 
 fid = fopen('misc/c_snippet.m');
 txt = textscan(fid,'%s','delimiter','\n'); 
@@ -22,6 +22,13 @@ for i = 1:length(txt)
         txt{i} = str1;
     end
     
+    % more comments        
+    idx = strfind(txt{i},'/*');
+    if ~isempty(idx)
+        str1 = [txt{i}(1:idx-1),'%%',txt{i}(idx+2:end)];
+        txt{i} = str1;
+    end
+    
     % const double        
     idx = strfind(txt{i},'const double ');
     if ~isempty(idx)
@@ -29,13 +36,20 @@ for i = 1:length(txt)
         txt{i} = str1;
     end
     
-    % const double        
+    % double        
     idx = strfind(txt{i},'double ');
     if ~isempty(idx)
         str1 = [txt{i}(1:idx-1),txt{i}(idx+7:end)];
         txt{i} = str1;
     end
-            
+       
+    % int        
+    idx = strfind(txt{i},'int ');
+    if ~isempty(idx)
+        str1 = [txt{i}(1:idx-1),txt{i}(idx+4:end)];
+        txt{i} = str1;
+    end
+    
     % in's
     for i_in = n_in-1:-1:0
         in_str = ['in[',int2str(i_in),']'];

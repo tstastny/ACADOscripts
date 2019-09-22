@@ -1,109 +1,122 @@
-/* PATH CALCULATIONS */ 
+% DEFINE INPUTS -- this is just simply easier to read.. */ 
+ 
+% states */ 
+r_n = in(1); 
+r_e = in(2); 
+r_d = in(3); 
+v = in(4); 
+gamma = in(5); 
+xi = in(6); 
+phi = in(7); 
+theta = in(8); 
+%n_p = in(9); 
+ 
+% controls */ 
+u_T = in(10); 
+phi_ref = in(11); 
+theta_ref = in(12); 
+ 
+% online data */ 
+ 
+% disturbances 
+w_n = in(13); 
+w_e = in(14); 
+w_d = in(15); 
+ 
+% path reference 
+b_n = in(16); 
+b_e = in(17); 
+b_d = in(18); 
+Gamma_p = in(19); 
+chi_p = in(20); 
+ 
+%control augmented attitude time constants and gains 
+%tau_phi = in(21); 
+%tau_theta = in(22); 
+%k_phi = in(23); 
+%k_theta = in(24); 
+ 
+% soft angle of attack constraints 
+k_aoa = in(25); 
+aoa_m = in(26); 
+aoa_p = in(27); 
+ 
+% terrain 
+k_h = in(28); 
+delta_h = in(29); 
+terr_local_origin_n = in(30); 
+terr_local_origin_e = in(31); 
+%terrain_data = in[31]; 
+IDX_TERR_DATA = 31; 
+ 
+% INTERMEDIATE CALCULATIONS */ 
+ 
+% ground speed 
+v_cos_gamma = v*cos(gamma); 
+vG_n = v_cos_gamma*cos(xi) + w_n; 
+vG_e = v_cos_gamma*sin(xi) + w_e; 
+vG_d = -v*sin(gamma) + w_d; 
+ 
+% PATH FOLLOWING */ 
  
 % path tangent unit vector  
-tP_n_bar = cos(in(17)); 
-tP_e_bar = sin(in(17)); 
+tP_n_bar = cos(chi_p); 
+tP_e_bar = sin(chi_p); 
  
-% "closest" point on track 
-tp_dot_br = tP_n_bar*(in(1)-in(13)) + tP_e_bar*(in(2)-in(14)); 
+% "closest" poon track 
+tp_dot_br = tP_n_bar*(r_n-b_n) + tP_e_bar*(r_e-b_e); 
 tp_dot_br_n = tp_dot_br*tP_n_bar; 
 tp_dot_br_e = tp_dot_br*tP_e_bar; 
 p_lat = tp_dot_br_n*tP_n_bar + tp_dot_br_e*tP_e_bar; 
-p_d = in(15) - p_lat*tan(in(16)); 
+p_d = b_d - p_lat*tan(Gamma_p); 
  
-/* DIRECTIONAL GUIDANCE */ 
+% position error 
+e_lat = ((r_n-b_n)*tP_e_bar - (r_e-b_e)*tP_n_bar); 
+e_lon = p_d - r_d; 
  
-% lateral-directional error 
-e_lat = ((in(1)-in(13))*tP_e_bar - (in(2)-in(14))*tP_n_bar); 
+% velocity error 
+v_cos_gamma = v*cos(Gamma_p); 
+vP_n = v_cos_gamma*cos(chi_p); 
+vP_e = v_cos_gamma*sin(chi_p); 
+vP_d = -v*sin(Gamma_p); 
+e_v_n = vP_n - vG_n; 
+e_v_e = vP_e - vG_e; 
+e_v_d = vP_d - vG_d; 
  
-% ground speed 
-v_c_gamma = in(9)*cos(in(4)); 
-vG_n = v_c_gamma*cos(in(5)) + in(10); 
-vG_e = v_c_gamma*sin(in(5)) + in(11); 
-vG_d = -in(9)*sin(in(4)) + in(12); 
-norm_vg_lat2 = vG_n*vG_n + vG_e*vG_e; 
-norm_vg_lat = sqrt(norm_vg_lat2); 
+% SOFT CONSTRAINTS */ 
  
-% lateral-directional track-error boundary 
-e_b_lat; 
-if (norm_vg_lat > 1.0) { 
-e_b_lat = norm_vg_lat*in(18);                                
-} else { 
-e_b_lat = 0.5*in(18)*(norm_vg_lat2 + 1.0); 
-} 
+% angle of attack 
+aoa_mid = (aoa_p - aoa_m) / 2.0; 
+aoa = theta - gamma; 
+if (aoa > aoa_mid) aoa = 2.0*aoa_mid - aoa; 
+sig_aoa = 1.0/(1.0 + exp(k_aoa*(aoa - aoa_m))); 
  
-% lateral-directional setpoint 
-normalized_e_lat = e_lat/e_b_lat; 
-chi_sp = in(17) + atan(M_2_PI * normalized_e_lat); 
- 
-% lateral-directional error 
-chi_err = chi_sp - atan2(vG_e,vG_n); 
-if (chi_err > M_PI) chi_err = chi_err - M_2_PI; 
-if (chi_err < -M_PI) chi_err = chi_err + M_2_PI; 
- 
-/* LONGITUDINAL GUIDANCE */ 
- 
-% normalized track-error 
-normalized_e_lat = fabs(normalized_e_lat); 
-if (normalized_e_lat > 1.0) normalized_e_lat = 1.0; 
- 
-% smooth track proximity factor 
-track_prox = cos(M_PI_2 * normalized_e_lat); 
-track_prox = track_prox * track_prox; 
- 
-% path down velocity setpoint 
-vP_d = in(16) * sqrt(norm_vg_lat2 + vg_d*vg_d) * track_prox  - in(12); 
- 
-% longitudinal velocity increment 
-delta_vd; 
-if (in(3) < 0.0) { 
-delta_vd = VD_SINK + VD_EPS - vP_d; 
-} 
-else { 
-delta_vd = VD_CLMB - VD_EPS - vP_d; 
-} 
- 
-% longitudinal track-error boundary 
-e_b_lon = in(19) * delta_vd; 
-nomralized_e_lon = fabs(in(3)/e_b_lon); 
- 
-% longitudinal approach velocity 
-vsp_d_app = TWO_OVER_PI * atan(M_2_PI * nomralized_e_lon) * delta_vd + vP_d; 
- 
-% down velocity setpoint (air-mass relative) 
-vsp_d = vP_d + vsp_d_app; 
- 
-% flight path angle setpoint 
-vsp_d_over_v = vsp_d/in(9); 
-if (vsp_d_over_v > 1.0) vsp_d_over_v = 1.0; 
-if (vsp_d_over_v < -1.0) vsp_d_over_v = -1.0; 
-gamma_sp = asin(vsp_d_over_v); 
- 
-/* TERRAIN */ 
+% TERRAIN */ 
  
 % lookup 2.5d grid 
-int idx_q[4]; 
+idx_q[4]; 
 dh[2]; 
-lookup_terrain_idx(in(1), in(2), in(21), in(22), idx_q, dh); 
+lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e, idx_q, dh); 
  
 % bi-linear interpolation 
-h12 = (1-dh[0])*in[22+idx_q[0]] + dh[0]*in[22+idx_q[1]]; 
-h34 = (1-dh[0])*in[22+idx_q[2]] + dh[0]*in[22+idx_q[3]]; 
+h12 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[0]] + dh[0]*in[IDX_TERR_DATA+idx_q[1]]; 
+h34 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[2]] + dh[0]*in[IDX_TERR_DATA+idx_q[3]]; 
 h_terr = (1-dh[1])*h12 + dh[1]*h34; 
  
-% soft constraint formulation 
-one_minus_h_normalized = 1.0 + (in(3) + h_terr)/in(20); 
-if (one_minus_h_normalized <= 0.0) one_minus_h_normalized = 0.0; 
- 
-% constraint priority 
-sig_h = (one_minus_h_normalized > 1.0) ? 1.0 : cos(M_PI*one_minus_h_normalized)*0.5+0.5; 
+% soft constraint 
+sig_h = 1.0 / (1 + exp(k_h*((-r_d - h_terr) - delta_h))); 
  
 % state output 
-out(1) = sig_h*chi_err; 
-out(2) = one_minus_h_normalized*one_minus_h_normalized; 
+out(1) = e_lat; 
+out(2) = e_lon; 
+out(3) = e_v_n; 
+out(4) = e_v_e; 
+out(5) = e_v_d; 
+out(6) = v; 
+out(7) = sig_aoa; 
+out(8) = sig_h; 
  
 % control output 
-out(3) = sig_h*gamma_sp - in(7);    % gamma ref 
-out(4) = in(8);                     % phi ref 
-out(5) = (in(7) - in(4))/1;         % gamma dot 
-out(6) = (in(8) - in(6))/0.5;       % phi dot 
+out(9) = u_T; 
+out(10) = phi_ref; 
+out(11) = theta_ref; 

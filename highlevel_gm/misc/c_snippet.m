@@ -1,109 +1,122 @@
-/* PATH CALCULATIONS */
+/* DEFINE INPUTS -- this is just simply easier to read.. */
     
-    // path tangent unit vector 
-    const double tP_n_bar = cos(in[16]);
-    const double tP_e_bar = sin(in[16]);
-    
-    // "closest" point on track
-    const double tp_dot_br = tP_n_bar*(in[0]-in[12]) + tP_e_bar*(in[1]-in[13]);
-    const double tp_dot_br_n = tp_dot_br*tP_n_bar;
-    const double tp_dot_br_e = tp_dot_br*tP_e_bar;
-    const double p_lat = tp_dot_br_n*tP_n_bar + tp_dot_br_e*tP_e_bar;
-    const double p_d = in[14] - p_lat*tan(in[15]);
-    
-    /* DIRECTIONAL GUIDANCE */
-    
-    // lateral-directional error
-    const double e_lat = ((in[0]-in[12])*tP_e_bar - (in[1]-in[13])*tP_n_bar);
-    
-    // ground speed
-    const double v_c_gamma = in[8]*cos(in[3]);
-    const double vG_n = v_c_gamma*cos(in[4]) + in[9];
-    const double vG_e = v_c_gamma*sin(in[4]) + in[10];
-    const double vG_d = -in[8]*sin(in[3]) + in[11];
-    const double norm_vg_lat2 = vG_n*vG_n + vG_e*vG_e;
-    const double norm_vg_lat = sqrt(norm_vg_lat2);
-    
-    // lateral-directional track-error boundary
-    double e_b_lat;
-    if (norm_vg_lat > 1.0) {
-        e_b_lat = norm_vg_lat*in[17];                               
-    } else {
-        e_b_lat = 0.5*in[17]*(norm_vg_lat2 + 1.0);
-    }
-    
-    // lateral-directional setpoint
-    double normalized_e_lat = e_lat/e_b_lat;
-    const double chi_sp = in[16] + atan(M_2_PI * normalized_e_lat);
-    
-    // lateral-directional error
-    double chi_err = chi_sp - atan2(vG_e,vG_n);
-    if (chi_err > M_PI) chi_err = chi_err - M_2_PI;
-    if (chi_err < -M_PI) chi_err = chi_err + M_2_PI;
-    
-    /* LONGITUDINAL GUIDANCE */
+/* states */
+const double r_n = in[0];
+const double r_e = in[1];
+const double r_d = in[2];
+const double v = in[3];
+const double gamma = in[4];
+const double xi = in[5];
+const double phi = in[6];
+const double theta = in[7];
+//const double n_p = in[8];
 
-    // normalized track-error
-    normalized_e_lat = fabs(normalized_e_lat);
-    if (normalized_e_lat > 1.0) normalized_e_lat = 1.0;
-    
-    // smooth track proximity factor
-    double track_prox = cos(M_PI_2 * normalized_e_lat);
-    track_prox = track_prox * track_prox;
-    
-    // path down velocity setpoint
-    vP_d = in[15] * sqrt(norm_vg_lat2 + vg_d*vg_d) * track_prox  - in[11];
-    
-    // longitudinal velocity increment
-    double delta_vd;
-    if (in[2] < 0.0) {
-        delta_vd = VD_SINK + VD_EPS - vP_d;
-    }
-    else {
-        delta_vd = VD_CLMB - VD_EPS - vP_d;
-    }
-    
-    // longitudinal track-error boundary
-    const double e_b_lon = in[18] * delta_vd;
-    const double nomralized_e_lon = fabs(in[2]/e_b_lon);
-    
-    // longitudinal approach velocity
-    const double vsp_d_app = TWO_OVER_PI * atan(M_2_PI * nomralized_e_lon) * delta_vd + vP_d;
-    
-    // down velocity setpoint (air-mass relative)
-    const double vsp_d = vP_d + vsp_d_app;
-    
-    // flight path angle setpoint
-    double vsp_d_over_v = vsp_d/in[8];
-    if (vsp_d_over_v > 1.0) vsp_d_over_v = 1.0;
-    if (vsp_d_over_v < -1.0) vsp_d_over_v = -1.0;
-    const double gamma_sp = asin(vsp_d_over_v);
-       
-    /* TERRAIN */
-    
-    // lookup 2.5d grid
-    int idx_q[4];
-    double dh[2];
-    lookup_terrain_idx(in[0], in[1], in[20], in[21], idx_q, dh);
-    
-    // bi-linear interpolation
-    const double h12 = (1-dh[0])*in[22+idx_q[0]] + dh[0]*in[22+idx_q[1]];
-    const double h34 = (1-dh[0])*in[22+idx_q[2]] + dh[0]*in[22+idx_q[3]];
-    const double h_terr = (1-dh[1])*h12 + dh[1]*h34;
-    
-    // soft constraint formulation
-    double one_minus_h_normalized = 1.0 + (in[2] + h_terr)/in[19];
-    if (one_minus_h_normalized <= 0.0) one_minus_h_normalized = 0.0;
-    
-    // constraint priority
-    const double sig_h = (one_minus_h_normalized > 1.0) ? 1.0 : cos(M_PI*one_minus_h_normalized)*0.5+0.5;
-    
-    // state output
-    out[0] = sig_h*chi_err;
-    out[1] = one_minus_h_normalized*one_minus_h_normalized;
+/* controls */
+const double u_T = in[9];
+const double phi_ref = in[10];
+const double theta_ref = in[11];
+
+/* online data */
+
+// disturbances
+const double w_n = in[12];
+const double w_e = in[13];
+const double w_d = in[14];
+
+// path reference
+const double b_n = in[15];
+const double b_e = in[16];
+const double b_d = in[17];
+const double Gamma_p = in[18];
+const double chi_p = in[19];
+
+//control augmented attitude time constants and gains
+//const double tau_phi = in[20];
+//const double tau_theta = in[21];
+//const double k_phi = in[22];
+//const double k_theta = in[23];
+
+// soft angle of attack constraints
+const double k_aoa = in[24];
+const double aoa_m = in[25];
+const double aoa_p = in[26];
+
+// terrain
+const double k_h = in[27];
+const double delta_h = in[28];
+const double terr_local_origin_n = in[29];
+const double terr_local_origin_e = in[30];
+//const double terrain_data = in[31];
+int IDX_TERR_DATA = 31;
+
+/* INTERMEDIATE CALCULATIONS */
+
+// ground speed
+double v_cos_gamma = v*cos(gamma);
+const double vG_n = v_cos_gamma*cos(xi) + w_n;
+const double vG_e = v_cos_gamma*sin(xi) + w_e;
+const double vG_d = -v*sin(gamma) + w_d;
+
+/* PATH FOLLOWING */
+
+// path tangent unit vector 
+const double tP_n_bar = cos(chi_p);
+const double tP_e_bar = sin(chi_p);
+
+// "closest" point on track
+const double tp_dot_br = tP_n_bar*(r_n-b_n) + tP_e_bar*(r_e-b_e);
+const double tp_dot_br_n = tp_dot_br*tP_n_bar;
+const double tp_dot_br_e = tp_dot_br*tP_e_bar;
+const double p_lat = tp_dot_br_n*tP_n_bar + tp_dot_br_e*tP_e_bar;
+const double p_d = b_d - p_lat*tan(Gamma_p);
+
+// position error
+const double e_lat = ((r_n-b_n)*tP_e_bar - (r_e-b_e)*tP_n_bar);
+const double e_lon = p_d - r_d;
+
+// velocity error
+v_cos_gamma = v*cos(Gamma_p);
+const double vP_n = v_cos_gamma*cos(chi_p);
+const double vP_e = v_cos_gamma*sin(chi_p);
+const double vP_d = -v*sin(Gamma_p);
+const double e_v_n = vP_n - vG_n;
+const double e_v_e = vP_e - vG_e;
+const double e_v_d = vP_d - vG_d;
+
+/* SOFT CONSTRAINTS */
+
+// angle of attack
+const double aoa_mid = (aoa_p - aoa_m) / 2.0;
+double aoa = theta - gamma;
+if (aoa > aoa_mid) aoa = 2.0*aoa_mid - aoa;
+const double sig_aoa = 1.0/(1.0 + exp(k_aoa*(aoa - aoa_m)));
+
+/* TERRAIN */
+
+// lookup 2.5d grid
+int idx_q[4];
+double dh[2];
+lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e, idx_q, dh);
+
+// bi-linear interpolation
+const double h12 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[0]] + dh[0]*in[IDX_TERR_DATA+idx_q[1]];
+const double h34 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[2]] + dh[0]*in[IDX_TERR_DATA+idx_q[3]];
+const double h_terr = (1-dh[1])*h12 + dh[1]*h34;
+
+// soft constraint
+const double sig_h = 1.0 / (1 + exp(k_h*((-r_d - h_terr) - delta_h)));
+
+// state output
+out[0] = e_lat;
+out[1] = e_lon;
+out[2] = e_v_n;
+out[3] = e_v_e;
+out[4] = e_v_d;
+out[5] = v;
+    out[6] = sig_aoa;
+    out[7] = sig_h;
     
     // control output
-    out[2] = sig_h*gamma_sp - in[6];    // gamma ref
-    out[3] = in[7];                     // phi ref
-    out[4] = (in[6] - in[3])/1;         // gamma dot
-    out[5] = (in[7] - in[5])/0.5;       // phi dot
+    out[8] = u_T;
+    out[9] = phi_ref;
+    out[10] = theta_ref;

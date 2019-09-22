@@ -2,149 +2,184 @@
 #include <math.h>
 #include <string.h>
 
-// #define M_PI_2 1.570796326794897
-// #define M_PI 3.141592653589793
-// #define M_2_PI 6.283185307179586
-#define TWO_OVER_PI 0.636619772367581
-
 // lookup table constants
-#define LEN_IDX_N 141
-#define LEN_IDX_E 141
-#define LEN_IDX_N_1 140
-#define LEN_IDX_E_1 140
-#define ONE_DIS 1.0
+// #define LEN_IDX_N 141
+// #define LEN_IDX_E 141
+// #define LEN_IDX_N_1 140
+// #define LEN_IDX_E_1 140
+// #define ONE_DIS 1.0
+#define LEN_IDX_N 29
+#define LEN_IDX_E 29
+#define LEN_IDX_N_1 28
+#define LEN_IDX_E_1 28
+#define ONE_DIS 0.2
 
-// longitudinal guidance constants
-#define VD_SINK 1.5
-#define VD_CLMB -3.5
-#define VD_EPS 0.01
-
-// // bearing feasibility constants
-// #define LAMBDA_CO 0.02                          // linear finite cut-off angle [rad] (= approx. 1 deg)
-// #define ONE_OVER_S_LAMBDA_CO 50.003333488895450 // 1/sin(lambda_co)
-// #define M_CO 2499.833309998360                  // linear finite cut-off slope = cos(lambda_co)/sin(lambda_co)^2
-    
 void lookup_terrain_idx( const double pos_n, const double pos_e, const double pos_n_origin,
         const double pos_e_origin, int *idx_q, double *dh);
 
-// double bearing_feas(double lambda, const double wind_ratio, const double wind_ratio_buf);
-
 void lsq_obj_eval( real_t *in, real_t *out )
 {
+    /* DEFINE INPUTS -- this is just simply easier to read.. */
     
-    /* PATH CALCULATIONS */
+    /* states */
+    const double r_n = in[0];
+    const double r_e = in[1];
+    const double r_d = in[2];
+    const double v = in[3];
+    const double gamma = in[4];
+    const double xi = in[5];
+    const double phi = in[6];
+    const double theta = in[7];
+    const double n_p = in[8];
+    
+    /* controls */
+    const double u_T = in[9];
+    const double phi_ref = in[10];
+    const double theta_ref = in[11];
+    
+    /* online data */
+    
+    // disturbances
+    const double w_n = in[12];
+    const double w_e = in[13];
+    const double w_d = in[14];
+    
+    // path reference
+    const double b_n = in[15];
+    const double b_e = in[16];
+    const double b_d = in[17];
+    const double Gamma_p = in[18];
+    const double chi_p = in[19];
+    
+    // guidance
+    const double T_b_lat = in[20];
+    const double T_b_lon = in[21];
+    
+    //control augmented attitude time constants and gains
+    //const double tau_phi = in[22];
+    //const double tau_theta = in[23];
+    //const double k_phi = in[24];
+    //const double k_theta = in[25];
+    
+    // soft angle of attack constraints
+    const double delta_aoa = in[26];
+    const double aoa_m = in[27];
+    const double aoa_p = in[28];
+
+    // terrain
+    const double delta_h = in[29];
+    const double terr_local_origin_n = in[30];
+    const double terr_local_origin_e = in[31];
+    //const double terrain_data = in[32];
+    int IDX_TERR_DATA = 32;
+    
+    /* INTERMEDIATE CALCULATIONS */
+    
+    // ground speed
+    double v_cos_gamma = v*cos(gamma);
+    const double vG_n = v_cos_gamma*cos(xi) + w_n;
+    const double vG_e = v_cos_gamma*sin(xi) + w_e;
+    const double vG_d = -v*sin(gamma) + w_d;
+    const double vG_norm = sqrt(vG_n*vG_n + vG_e*vG_e + vG_d*vG_d);
+    
+    /* PATH FOLLOWING */
     
     // path tangent unit vector 
-    const double tP_n_bar = cos(in[16]);
-    const double tP_e_bar = sin(in[16]);
+    const double tP_n_bar = cos(chi_p);
+    const double tP_e_bar = sin(chi_p);
     
     // "closest" point on track
-    const double tp_dot_br = tP_n_bar*(in[0]-in[12]) + tP_e_bar*(in[1]-in[13]);
+    const double tp_dot_br = tP_n_bar*(r_n-b_n) + tP_e_bar*(r_e-b_e);
     const double tp_dot_br_n = tp_dot_br*tP_n_bar;
     const double tp_dot_br_e = tp_dot_br*tP_e_bar;
     const double p_lat = tp_dot_br_n*tP_n_bar + tp_dot_br_e*tP_e_bar;
-    const double p_d = in[14] - p_lat*tan(in[15]);
+    const double p_d = b_d - p_lat*tan(Gamma_p);
+        
+    // position error
+    const double e_lat = (r_n-b_n)*tP_e_bar - (r_e-b_e)*tP_n_bar;
+    const double e_lon = p_d - r_d;
     
-    /* DIRECTIONAL GUIDANCE */
+    // lateral-directional error boundary
+    const double e_b_lat = T_b_lat * sqrt(vG_n*vG_n + vG_e*vG_e);
     
-    // lateral-directional error
-    const double e_lat = ((in[0]-in[12])*tP_e_bar - (in[1]-in[13])*tP_n_bar);
+    // course approach angle
+    const double chi_app = atan(M_PI_2*e_lat/e_b_lat);
     
-    // ground speed
-    const double v_c_gamma = in[8]*cos(in[3]);
-    const double vG_n = v_c_gamma*cos(in[4]) + in[9];
-    const double vG_e = v_c_gamma*sin(in[4]) + in[10];
-    const double vG_d = -in[8]*sin(in[3]) + in[11];
-    const double norm_vg_lat2 = vG_n*vG_n + vG_e*vG_e;
-    const double norm_vg_lat = sqrt(norm_vg_lat2);
-    
-    // lateral-directional track-error boundary
-    double e_b_lat;
-    if (norm_vg_lat > 1.0) {
-        e_b_lat = norm_vg_lat*in[17];                               
-    } else {
-        e_b_lat = 0.5*in[17]*(norm_vg_lat2 + 1.0);
-    }
-    
-    // lateral-directional setpoint
-    double normalized_e_lat = e_lat/e_b_lat;
-    const double chi_sp = in[16] + atan(M_2_PI * normalized_e_lat);
-    
-    // lateral-directional error
-    double chi_err = chi_sp - atan2(vG_e,vG_n);
-    if (chi_err > M_PI) chi_err = chi_err - M_2_PI;
-    if (chi_err < -M_PI) chi_err = chi_err + M_2_PI;
-    
-    /* LONGITUDINAL GUIDANCE */
-
-    // longitudinal track-error
-    const double e_lon = p_d-in[2];
-    
-    // normalized lateral-directional track-error
-    normalized_e_lat = fabs(normalized_e_lat);
-    if (normalized_e_lat > 1.0) normalized_e_lat = 1.0;
-    
-    // smooth track proximity factor
-    double track_prox = cos(M_PI_2 * normalized_e_lat);
-    track_prox = track_prox * track_prox;
-    
-    // path down velocity setpoint
-    const double vP_d = -sin(in[15]) * sqrt(norm_vg_lat2 + vG_d*vG_d) * track_prox  - in[11];
-    
-    // longitudinal velocity increment
-    double delta_vd;
-    if (e_lon < 0.0) {
-        delta_vd = VD_CLMB - VD_EPS - vP_d;
+    // longitudinal error boundary
+    double e_b_lon;
+    if (fabs(vG_d) < 1.0) {
+        e_b_lon = T_b_lon * 0.5 * (1.0 + vG_d*vG_d); // vG_d may be zero
     }
     else {
-        delta_vd = VD_SINK + VD_EPS - vP_d;
+        e_b_lon = T_b_lon * fabs(vG_d);
     }
     
-    // longitudinal track-error boundary
-    const double e_b_lon = in[18] * delta_vd;
-    const double nomralized_e_lon = fabs(e_lon/e_b_lon);
+    // flight path approach angle
+    const double Gamma_app = -0.3/M_PI_2 * atan(M_PI_2*e_lon/e_b_lon); // XXX: MAGIC NUMBER
     
-    // longitudinal approach velocity
-    const double vsp_d_app = TWO_OVER_PI * atan(M_2_PI * nomralized_e_lon) * delta_vd;
+    // ground velocity setpoint
+    v_cos_gamma = vG_norm*cos(Gamma_p + Gamma_app);
+    const double vP_n = v_cos_gamma*cos(chi_p + chi_app);
+    const double vP_e = v_cos_gamma*sin(chi_p + chi_app);
+    const double vP_d = -vG_norm*sin(Gamma_p + Gamma_app);
     
-    // down velocity setpoint (air-mass relative)
-    const double vsp_d = vP_d + vsp_d_app;
+    // velocity error
+    const double e_v_n = vP_n - vG_n;
+    const double e_v_e = vP_e - vG_e;
+    const double e_v_d = vP_d - vG_d;
     
-    // flight path angle setpoint
-    double vsp_d_over_v = vsp_d/in[8];
-    if (vsp_d_over_v > 1.0) vsp_d_over_v = 1.0;
-    if (vsp_d_over_v < -1.0) vsp_d_over_v = -1.0;
-    const double gamma_sp = -asin(vsp_d_over_v);
+    /* SOFT CONSTRAINTS */
+    
+    // angle of attack
+    const double aoa = theta - gamma;
+    double sig_aoa = 0.0;
+    if (aoa > aoa_p - delta_aoa) {
+        sig_aoa = fabs(aoa - aoa_p + delta_aoa) / delta_aoa;
+        sig_aoa = sig_aoa * sig_aoa * sig_aoa;
+    }
+    if (aoa < aoa_m + delta_aoa) {
+        sig_aoa = fabs(aoa - aoa_m - delta_aoa) / delta_aoa;
+        sig_aoa = sig_aoa * sig_aoa * sig_aoa;
+    }
        
     /* TERRAIN */
     
     // lookup 2.5d grid
     int idx_q[4];
     double dh[2];
-    lookup_terrain_idx(in[0], in[1], in[20], in[21], idx_q, dh);
+    lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e, idx_q, dh);
     
     // bi-linear interpolation
-    const double h12 = (1-dh[0])*in[22+idx_q[0]] + dh[0]*in[22+idx_q[1]];
-    const double h34 = (1-dh[0])*in[22+idx_q[2]] + dh[0]*in[22+idx_q[3]];
+    const double h12 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[0]] + dh[0]*in[IDX_TERR_DATA+idx_q[1]];
+    const double h34 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[2]] + dh[0]*in[IDX_TERR_DATA+idx_q[3]];
     const double h_terr = (1-dh[1])*h12 + dh[1]*h34;
     
-    // soft constraint formulation
-    double one_minus_h_normalized = 1.0 + (in[2] + h_terr)/in[19];
-    if (one_minus_h_normalized <= 0.0) one_minus_h_normalized = 0.0;
+    // soft constraint
+    double sig_h = 0.0;
+    if (-r_d < h_terr + delta_h) {
+        sig_h = fabs(-r_d - h_terr - delta_h) / delta_h;
+        sig_h = sig_h * sig_h * sig_h;
+    }
     
-    // constraint priority
-    const double sig_h = (one_minus_h_normalized > 1.0) ? 1.0 : cos(M_PI*one_minus_h_normalized)*0.5+0.5;
-    
+    // prioritization
+    const double prio_aoa = 1.0;//1.0 - ((sig_aoa > 1.0) ? 1.0 : sig_aoa);
+    const double prio_h = 1.0 - ((sig_h > 1.0) ? 1.0 : sig_h);
+    const double prio_aoa_h = prio_aoa * prio_h;
+
     // state output
-    out[0] = sig_h*chi_err;
-    out[1] = sig_h*(gamma_sp - in[3]);
-    out[2] = one_minus_h_normalized*one_minus_h_normalized;
+    out[0] = e_lat * prio_aoa_h;
+    out[1] = e_lon * prio_aoa_h;
+    out[2] = e_v_n * prio_aoa_h;
+    out[3] = e_v_e * prio_aoa_h;
+    out[4] = e_v_d * prio_aoa_h;
+    out[5] = v;
+    out[6] = sig_aoa;
+    out[7] = sig_h * prio_aoa;
     
     // control output
-    out[3] = in[6] - sig_h*gamma_sp;    // gamma ref
-    out[4] = in[7];                     // phi ref
-    out[5] = (in[6] - in[3])/1;         // gamma dot
-    out[6] = (in[7] - in[5])/0.5;       // phi dot
+    out[8] = u_T;
+    out[9] = phi_ref;
+    out[10] = theta_ref;
 }
 
 void acado_evaluateLSQ( const real_t *in, real_t *out )
@@ -169,7 +204,7 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
         in_Delta[i] = in[i] + Delta;
         lsq_obj_eval( in_Delta, f_Delta_p );
         in_Delta[i] = in[i];
-
+        
         for (j = 0; j < ACADO_NY; j=j+1) {
             out[ACADO_NY+j*ACADO_NX+i] = (f_Delta_p[j] - f_Delta_m[j]) / Delta2;
         }
@@ -192,113 +227,157 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
 
 void lsq_objN_eval( real_t *in, real_t *out )
 {
-    /* PATH CALCULATIONS */
+    /* DEFINE INPUTS -- this is just simply easier to read.. */
+    
+    /* states */
+    const double r_n = in[0];
+    const double r_e = in[1];
+    const double r_d = in[2];
+    const double v = in[3];
+    const double gamma = in[4];
+    const double xi = in[5];
+    const double phi = in[6];
+    const double theta = in[7];
+    //const double n_p = in[8];
+    
+    /* online data */
+    
+    // disturbances
+    const double w_n = in[9];
+    const double w_e = in[10];
+    const double w_d = in[11];
+    
+    // path reference
+    const double b_n = in[12];
+    const double b_e = in[13];
+    const double b_d = in[14];
+    const double Gamma_p = in[15];
+    const double chi_p = in[16];
+    
+    // guidance
+    const double T_b_lat = in[17];
+    const double T_b_lon = in[18];
+    
+    //control augmented attitude time constants and gains
+    //const double tau_phi = in[19];
+    //const double tau_theta = in[20];
+    //const double k_phi = in[21];
+    //const double k_theta = in[22];
+    
+    // soft angle of attack constraints
+    const double delta_aoa = in[23];
+    const double aoa_m = in[24];
+    const double aoa_p = in[25];
+
+    // terrain
+    const double delta_h = in[26];
+    const double terr_local_origin_n = in[27];
+    const double terr_local_origin_e = in[28];
+    //const double terrain_data = in[29];
+    int IDX_TERR_DATA = 29;
+    
+    /* INTERMEDIATE CALCULATIONS */
+    
+    // ground speed
+    double v_cos_gamma = v*cos(gamma);
+    const double vG_n = v_cos_gamma*cos(xi) + w_n;
+    const double vG_e = v_cos_gamma*sin(xi) + w_e;
+    const double vG_d = -v*sin(gamma) + w_d;
+    const double vG_norm = sqrt(vG_n*vG_n + vG_e*vG_e + vG_d*vG_d);
+    
+    /* PATH FOLLOWING */
     
     // path tangent unit vector 
-    const double tP_n_bar = cos(in[14]);
-    const double tP_e_bar = sin(in[14]);
+    const double tP_n_bar = cos(chi_p);
+    const double tP_e_bar = sin(chi_p);
     
     // "closest" point on track
-    const double tp_dot_br = tP_n_bar*(in[0]-in[10]) + tP_e_bar*(in[1]-in[11]);
+    const double tp_dot_br = tP_n_bar*(r_n-b_n) + tP_e_bar*(r_e-b_e);
     const double tp_dot_br_n = tp_dot_br*tP_n_bar;
     const double tp_dot_br_e = tp_dot_br*tP_e_bar;
     const double p_lat = tp_dot_br_n*tP_n_bar + tp_dot_br_e*tP_e_bar;
-    const double p_d = in[12] - p_lat*tan(in[13]);
+    const double p_d = b_d - p_lat*tan(Gamma_p);
+        
+    // position error
+    const double e_lat = (r_n-b_n)*tP_e_bar - (r_e-b_e)*tP_n_bar;
+    const double e_lon = p_d - r_d;
     
-    /* DIRECTIONAL GUIDANCE */
+    // lateral-directional error boundary
+    const double e_b_lat = T_b_lat * sqrt(vG_n*vG_n + vG_e*vG_e);
     
-    // lateral-directional error
-    const double e_lat = ((in[0]-in[10])*tP_e_bar - (in[1]-in[11])*tP_n_bar);
+    // course approach angle
+    const double chi_app = atan(M_PI_2*e_lat/e_b_lat);
     
-    // ground speed
-    const double v_c_gamma = in[6]*cos(in[3]);
-    const double vG_n = v_c_gamma*cos(in[4]) + in[7];
-    const double vG_e = v_c_gamma*sin(in[4]) + in[8];
-    const double vG_d = -in[6]*sin(in[3]) + in[9];
-    const double norm_vg_lat2 = vG_n*vG_n + vG_e*vG_e;
-    const double norm_vg_lat = sqrt(norm_vg_lat2);
-    
-    // lateral-directional track-error boundary
-    double e_b_lat;
-    if (norm_vg_lat > 1.0) {
-        e_b_lat = norm_vg_lat*in[15];                               
-    } else {
-        e_b_lat = 0.5*in[15]*(norm_vg_lat2 + 1.0);
-    }
-    
-    // lateral-directional setpoint
-    double normalized_e_lat = e_lat/e_b_lat;
-    const double chi_sp = in[14] + atan(M_2_PI * normalized_e_lat);
-    
-    // lateral-directional error
-    double chi_err = chi_sp - atan2(vG_e,vG_n);
-    if (chi_err > M_PI) chi_err = chi_err - M_2_PI;
-    if (chi_err < -M_PI) chi_err = chi_err + M_2_PI;
-    
-    /* LONGITUDINAL GUIDANCE */
-
-    // longitudinal track-error
-    const double e_lon = p_d-in[2];
-    
-    // normalized lateral-directional track-error
-    normalized_e_lat = fabs(normalized_e_lat);
-    if (normalized_e_lat > 1.0) normalized_e_lat = 1.0;
-    
-    // smooth track proximity factor
-    double track_prox = cos(M_PI_2 * normalized_e_lat);
-    track_prox = track_prox * track_prox;
-    
-    // path down velocity setpoint
-    const double vP_d = -sin(in[13]) * sqrt(norm_vg_lat2 + vG_d*vG_d) * track_prox  - in[9];
-    
-    // longitudinal velocity increment
-    double delta_vd;
-    if (e_lon < 0.0) {
-        delta_vd = VD_CLMB - VD_EPS - vP_d; //SOMETHING WRONG WITH DELTA_VD
+    // longitudinal error boundary
+    double e_b_lon;
+    if (fabs(vG_d) < 1.0) {
+        e_b_lon = T_b_lon * 0.5 * (1.0 + vG_d*vG_d); // vG_d may be zero
     }
     else {
-        delta_vd = VD_SINK + VD_EPS - vP_d;
+        e_b_lon = T_b_lon * fabs(vG_d);
     }
     
-    // longitudinal track-error boundary
-    const double e_b_lon = in[16] * delta_vd;
-    const double nomralized_e_lon = fabs(e_lon/e_b_lon);
+    // flight path approach angle
+    const double Gamma_app = -0.3/M_PI_2 * atan(M_PI_2*e_lon/e_b_lon); // XXX: MAGIC NUMBER
     
-    // longitudinal approach velocity
-    const double vsp_d_app = TWO_OVER_PI * atan(M_2_PI * nomralized_e_lon) * delta_vd;
+    // ground velocity setpoint
+    v_cos_gamma = vG_norm*cos(Gamma_p + Gamma_app);
+    const double vP_n = v_cos_gamma*cos(chi_p + chi_app);
+    const double vP_e = v_cos_gamma*sin(chi_p + chi_app);
+    const double vP_d = -vG_norm*sin(Gamma_p + Gamma_app);
     
-    // down velocity setpoint (air-mass relative)
-    const double vsp_d = vP_d + vsp_d_app;
+    // velocity error
+    const double e_v_n = vP_n - vG_n;
+    const double e_v_e = vP_e - vG_e;
+    const double e_v_d = vP_d - vG_d;
     
-    // flight path angle setpoint
-    double vsp_d_over_v = vsp_d/in[6];
-    if (vsp_d_over_v > 1.0) vsp_d_over_v = 1.0;
-    if (vsp_d_over_v < -1.0) vsp_d_over_v = -1.0;
-    const double gamma_sp = -asin(vsp_d_over_v);
+    /* SOFT CONSTRAINTS */
+    
+    // angle of attack
+    const double aoa = theta - gamma;
+    double sig_aoa = 0.0;
+    if (aoa > aoa_p - delta_aoa) {
+        sig_aoa = fabs(aoa - aoa_p + delta_aoa) / delta_aoa;
+        sig_aoa = sig_aoa * sig_aoa * sig_aoa;
+    }
+    if (aoa < aoa_m + delta_aoa) {
+        sig_aoa = fabs(aoa - aoa_m - delta_aoa) / delta_aoa;
+        sig_aoa = sig_aoa * sig_aoa * sig_aoa;
+    }
        
     /* TERRAIN */
     
     // lookup 2.5d grid
     int idx_q[4];
     double dh[2];
-    lookup_terrain_idx(in[0], in[1], in[18], in[19], idx_q, dh);
+    lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e, idx_q, dh);
     
     // bi-linear interpolation
-    const double h12 = (1-dh[0])*in[20+idx_q[0]] + dh[0]*in[20+idx_q[1]];
-    const double h34 = (1-dh[0])*in[20+idx_q[2]] + dh[0]*in[20+idx_q[3]];
+    const double h12 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[0]] + dh[0]*in[IDX_TERR_DATA+idx_q[1]];
+    const double h34 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[2]] + dh[0]*in[IDX_TERR_DATA+idx_q[3]];
     const double h_terr = (1-dh[1])*h12 + dh[1]*h34;
     
-    // soft constraint formulation
-    double one_minus_h_normalized = 1.0 + (in[2] + h_terr)/in[17];
-    if (one_minus_h_normalized <= 0.0) one_minus_h_normalized = 0.0;
+    // soft constraint
+    double sig_h = 0.0;
+    if (-r_d < h_terr + delta_h) {
+        sig_h = fabs(-r_d - h_terr - delta_h) / delta_h;
+        sig_h = sig_h * sig_h * sig_h;
+    }
     
-    // constraint priority
-    const double sig_h = (one_minus_h_normalized > 1.0) ? 1.0 : cos(M_PI*one_minus_h_normalized)*0.5+0.5;
+    // prioritization
+    const double prio_aoa = 1.0;//1.0 - ((sig_aoa > 1.0) ? 1.0 : sig_aoa);
+    const double prio_h = 1.0 - ((sig_h > 1.0) ? 1.0 : sig_h);
+    const double prio_aoa_h = prio_aoa * prio_h;
     
     // state output
-    out[0] = sig_h*chi_err;
-    out[1] = sig_h*(gamma_sp - in[3]);
-    out[2] = one_minus_h_normalized*one_minus_h_normalized;
+    out[0] = e_lat * prio_aoa_h;
+    out[1] = e_lon * prio_aoa_h;
+    out[2] = e_v_n * prio_aoa_h;
+    out[3] = e_v_e * prio_aoa_h;
+    out[4] = e_v_d * prio_aoa_h;
+    out[5] = v;
+    out[6] = sig_aoa;
+    out[7] = sig_h * prio_aoa;
 }
 
 void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
@@ -420,49 +499,3 @@ void lookup_terrain_idx( const double pos_n, const double pos_e, const double po
     dh[0] = dh_n;
     dh[1] = dh_e;
 }
-
-// double bearing_feas(double lambda, const double wind_ratio, const double wind_ratio_buf)
-// {
-//     /* bound lambda -- angle between wind and bearing */
-// 	lambda = fabs(lambda);
-//     if (lambda > M_PI_2) lambda = M_PI_2;
-// 
-// 	/* upper and lower feasibility barriers */
-// 	float wind_ratio_ub;
-// 	float wind_ratio_lb;
-// 	if (lambda < LAMBDA_CO) {
-// 		/* linear finite cut-off */
-// 		const double mx = M_CO * (LAMBDA_CO - lambda);
-// 		const double wind_ratio_ub_co = ONE_OVER_S_LAMBDA_CO;
-// 		wind_ratio_ub = wind_ratio_ub_co + mx;
-// 		const double wind_ratio_lb_co = (ONE_OVER_S_LAMBDA_CO - 2.0) * wind_ratio_buf + 1.0;
-// 		wind_ratio_lb = wind_ratio_lb_co + wind_ratio_buf * mx;
-// 	}
-//     else {
-// 		const double one_over_s_lambda = 1.0 / sin(lambda);
-// 		wind_ratio_ub = one_over_s_lambda;
-// 		wind_ratio_lb = (one_over_s_lambda - 2.0) * wind_ratio_buf + 1.0;
-// 	}
-// 
-// 	/* calculate bearing feasibility */
-// 	float feas;
-//     if (wind_ratio > wind_ratio_ub) {
-// 		// infeasible
-// 		feas = 0.0;
-// 	}
-//     else if (wind_ratio > wind_ratio_lb) {
-// 		// partially feasible
-// 		// smoothly transition from fully feasible to infeasible
-//         double normalized_wind_ratio = (wind_ratio - wind_ratio_lb) / (wind_ratio_ub - wind_ratio_lb);
-//         if (normalized_wind_ratio > 1.0) normalized_wind_ratio = 1.0;
-// 		feas = cos(M_PI_2 * normalized_wind_ratio);
-//         feas = feas * feas;
-// 	}
-//     else {
-// 		// feasible
-// 		feas = 1.0;
-// 	}
-// 
-//     return feas;
-// }
-

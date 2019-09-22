@@ -1,225 +1,255 @@
 function [out,aux] = eval_obj(in)
 
-M_PI_2 = 1.570796326794897;
-M_PI = 3.141592653589793;
-M_2_PI = 6.283185307179586;
-TWO_OVER_PI = 0.636619772367581;
+% DEFINE INPUTS -- this is just simply easier to read.. */ 
+ 
+% states */ 
+r_n = in(1); 
+r_e = in(2); 
+r_d = in(3); 
+v = in(4); 
+gamma = in(5); 
+xi = in(6); 
+phi = in(7); 
+theta = in(8); 
+n_p = in(9); 
+ 
+% controls */ 
+u_T = in(10); 
+phi_ref = in(11); 
+theta_ref = in(12); 
+ 
+% online data */ 
+ 
+% disturbances 
+w_n = in(13); 
+w_e = in(14); 
+w_d = in(15); 
+ 
+% path reference 
+b_n = in(16); 
+b_e = in(17); 
+b_d = in(18); 
+Gamma_p = in(19); 
+chi_p = in(20); 
 
-% longitudinal guidance constants
-VD_SINK = 1.5;
-VD_CLMB = -3.5;
-VD_EPS = 0.01;
-
-% PATH CALCULATIONS */ 
+% guidance
+T_b_lat = in(21);
+T_b_lon = in(22);
+ 
+%control augmented attitude time constants and gains 
+%tau_phi = in(23); 
+%tau_theta = in(24); 
+%k_phi = in(25); 
+%k_theta = in(26); 
+ 
+% soft angle of attack constraints 
+delta_aoa = in(27); 
+aoa_m = in(28); 
+aoa_p = in(29); 
+ 
+% terrain 
+delta_h = in(30); 
+terr_local_origin_n = in(31); 
+terr_local_origin_e = in(32); 
+%terrain_data = in[32]; 
+IDX_TERR_DATA = 32+1; 
+ 
+% INTERMEDIATE CALCULATIONS */ 
+ 
+% ground speed 
+v_cos_gamma = v*cos(gamma); 
+vG_n = v_cos_gamma*cos(xi) + w_n; 
+vG_e = v_cos_gamma*sin(xi) + w_e; 
+vG_d = -v*sin(gamma) + w_d;
+vG_norm = sqrt(vG_n*vG_n + vG_e*vG_e + vG_d*vG_d);
+ 
+% PATH FOLLOWING */ 
  
 % path tangent unit vector  
-tP_n_bar = cos(in(17)); 
-tP_e_bar = sin(in(17)); 
+tP_n_bar = cos(chi_p); 
+tP_e_bar = sin(chi_p); 
  
-% "closest" point on track 
-tp_dot_br = tP_n_bar*(in(1)-in(13)) + tP_e_bar*(in(2)-in(14)); 
+% "closest" poon track 
+tp_dot_br = tP_n_bar*(r_n-b_n) + tP_e_bar*(r_e-b_e); 
 tp_dot_br_n = tp_dot_br*tP_n_bar; 
 tp_dot_br_e = tp_dot_br*tP_e_bar; 
 p_lat = tp_dot_br_n*tP_n_bar + tp_dot_br_e*tP_e_bar; 
-p_d = in(15) - p_lat*tan(in(16)); 
+p_d = b_d - p_lat*tan(Gamma_p); 
  
-% DIRECTIONAL GUIDANCE */ 
+% position error 
+e_lat = (r_n-b_n)*tP_e_bar - (r_e-b_e)*tP_n_bar; 
+e_lon = p_d - r_d; 
  
-% lateral-directional error 
-e_lat = ((in(1)-in(13))*tP_e_bar - (in(2)-in(14))*tP_n_bar); 
- 
-% ground speed 
-v_c_gamma = in(9)*cos(in(4)); 
-vG_n = v_c_gamma*cos(in(5)) + in(10); 
-vG_e = v_c_gamma*sin(in(5)) + in(11); 
-vG_d = -in(9)*sin(in(4)) + in(12); 
-norm_vg_lat2 = vG_n*vG_n + vG_e*vG_e; 
-norm_vg_lat = sqrt(norm_vg_lat2); 
- 
-% lateral-directional track-error boundary 
-if (norm_vg_lat > 1.0)
-    e_b_lat = norm_vg_lat*in(18);                                
+% lateral-directional track error boundary
+e_b_lat = T_b_lat * sqrt(vG_n*vG_n + vG_e*vG_e);
+
+% course approach angle
+chi_app = -atan(pi/2*e_lat/e_b_lat);
+
+% longitudinal track error boundary
+if (abs(vG_d) < 1.0)
+    e_b_lon = T_b_lon * 0.5 * (1.0 + vG_d*vG_d);
 else
-    e_b_lat = 0.5*in(18)*(norm_vg_lat2 + 1.0); 
-end
- 
-% lateral-directional setpoint 
-normalized_e_lat = e_lat/e_b_lat; 
-chi_sp = in(17) + atan(M_2_PI * normalized_e_lat); 
- 
-% lateral-directional error 
-chi_err = chi_sp - atan2(vG_e,vG_n); 
-if (chi_err > M_PI)
-    chi_err = chi_err - M_2_PI; 
-end
-if (chi_err < -M_PI)
-    chi_err = chi_err + M_2_PI; 
+    e_b_lon = T_b_lon * abs(vG_d);
 end
 
-% LONGITUDINAL GUIDANCE */ 
+% flight path approach angle
+Gamma_app = 0.3/(pi/2) * atan(pi/2*e_lon/e_b_lon); % XXX: MAGIC NUMBER
 
-% longitudinal track-error
-e_lon = p_d-in(3);
-    
-% normalized lateral-directional track-error 
-normalized_e_lat = abs(normalized_e_lat); 
-if (normalized_e_lat > 1.0)
-    normalized_e_lat = 1.0; 
+% ground velocity setpoint
+v_cos_gamma = vG_norm*cos(Gamma_p + Gamma_app);
+vP_n = v_cos_gamma*cos(chi_p + chi_app);
+vP_e = v_cos_gamma*sin(chi_p + chi_app);
+vP_d = -vG_norm*sin(Gamma_p + Gamma_app);
+
+% velocity error
+e_v_n = vP_n - vG_n; 
+e_v_e = vP_e - vG_e; 
+e_v_d = vP_d - vG_d;
+ 
+% SOFT CONSTRAINTS */ 
+ 
+% angle of attack 
+aoa = theta - gamma;
+sig_aoa = 0.0;
+if (aoa > aoa_p - delta_aoa) 
+    sig_aoa = abs(aoa - aoa_p + delta_aoa) / delta_aoa;
+    sig_aoa = sig_aoa * sig_aoa * sig_aoa;
 end
- 
-% smooth track proximity factor 
-track_prox = cos(M_PI_2 * normalized_e_lat); 
-track_prox = track_prox * track_prox; 
- 
-% path down velocity setpoint 
-vP_d = -sin(in(16)) * sqrt(norm_vg_lat2 + vG_d*vG_d) * track_prox  - in(12); 
- 
-% longitudinal velocity increment 
-if (e_lon < 0.0) 
-    delta_vd = VD_CLMB - VD_EPS - vP_d; 
-else
-    delta_vd = VD_SINK + VD_EPS - vP_d; 
-end 
- 
-% longitudinal track-error boundary 
-e_b_lon = in(19) * delta_vd; 
-nomralized_e_lon = abs(e_lon/e_b_lon); 
- 
-% longitudinal approach velocity 
-vsp_d_app = TWO_OVER_PI * atan(M_2_PI * nomralized_e_lon) * delta_vd; 
- 
-% down velocity setpoint (air-mass relative) 
-vsp_d = vP_d + vsp_d_app; 
- 
-% flight path angle setpoint 
-vsp_d_over_v = vsp_d/in(9); 
-if (vsp_d_over_v > 1.0)
-    vsp_d_over_v = 1.0; 
+if (aoa < aoa_m + delta_aoa)
+    sig_aoa = abs(aoa - aoa_m - delta_aoa) / delta_aoa;
+    sig_aoa = sig_aoa * sig_aoa * sig_aoa;
 end
-if (vsp_d_over_v < -1.0)
-    vsp_d_over_v = -1.0; 
-end
-gamma_sp = -asin(vsp_d_over_v); 
  
 % TERRAIN */ 
  
 % lookup 2.5d grid  
-[idx_q, dh] = lookup_terrain_idx(in(1), in(2), in(21), in(22)); 
+[idx_q, dh] = lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e); 
  
 % bi-linear interpolation 
-h12 = (1-dh(1))*in(23+idx_q(1)) + dh(1)*in(23+idx_q(2)); 
-h34 = (1-dh(1))*in(23+idx_q(3)) + dh(1)*in(23+idx_q(4)); 
+h12 = (1-dh(1))*in(IDX_TERR_DATA+idx_q(1)) + dh(1)*in(IDX_TERR_DATA+idx_q(2)); 
+h34 = (1-dh(1))*in(IDX_TERR_DATA+idx_q(3)) + dh(1)*in(IDX_TERR_DATA+idx_q(4)); 
 h_terr = (1-dh(2))*h12 + dh(2)*h34; 
- 
-% soft constraint formulation 
-one_minus_h_normalized = 1.0 + (in(3) + h_terr)/in(20); 
-if (one_minus_h_normalized <= 0.0)
-    one_minus_h_normalized = 0.0; 
+
+% soft constraint 
+sig_h = 0.0;
+if (-r_d < h_terr + delta_h)
+    sig_h = abs(-r_d - h_terr - delta_h) / delta_h;
+    sig_h = sig_h * sig_h * sig_h;
 end
- 
-% constraint priority 
-if (one_minus_h_normalized > 1.0)
-    sig_h = 1.0;
-else
-    sig_h =  cos(M_PI*one_minus_h_normalized)*0.5+0.5;
-end
+
+% prioritization
+prio_aoa = 1;%1 - min(sig_aoa, 1.0);
+prio_h = 1 - min(sig_h, 1.0);
+prio_aoa_h = prio_aoa * prio_h;
 
 % state output 
-out(1) = sig_h*chi_err; 
-out(2) = sig_h*(gamma_sp - in(4));
-out(3) = one_minus_h_normalized*one_minus_h_normalized; 
- 
-% control output 
-out(4) = in(7) - sig_h*gamma_sp;    % gamma ref 
-out(5) = in(8);                     % phi ref 
-out(6) = (in(7) - in(4))/1;         % gamma dot 
-out(7) = (in(8) - in(6))/0.5;       % phi dot 
+out(1) = e_lat * prio_aoa_h; 
+out(2) = e_lon * prio_aoa_h;
+out(3) = e_v_n * prio_aoa_h;
+out(4) = e_v_e * prio_aoa_h;
+out(5) = e_v_d * prio_aoa_h;
+out(6) = v; 
+out(7) = sig_aoa; 
+out(8) = sig_h * prio_aoa; 
 
-aux = [e_lat, e_lon, h_terr, gamma_sp, sig_h, vsp_d_app, vP_d];
+% control output
+out(9) = u_T;
+out(10) = phi_ref;
+out(11) = theta_ref;
 
-    function [idx_q, dh] = lookup_terrain_idx( pos_n, pos_e, pos_n_origin, pos_e_origin)
+aux = [h_terr, e_lat, e_lon, e_v_n, e_v_e, e_v_d, sig_aoa, sig_h, prio_aoa, prio_h, prio_aoa_h, Gamma_app, chi_app, Gamma_p, chi_p];
+
+end
+
+function [idx_q, dh] = lookup_terrain_idx( pos_n, pos_e, pos_n_origin, pos_e_origin)
         
-        LEN_IDX_N = 141;
-        LEN_IDX_E = 141;
-        LEN_IDX_N_1 = 140;
-        LEN_IDX_E_1 = 140;
-        ONE_DIS = 1;
+%     LEN_IDX_N = 141;
+%     LEN_IDX_E = 141;
+%     LEN_IDX_N_1 = 140;
+%     LEN_IDX_E_1 = 140;
+%     ONE_DIS = 1;
 
-        % relative position / indices
-        rel_n = pos_n - pos_n_origin;
-        rel_n_bar = rel_n * ONE_DIS;
-        idx_n = floor(rel_n_bar);
-        if (idx_n < 0)
-            idx_n = 0;
-        elseif (idx_n > LEN_IDX_N_1)
-            idx_n = LEN_IDX_N_1;
-        end
-        rel_e = pos_e - pos_e_origin;
-        rel_e_bar = rel_e * ONE_DIS;
-        idx_e = floor(rel_e_bar);
-        if (idx_e < 0)
-            idx_e = 0;
-        elseif (idx_e > LEN_IDX_E_1)
-            idx_e = LEN_IDX_E_1;
-        end
-
-        % neighbor orientation / interpolation weights
-        delta_n = rel_n_bar-idx_n;
-        if (delta_n<0.5) 
-            down = -1;
-            dh_n = 0.5 + delta_n;
-        else
-            down = 0;
-            dh_n = delta_n - 0.5;
-        end
-        delta_e = rel_e_bar-idx_e;
-        if (delta_e<0.5) 
-            left = -1;
-            dh_e = 0.5 + delta_e;
-        else 
-            left = 0;
-            dh_e = delta_e - 0.5;
-        end
-
-        % neighbor origin (down,left)
-        q1_n = idx_n + down;
-        q1_e = idx_e + left;
-
-        % neighbors (north)
-        if (q1_n >= LEN_IDX_N_1) 
-            q_n(1) = LEN_IDX_N_1;
-            q_n(2) = LEN_IDX_N_1;
-            q_n(3) = LEN_IDX_N_1;
-            q_n(4) = LEN_IDX_N_1;
-        else 
-            q_n(1) = q1_n;
-            q_n(2) = q1_n + 1;
-            q_n(3) = q1_n;
-            q_n(4) = q1_n + 1;
-        end
-        % neighbors (east)
-        if (q1_e >= LEN_IDX_N_1)
-            q_e(1) = LEN_IDX_E_1;
-            q_e(2) = LEN_IDX_E_1;
-            q_e(3) = LEN_IDX_E_1;
-            q_e(4) = LEN_IDX_E_1;
-        else
-            q_e(1) = q1_e;
-            q_e(2) = q1_e;
-            q_e(3) = q1_e + 1;
-            q_e(4) = q1_e + 1;
-        end
-
-        % neighbors row-major indices
-        idx_q(1) = q_n(1)*LEN_IDX_E + q_e(1);
-        idx_q(2) = q_n(2)*LEN_IDX_E + q_e(2);
-        idx_q(3) = q_n(3)*LEN_IDX_E + q_e(3);
-        idx_q(4) = q_n(4)*LEN_IDX_E + q_e(4);
-
-        % interpolation weights
-        dh(1) = dh_n;
-        dh(2) = dh_e;
-
+    LEN_IDX_N = 29;
+    LEN_IDX_E = 29;
+    LEN_IDX_N_1 = 28;
+    LEN_IDX_E_1 = 28;
+    ONE_DIS = 0.2;
+    
+    % relative position / indices
+    rel_n = pos_n - pos_n_origin;
+    rel_n_bar = rel_n * ONE_DIS;
+    idx_n = floor(rel_n_bar);
+    if (idx_n < 0)
+        idx_n = 0;
+    elseif (idx_n > LEN_IDX_N_1)
+        idx_n = LEN_IDX_N_1;
     end
+    rel_e = pos_e - pos_e_origin;
+    rel_e_bar = rel_e * ONE_DIS;
+    idx_e = floor(rel_e_bar);
+    if (idx_e < 0)
+        idx_e = 0;
+    elseif (idx_e > LEN_IDX_E_1)
+        idx_e = LEN_IDX_E_1;
+    end
+
+    % neighbor orientation / interpolation weights
+    delta_n = rel_n_bar-idx_n;
+    if (delta_n<0.5) 
+        down = -1;
+        dh_n = 0.5 + delta_n;
+    else
+        down = 0;
+        dh_n = delta_n - 0.5;
+    end
+    delta_e = rel_e_bar-idx_e;
+    if (delta_e<0.5) 
+        left = -1;
+        dh_e = 0.5 + delta_e;
+    else 
+        left = 0;
+        dh_e = delta_e - 0.5;
+    end
+
+    % neighbor origin (down,left)
+    q1_n = idx_n + down;
+    q1_e = idx_e + left;
+
+    % neighbors (north)
+    if (q1_n >= LEN_IDX_N_1) 
+        q_n(1) = LEN_IDX_N_1;
+        q_n(2) = LEN_IDX_N_1;
+        q_n(3) = LEN_IDX_N_1;
+        q_n(4) = LEN_IDX_N_1;
+    else 
+        q_n(1) = q1_n;
+        q_n(2) = q1_n + 1;
+        q_n(3) = q1_n;
+        q_n(4) = q1_n + 1;
+    end
+    % neighbors (east)
+    if (q1_e >= LEN_IDX_N_1)
+        q_e(1) = LEN_IDX_E_1;
+        q_e(2) = LEN_IDX_E_1;
+        q_e(3) = LEN_IDX_E_1;
+        q_e(4) = LEN_IDX_E_1;
+    else
+        q_e(1) = q1_e;
+        q_e(2) = q1_e;
+        q_e(3) = q1_e + 1;
+        q_e(4) = q1_e + 1;
+    end
+
+    % neighbors row-major indices
+    idx_q(1) = q_n(1)*LEN_IDX_E + q_e(1);
+    idx_q(2) = q_n(2)*LEN_IDX_E + q_e(2);
+    idx_q(3) = q_n(3)*LEN_IDX_E + q_e(3);
+    idx_q(4) = q_n(4)*LEN_IDX_E + q_e(4);
+
+    % interpolation weights
+    dh(1) = dh_n;
+    dh(2) = dh_e;
+
 end
 

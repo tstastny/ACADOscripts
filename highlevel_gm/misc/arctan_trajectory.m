@@ -5,7 +5,7 @@ len = 11;
 [e,n,h] = meshgrid(linspace(-100,100,len),linspace(-100,100,len),linspace(-100,100,len));
 
 chi_t = deg2rad(0);
-Gamma_t = deg2rad(-80);
+Gamma_t = deg2rad(0);
 n_t=0;
 e_t=0;
 h_t=0;

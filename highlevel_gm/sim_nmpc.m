@@ -1,25 +1,31 @@
 % NMPC Simulation
 % ----------------
 close all; clear all; clc;
+
+% add function paths
 if isempty(strfind(path, ['/home/thomas/Documents/ACADOscripts/highlevel_gm/functions', pathsep]))
     addpath('/home/thomas/Documents/ACADOscripts/highlevel_gm/functions');
 end
 
+% load model parameters / config
+load('model_config/model_params.mat');
+run('model_config/sysid_config_Techpod.m');
+
 %% NMPC SETUP -------------------------------------------------------------
 N = 70;
-n_U = 2;
-n_X = 6; % number of nmpc states
-n_Y = 3;
-n_Z = 4;
-n_OD = 19895;
+n_U = 3;
+n_X = 9; % number of nmpc states
+n_Y = 8;
+n_Z = 3;
+n_OD = 20+841;
 
 Ts_step = 0.1; % step size in nmpc
 Ts_nmpc = 0.1; % interval between nmpc calls
 
 %% ONLINE DATA ------------------------------------------------------------
 
-% flight condition
-v = 10;
+% airspeed reference
+v_ref = 14;
 
 % disturbances
 w_n = 0;
@@ -29,7 +35,7 @@ w_d = 0;
 % path reference
 b_n = 0;
 b_e = 0;
-b_d = -15;
+b_d = -50;
 Gamma_p = deg2rad(5);
 chi_p = deg2rad(15);
 
@@ -37,54 +43,81 @@ chi_p = deg2rad(15);
 T_b_lat = 5;
 T_b_lon = 5;
 
-% terrain data
-len_local_idx_n = 141;
-len_local_idx_e = 141;
-delta_h = 10;
+% control augmented attitude time constants and gains
+tau_phi = 0.5;
+tau_theta = 0.5;
+k_phi = 1.1;
+k_theta = 1.1;
+
+% soft constraints
+delta_aoa = deg2rad(5);
+aoa_m = deg2rad(-5);
+aoa_p = deg2rad(8);
+
+% terrain avoidance
+delta_h = 20;
+len_local_idx_n = 29;
+len_local_idx_e = 29;
 terrain_constructor;
 
 %% INITIALIZATION ---------------------------------------------------------
 
 % initial states
-posk = [-5, 100, -15];
-attk = [deg2rad(0), deg2rad(rad2deg(-1.123276351637727)+180), deg2rad(0)];
+x_init = [ ...
+    -5, 100, -15, ... % r_n, r_e, r_d
+    14, deg2rad(0), deg2rad(-20), ... % v, gamma, xi
+    deg2rad(0), deg2rad(2), ... % phi, theta
+    104 ... % n_p
+    ];
+posk = x_init(1:3);
 
 % initial controls
-inputk = [0 0];
+u_init = [0.5 0 deg2rad(3)]; % u_T, phi_ref, theta_ref
 
 % initial online data
 get_local_terrain;
-onlinedatak = [v, w_n, w_e, w_d, ...
+onlinedatak = [ ...
+    w_n, w_e, w_d, ...
     b_n, b_e, b_d, Gamma_p, chi_p, ...
     T_b_lat, T_b_lon, ...
-    delta_h, terr_local_origin_n, terr_local_origin_e, terrain_data];
+    tau_phi, tau_theta, k_phi, k_theta, ...
+    delta_aoa, aoa_m, aoa_p, ...
+    delta_h, terr_local_origin_n, terr_local_origin_e, terrain_data ...
+    ];
 
 % acado inputs
-nmpc_ic.x = [posk, attk]; 
-nmpc_ic.u = inputk;
-yref = [0 0 0];
-zref = [0 0 0 0];
+nmpc_ic.x = x_init;
+nmpc_ic.u = u_init;
+yref = [0 0 0 0 0 v_ref 0 0];
+zref = [0.5 0 deg2rad(3)];
 
-Q_scale = [deg2rad(1) deg2rad(1) 1];
-R_scale = [deg2rad(1) deg2rad(1) deg2rad(5) deg2rad(5)];
+Q_scale = [1 1 1 1 1 1 1 1];
+R_scale = [0.1 deg2rad(1) deg2rad(1)];
 
-Q_output    = [5 70 100000]./Q_scale.^2;
-QN_output   = [5 70 100000]./Q_scale.^2;
-R_controls  = [1 1 1 1]./R_scale.^2;
+Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7]./Q_scale.^2;
+QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7]./Q_scale.^2;
+R_controls  = [1e1 1e0 1e0]./R_scale.^2;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
 input.u     = repmat(nmpc_ic.u, N,1);
 input.y     = repmat([yref, zref], N,1);
 input.yN    = yref;
-% input.od    = repmat(onlinedatak, N+1, 1);
-input.od    = [onlinedatak; zeros(N, n_OD)];
-% input.W     = repmat(diag([Q_output, R_controls]), [N 1]);
-input.W     = diag([Q_output, R_controls]);
+input.od    = repmat(onlinedatak, N+1, 1);
+% input.od    = [onlinedatak; zeros(N, n_OD)];
+input.W     = repmat(diag([Q_output, R_controls]), [N 1]);
+R_slew = 100;
+zero2one = linspace(0,1,N);
+for i = 1:N
+    input.W((n_Y+n_Z)*(i-1)+n_Y+1:(n_Y+n_Z)*(i-1)+n_Y+n_Z,:) = ...
+        input.W((n_Y+n_Z)*(i-1)+n_Y+1:(n_Y+n_Z)*(i-1)+n_Y+n_Z,:) * ...
+        (1 + R_slew*(1 - zero2one(i))^2);
+end
+% input.W     = diag([Q_output, R_controls]);
 input.WN    = diag(QN_output);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 200;
+Tf = 70;
 Ts = 0.01;
 time = T0:Ts:Tf;
 len_t = length(time);
@@ -93,7 +126,8 @@ len_t = length(time);
 states = nmpc_ic.x;
 measurements = states;
 controls = nmpc_ic.u;
-[dstates,simout] = uav_dyn(0,measurements,controls,input.od(1,:));
+ctrl_hor = repmat(controls, [N,1]);
+[dstates,simout] = model_dynamics(0,measurements,controls,input.od(1,:),model_params,sysid_config);
 
 % properly init position states
 input.x(:,1:3) = input.x(:,1:3) + repmat(dstates(1:3),N+1,1).*repmat((0:Ts_nmpc:N*Ts_nmpc)',1,3);
@@ -118,7 +152,7 @@ rec.x_hor = zeros(N+1,len_t,n_X);
 rec.u_hor = zeros(N,len_t,n_U);
 rec.u = zeros(len_t,n_U);
 rec.yz = zeros(len_t,n_Y+n_Z);
-rec.aux = zeros(len_t,7);
+rec.aux = zeros(len_t,15);
 
 % simulate
 for k = 1:len_t
@@ -142,21 +176,27 @@ for k = 1:len_t
         end
         
         % update online data
-        posk = input.x0(1:3);
         st_array_allo = tic;
+        posk = input.x0(1:3);
         get_local_terrain;
-        onlinedatak = [v, w_n, w_e, w_d, ...
+        onlinedatak = [ ...
+            w_n, w_e, w_d, ...
             b_n, b_e, b_d, Gamma_p, chi_p, ...
             T_b_lat, T_b_lon, ...
-            delta_h, terr_local_origin_n, terr_local_origin_e, terrain_data];
-%         input.od = repmat(onlinedatak, N+1, 1);
-        input.od(1,:) = onlinedatak;
+            tau_phi, tau_theta, k_phi, k_theta, ...
+            delta_aoa, aoa_m, aoa_p, ...
+            delta_h, terr_local_origin_n, terr_local_origin_e, terrain_data ...
+            ];
+        input.od = repmat(onlinedatak, N+1, 1);
+%         input.od(1,:) = onlinedatak;
+        input.y(:,end-2:end) = ctrl_hor;
         tarray_k = toc(st_array_allo);
 
         % generate controls
         output = acado_nmpc_step(input);
 
         controls  = output.u(1,:);
+        ctrl_hor = output.u(:,:);
 
         % record info
         INFO_MPC(nmpc_counter) = output.info;
@@ -168,7 +208,7 @@ for k = 1:len_t
     % END NMPC - - - - -
     
     % apply control
-    [dstates, simout]  = uav_dyn(time(k), states, controls, input.od(1,:));
+    [dstates, simout]  = model_dynamics(time(k), states, controls, input.od(1,:),model_params,sysid_config);
 
     % integration (model propagation)
     states = states + dstates*Ts;
@@ -183,6 +223,21 @@ for k = 1:len_t
     rec.u_hor(:,k,:) = output.u(:,:);
     rec.u(k,:) = controls;
     [out,aux] = eval_obj([simout,controls,input.od(1,:)]);
+    %
+%     [out_m,~] = eval_obj([simout-[0.00001,zeros(1,8)],controls,input.od(1,:)]);
+%     [out_p,~] = eval_obj([simout+[0.00001,zeros(1,8)],controls,input.od(1,:)]);
+%     rec.dJdn(k,:) = (out_p - out_m) / 2 / 0.00001;
+%     [out_m,~] = eval_obj([simout-[zeros(1,1),0.00001,zeros(1,7)],controls,input.od(1,:)]);
+%     [out_p,~] = eval_obj([simout+[zeros(1,1),0.00001,zeros(1,7)],controls,input.od(1,:)]);
+%     rec.dJde(k,:) = (out_p - out_m) / 2 / 0.00001;
+%     [out_m,~] = eval_obj([simout-[zeros(1,2),0.00001,zeros(1,6)],controls,input.od(1,:)]);
+%     [out_p,~] = eval_obj([simout+[zeros(1,2),0.00001,zeros(1,6)],controls,input.od(1,:)]);
+%     rec.dJdd(k,:) = (out_p - out_m) / 2 / 0.00001;
+%     
+%     h_terr_ = 180*exp(-((simout(2) - 100)/300)^2-((simout(1) - 750)/300)^2);
+%     rec.dJ_dn(k,:) = (3*180*(1/300)^2*exp(- (1/300)^2*(simout(2) - 100)^2 - (1/300)^2*(simout(1) - 750)^2)*(2*simout(1) - 2*750)*(delta_h + h_terr_ + simout(3))^2)/delta_h^3;
+    
+    %
     rec.yz(k,:) = out;
     rec.aux(k,:) = aux;
     trec(k) = toc(st_rec);
