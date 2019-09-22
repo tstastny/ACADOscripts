@@ -51,8 +51,9 @@ aoa_p = in(29);
 delta_h = in(30); 
 terr_local_origin_n = in(31); 
 terr_local_origin_e = in(32); 
-%terrain_data = in[32]; 
-IDX_TERR_DATA = 32+1; 
+terr_dis = in(33);
+%terrain_data = in[33]; 
+IDX_TERR_DATA = 33+1; 
  
 % INTERMEDIATE CALCULATIONS */ 
  
@@ -124,7 +125,7 @@ end
 % TERRAIN */ 
  
 % lookup 2.5d grid  
-[idx_q, dh] = lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e); 
+[idx_q, dh] = lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e, terr_dis); 
  
 % bi-linear interpolation 
 h12 = (1-dh(1))*in(IDX_TERR_DATA+idx_q(1)) + dh(1)*in(IDX_TERR_DATA+idx_q(2)); 
@@ -162,23 +163,21 @@ aux = [h_terr, e_lat, e_lon, e_v_n, e_v_e, e_v_d, sig_aoa, sig_h, prio_aoa, prio
 
 end
 
-function [idx_q, dh] = lookup_terrain_idx( pos_n, pos_e, pos_n_origin, pos_e_origin)
+function [idx_q, dh] = lookup_terrain_idx( pos_n, pos_e, pos_n_origin, pos_e_origin, terr_dis)
         
 %     LEN_IDX_N = 141;
 %     LEN_IDX_E = 141;
 %     LEN_IDX_N_1 = 140;
 %     LEN_IDX_E_1 = 140;
-%     ONE_DIS = 1;
 
     LEN_IDX_N = 29;
     LEN_IDX_E = 29;
     LEN_IDX_N_1 = 28;
     LEN_IDX_E_1 = 28;
-    ONE_DIS = 0.2;
     
     % relative position / indices
     rel_n = pos_n - pos_n_origin;
-    rel_n_bar = rel_n * ONE_DIS;
+    rel_n_bar = rel_n / terr_dis;
     idx_n = floor(rel_n_bar);
     if (idx_n < 0)
         idx_n = 0;
@@ -186,7 +185,7 @@ function [idx_q, dh] = lookup_terrain_idx( pos_n, pos_e, pos_n_origin, pos_e_ori
         idx_n = LEN_IDX_N_1;
     end
     rel_e = pos_e - pos_e_origin;
-    rel_e_bar = rel_e * ONE_DIS;
+    rel_e_bar = rel_e / terr_dis;
     idx_e = floor(rel_e_bar);
     if (idx_e < 0)
         idx_e = 0;

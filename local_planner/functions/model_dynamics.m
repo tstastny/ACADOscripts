@@ -54,6 +54,7 @@ k_theta = onlinedata(14);
 % delta_h = onlinedata(19);
 % terr_local_origin_n = onlinedata(20);
 % terr_local_origin_e = onlinedata(21);
+% terr_dis = onlinedata(22);
 % % terrain_data(19881);
 % LEN_TERR_DATA = 225;
 % terrain_data(LEN_TERR_DATA);

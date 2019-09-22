@@ -7,15 +7,13 @@
 // #define LEN_IDX_E 141
 // #define LEN_IDX_N_1 140
 // #define LEN_IDX_E_1 140
-// #define ONE_DIS 1.0
 #define LEN_IDX_N 29
 #define LEN_IDX_E 29
 #define LEN_IDX_N_1 28
 #define LEN_IDX_E_1 28
-#define ONE_DIS 0.2
 
 void lookup_terrain_idx( const double pos_n, const double pos_e, const double pos_n_origin,
-        const double pos_e_origin, int *idx_q, double *dh);
+        const double pos_e_origin, const double terr_dis, int *idx_q, double *dh);
 
 void lsq_obj_eval( real_t *in, real_t *out )
 {
@@ -70,8 +68,9 @@ void lsq_obj_eval( real_t *in, real_t *out )
     const double delta_h = in[29];
     const double terr_local_origin_n = in[30];
     const double terr_local_origin_e = in[31];
-    //const double terrain_data = in[32];
-    int IDX_TERR_DATA = 32;
+    const double terr_dis = in[32];
+    //const double terrain_data = in[33];
+    int IDX_TERR_DATA = 33;
     
     /* INTERMEDIATE CALCULATIONS */
     
@@ -147,7 +146,7 @@ void lsq_obj_eval( real_t *in, real_t *out )
     // lookup 2.5d grid
     int idx_q[4];
     double dh[2];
-    lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e, idx_q, dh);
+    lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, dh);
     
     // bi-linear interpolation
     const double h12 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[0]] + dh[0]*in[IDX_TERR_DATA+idx_q[1]];
@@ -273,8 +272,9 @@ void lsq_objN_eval( real_t *in, real_t *out )
     const double delta_h = in[26];
     const double terr_local_origin_n = in[27];
     const double terr_local_origin_e = in[28];
-    //const double terrain_data = in[29];
-    int IDX_TERR_DATA = 29;
+    const double terr_dis = in[29];
+    //const double terrain_data = in[30];
+    int IDX_TERR_DATA = 30;
     
     /* INTERMEDIATE CALCULATIONS */
     
@@ -350,7 +350,7 @@ void lsq_objN_eval( real_t *in, real_t *out )
     // lookup 2.5d grid
     int idx_q[4];
     double dh[2];
-    lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e, idx_q, dh);
+    lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, dh);
     
     // bi-linear interpolation
     const double h12 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[0]] + dh[0]*in[IDX_TERR_DATA+idx_q[1]];
@@ -410,11 +410,11 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
 }
 
 void lookup_terrain_idx( const double pos_n, const double pos_e, const double pos_n_origin,
-        const double pos_e_origin, int *idx_q, double *dh)
+        const double pos_e_origin, const double terr_dis, int *idx_q, double *dh)
 {
     // relative position / indices
     const double rel_n = pos_n - pos_n_origin;
-    const double rel_n_bar = rel_n * ONE_DIS;
+    const double rel_n_bar = rel_n / terr_dis;
     int idx_n = rel_n_bar;
     if (idx_n < 0) {
         idx_n = 0;
@@ -423,7 +423,7 @@ void lookup_terrain_idx( const double pos_n, const double pos_e, const double po
         idx_n = LEN_IDX_N_1;
     }
     const double rel_e = pos_e - pos_e_origin;
-    const double rel_e_bar = rel_e * ONE_DIS;
+    const double rel_e_bar = rel_e / terr_dis;
     int idx_e = rel_e_bar;
     if (idx_e < 0) {
         idx_e = 0;

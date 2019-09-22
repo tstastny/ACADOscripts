@@ -61,6 +61,7 @@ OnlineData aoa_p;
 OnlineData delta_h;
 OnlineData terr_local_origin_n;
 OnlineData terr_local_origin_e;
+OnlineData terr_dis;
 LEN_TERR_DATA = 841;%19881;
 OnlineData terrain_data(LEN_TERR_DATA);
 
@@ -135,7 +136,7 @@ n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
 n_Y = 8;                    % outputs
 n_Z = 3;                    % objectives
-n_OD = 20+LEN_TERR_DATA;    % online data
+n_OD = 21+LEN_TERR_DATA;    % online data
 
 acadoSet('problemname', 'nmpc');
 

@@ -85,6 +85,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OnlineData delta_h; 
     OnlineData terr_local_origin_n; 
     OnlineData terr_local_origin_e; 
+    OnlineData terr_dis; 
     OnlineData terrain_data1; 
     OnlineData terrain_data2; 
     OnlineData terrain_data3; 
@@ -948,12 +949,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     ocp1.subjectTo(0.00000000000000000000e+00 <= u_T <= 1.00000000000000000000e+00);
     ocp1.subjectTo((-6.10865238198015303439e-01) <= phi_ref <= 6.10865238198015303439e-01);
     ocp1.subjectTo((-2.61799387799149407829e-01) <= theta_ref <= 4.36332312998582383390e-01);
-    ocp1.setNOD( 861 );
+    ocp1.setNOD( 862 );
 
 
     ocp1.setNU( 3 );
     ocp1.setNP( 0 );
-    ocp1.setNOD( 861 );
+    ocp1.setNOD( 862 );
     OCPexport ExportModule1( ocp1 );
     ExportModule1.set( GENERATE_MATLAB_INTERFACE, 1 );
     uint options_flag;

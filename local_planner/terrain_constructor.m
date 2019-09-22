@@ -4,13 +4,12 @@
 terr_origin_n = -5000;
 terr_origin_e = -5000;
 
-dis = 5; % discretization
-one_over_dis = 1/dis;
-dis_2 = dis/2;
+one_over_dis = 1/terr_dis;
+dis_2 = terr_dis/2;
 
 % northing / easting
-nn = terr_origin_n:dis:5000;
-ee = terr_origin_e:dis:5000;
+nn = terr_origin_n:terr_dis:5000;
+ee = terr_origin_e:terr_dis:5000;
 
 len_global_idx_n = length(nn);
 len_global_idx_e = length(ee);

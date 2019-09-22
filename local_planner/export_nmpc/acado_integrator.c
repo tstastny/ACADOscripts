@@ -746,7 +746,7 @@ int tmp_index2;
 real_t det;
 
 acadoWorkspace.rk_ttt = 0.0000000000000000e+00;
-for (lRun8 = 0; lRun8 < 864; ++lRun8)
+for (lRun8 = 0; lRun8 < 865; ++lRun8)
 acadoWorkspace.rk_xxx[lRun8 + 9] = rk_eta[lRun8 + 117];
 
 
