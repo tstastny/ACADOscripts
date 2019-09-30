@@ -1,3 +1,5 @@
+% check that throttle mapping function works
+
 clear; clc;
 
 cT0=0.1326;

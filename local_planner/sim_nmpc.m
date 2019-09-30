@@ -58,7 +58,7 @@ aoa_p = deg2rad(8);
 delta_h = 20;
 len_local_idx_n = 29;
 len_local_idx_e = 29;
-terr_dis = 20;
+terr_dis = 10;
 terrain_constructor;
 
 %% INITIALIZATION ---------------------------------------------------------
@@ -118,7 +118,7 @@ input.WN    = diag(QN_output);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 70;
+Tf = 100;
 Ts = 0.01;
 time = T0:Ts:Tf;
 len_t = length(time);

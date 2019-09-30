@@ -31,3 +31,5 @@ eek = ee(idx_e-len_2_e+1:idx_e+len_2_e+1);
 
 terr_local_origin_n = nnk(1);
 terr_local_origin_e = eek(1);
+
+
