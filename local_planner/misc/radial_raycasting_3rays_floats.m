@@ -2,7 +2,7 @@
 % radial ray casting (3 rays, use floats)
 % / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
 
-clear; clc; %close all;
+clear; clc; close all;
 
 % aircraft position
 r_n = 2.5;
@@ -11,8 +11,8 @@ r_d = -8.9;
 
 % aircraft velocity axis
 v = 15;
-xi = deg2rad(0);
-gamma = deg2rad(0);
+xi = deg2rad(61);
+gamma = deg2rad(5);
 
 % wind axis 
 w_n = 0;
@@ -61,7 +61,8 @@ terr_map_interpolated = false;
 %% ray casting  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 % ray vector
-mag_ray = (norm_vG^2 / g / tan(phi_max) * k_r + delta_r0) + terr_dis;
+delta_r = norm_vG^2 / g / tan(phi_max) * k_r + delta_r0; % radial buffer zone
+mag_ray = delta_r + terr_dis;
 v_ray = vG/norm_vG * mag_ray;
 
 % start/end pos of ray
@@ -72,6 +73,31 @@ output_everything = true;
 % cast the ray
 [x_occ, y_occ, h_occ, occ_detected, tri, d_occ, p_occ, p1, p2, p3] = ...
     castray_float(r0, r1, vG/norm_vG, terr_dis, terr_mat, len_ee, len_nn, output_everything);
+
+%% radial cost
+
+% calculate radial cost
+if (d_occ < delta_r)
+    sig_r = (delta_r - d_occ)^3;
+else
+    sig_r = 0;
+end
+disp(['Radial cost = ',num2str(sig_r)]);
+
+% calculate radial cost jacobians
+if occ_detected
+    if tri == 0
+        Del_sig_r = jac_sig_r_br(r_n,r_e,r_d,v,gamma,xi,w_e,w_n,w_d,terr_dis,p1(2),p1(1),p1(3),p2(2),p2(1),p2(3),p3(2),p3(1),p3(3),phi_max,delta_r0,g,k_r);
+    elseif tri == 1
+        Del_sig_r = jac_sig_r_tl(r_n,r_e,r_d,v,gamma,xi,w_e,w_n,w_d,terr_dis,p1(2),p1(1),p1(3),p2(2),p2(1),p2(3),p3(2),p3(1),p3(3),phi_max,delta_r0,g,k_r);
+    end
+end
+disp(['d(sig_r)/d(r_n) = ',num2str(Del_sig_r(1))]);
+disp(['d(sig_r)/d(r_e) = ',num2str(Del_sig_r(2))]);
+disp(['d(sig_r)/d(r_d) = ',num2str(Del_sig_r(3))]);
+disp(['d(sig_r)/d(v) = ',num2str(Del_sig_r(4))]);
+disp(['d(sig_r)/d(gamma) = ',num2str(Del_sig_r(5))]);
+disp(['d(sig_r)/d(xi) = ',num2str(Del_sig_r(6))]);
 
 %% interpolate terrain map  - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -112,7 +138,7 @@ for i = 1:length(x_occ)
         if occ_detected
             fill_c = [1 0.8 0.8];
             edge_c = [1 0 0];
-            lw = 2;
+            lw = 1;
         else
             fill_c = [0.8 0.8 0.8];
             edge_c = [0 0 0];
@@ -154,21 +180,30 @@ circ_y2 = rot_chi(2,:) * [circ_x1; circ_y1; circ_z1];
 circ_z2 = rot_chi(3,:) * [circ_x1; circ_y1; circ_z1];
 plot3(circ_x2 + r_e, circ_y2 + r_n, -r_d + circ_z2, '--g', 'linewidth', 1);
 
-% ray
-plot3([r0(2) r1(2)], [r0(1) r1(1)], -[r0(3) r1(3)], '-g', 'linewidth', 1);
-
 % ray-triangle intersection
 if occ_detected
+    
     % violated triangle
-    ht = fill3([p1(1) p2(1) p3(1) p1(1)], ...
-        [p1(2) p2(2) p3(2) p1(2)], ...
-        [p1(3) p2(3) p3(3) p1(3)]+0.1, ...
-        [1 0 0]);
-    set(ht,'facealpha',.8)
+    tri_off = 0;
+    to_vG = tri_off/norm_vG;
+    ht = fill3([p1(1) p2(1) p3(1) p1(1)]-vG(2)*to_vG, ...
+        [p1(2) p2(2) p3(2) p1(2)]-vG(1)*to_vG, ...
+        [p1(3) p2(3) p3(3) p1(3)]+vG(3)*to_vG, ...
+        [1 0 0], 'linewidth', 2, 'edgecolor', [1 0 0]);
+    set(ht,'facealpha',.6)
     
     % interception point
     plot3([r0(2) p_occ(1)], [r0(1) p_occ(2)], [-r0(3) p_occ(3)], '-r', 'linewidth', 2);
-    plot3(p_occ(1), p_occ(2), p_occ(3), 'rs', 'markersize', 5);
+    plot3(p_occ(1), p_occ(2), p_occ(3), 'ro', 'markersize', 10);
+    
+    % negative position jacobian
+    sz = 2/norm(Del_sig_r(1:3));
+    quiver3(r0(2), r0(1), -r0(3), ...
+        -Del_sig_r(2)*sz, -Del_sig_r(1)*sz, Del_sig_r(3)*sz, ...
+        'm');
+else
+    % ray
+    plot3([r0(2) r1(2)], [r0(1) r1(1)], -[r0(3) r1(3)], '-g', 'linewidth', 1);
 end
 
 xlabel('East [m]');

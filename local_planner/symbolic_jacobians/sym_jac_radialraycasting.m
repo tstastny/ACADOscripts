@@ -36,25 +36,32 @@ vG = [ ...
 vG_2 = vG(1)^2 + vG(2)^2 + vG(3)^2;
 norm_vG = sqrt(vG_2);
 
+% A = y2 * z3 - y3 * z2 - y1 * (z3 - z2) + z1 * (y3 - y2);
+% B = x1 * (z3 - z2 ) - (x2 * z3 - x3 * z2) + z1 * (x2 - x3);
+% C = x1 * (y2 - y3) - y1 * (x2 - x3) + (x2 * y3 - x3 * y2);
+% D = x1 * (y2 * z3 - y3 * z2) + y1 * (x2 * z3 - x3 * z2) - z1 * (x2 * y3 - x3 * y2);
+
 % triangulated plane coefficients
 % (top left, right triangle)
-A_tl = -terr_dis * (p2_h - p1_h);
-B_tl = -terr_dis * (p3_h - p2_h);
-C_tl = terr_dis^2;
+A_tl = terr_dis * (p3_h - p2_h);
+B_tl = terr_dis * (p2_h - p1_h);
+C_tl = -terr_dis^2;
+D_tl = p1_h * terr_dis^2; 
 % (bottom right, right triangle)
-A_br = terr_dis * (p3_h - p2_h);
-B_br = terr_dis * (p2_h - p1_h);
-C_br = -terr_dis^2;
+A_br = terr_dis * (p1_h - p2_h);
+B_br = terr_dis * (p2_h - p3_h);
+C_br = terr_dis^2;
+D_br = -p1_h * terr_dis^2;
 
-% horizontal distance to triangulated plane (ul)
-r_ne_tl = -(A_tl*(r_e - p1_e) + B_tl*(r_n - p1_n) + C_tl*(-r_d - p1_h)) * norm_vG / (A_tl*vG(2) + B_tl*vG(1) + C_tl*-vG(3));
-% horizontal distance to triangulated plane (br)
-r_ne_br = -(A_br*(r_e - p1_e) + B_br*(r_n - p1_n) + C_br*(-r_d - p1_h)) * norm_vG / (A_br*vG(2) + B_br*vG(1) + C_br*-vG(3));
+% distance to triangulated plane (ul)
+r_tl = -(A_tl*(r_e-p1_e) + B_tl*(r_n-p1_n) + C_tl*(-r_d-p1_h) + D_tl) * norm_vG / (A_tl*vG(2) + B_tl*vG(1) + C_tl*-vG(3));
+% distance to triangulated plane (br)
+r_br = -(A_br*(r_e-p1_e) + B_br*(r_n-p1_n) + C_br*(-r_d-p1_h) + D_br) * norm_vG / (A_br*vG(2) + B_br*vG(1) + C_br*-vG(3));
 
 % radial cost (when buffer is violated)
 delta_r = delta_r0 + vG_2/g/tan(phi_max)*k_r;
-sig_r_tl = (r_ne_tl - delta_r)^3;
-sig_r_br = (r_ne_br - delta_r)^3;
+sig_r_tl = (delta_r - r_tl)^3;
+sig_r_br = (delta_r - r_br)^3;
 
 % jacobian of radial cost
 jac_sig_r_tl = jacobian(sig_r_tl, [r_n; r_e; r_d; v; gamma; xi]);
@@ -64,11 +71,11 @@ jac_sig_r_br = jacobian(sig_r_br, [r_n; r_e; r_d; v; gamma; xi]);
 %% export to m code
 matlabFunction(jac_sig_r_tl,'File','jac_sig_r_tl.m', ...
     'Vars',{r_n, r_e, r_d, v, gamma, xi, w_e, w_n, w_d, ...
-    terr_dis, p1_e, p1_h, p2_h, p3_h, p1_n, phi_max, ...
+    terr_dis, p1_n, p1_e, p1_h, p2_n, p2_e, p2_h, p3_n, p3_e, p3_h, phi_max, ...
     delta_r0, g, k_r},'Outputs',{'out'});
 matlabFunction(jac_sig_r_br,'File','jac_sig_r_br.m', ...
     'Vars',{r_n, r_e, r_d, v, gamma, xi, w_e, w_n, w_d, ...
-    terr_dis, p1_e, p1_h, p2_h, p3_h, p1_n, phi_max, ...
+    terr_dis, p1_n, p1_e, p1_h, p2_n, p2_e, p2_h, p3_n, p3_e, p3_h, phi_max, ...
     delta_r0, g, k_r},'Outputs',{'out'});
 
 %% export to c code

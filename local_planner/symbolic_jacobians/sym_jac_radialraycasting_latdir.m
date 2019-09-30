@@ -1,5 +1,8 @@
 % / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
 % symbolic jacobian for radial ray casting cost (lateral-directional only)
+% DEPRECATED: if this is revived at some point - remember that the radial
+% values within the cubic cost should be flipped to make sure they are
+% always positive
 % / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
 
 clear; clc;
