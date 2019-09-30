@@ -1,5 +1,5 @@
 % / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
-% radial ray casting (3 rays, use floats)
+% radial ray casting (use floats, intersect triangles)
 % / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
 
 clear; clc; close all;
@@ -11,8 +11,8 @@ r_d = -8.9;
 
 % aircraft velocity axis
 v = 15;
-xi = deg2rad(61);
-gamma = deg2rad(5);
+xi = deg2rad(35);
+gamma = deg2rad(10);
 
 % wind axis 
 w_n = 0;
