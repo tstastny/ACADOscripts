@@ -476,7 +476,7 @@ void lookup_terrain_idx( const double pos_n, const double pos_e, const double po
     }
     // neighbors (east)
     int q_e[4];
-    if (q1_e >= LEN_IDX_N_1) {
+    if (q1_e >= LEN_IDX_E_1) {
         q_e[0] = LEN_IDX_E_1;
         q_e[1] = LEN_IDX_E_1;
         q_e[2] = LEN_IDX_E_1;
