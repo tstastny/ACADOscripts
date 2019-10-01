@@ -6,16 +6,16 @@ clear; clc; close all;
 
 % aircraft position
 r_n = 2.5;
-r_e = 5.1;
+r_e = 4.5;
 r_d = -8.9;
 
 % aircraft velocity axis
 v = 15;
-xi = deg2rad(35);
-gamma = deg2rad(10);
+xi = deg2rad(0);
+gamma = deg2rad(-1);
 
 % wind axis 
-w_n = 0;
+w_n = 10;
 w_e = 0;
 w_d = 0;
 
@@ -51,6 +51,7 @@ terr_mat = [...
     0 0 0 6 8 10 14 16 19 22 25;
     0 0 0 6 12 14 16 20 25 28 30;
     ] * 1.4;
+terr_mat(:,1) = 20;
 [len_nn, len_ee] = size(terr_mat);
 nn = (0:terr_dis:(len_nn-1)*terr_dis)';
 ee = (0:terr_dis:(len_ee-1)*terr_dis)';
@@ -71,7 +72,7 @@ r1 = r0 + v_ray;
 
 output_everything = true;
 % cast the ray
-[x_occ, y_occ, h_occ, occ_detected, tri, d_occ, p_occ, p1, p2, p3] = ...
+[x_occ, y_occ, h_occ, occ_detected, tri, d_occ, p_occ, p1, p2, p3, i_occ, t_init, t1, t2 ,t3] = ...
     castray_float(r0, r1, vG/norm_vG, terr_dis, terr_mat, len_ee, len_nn, output_everything);
 
 %% radial cost
@@ -91,13 +92,13 @@ if occ_detected
     elseif tri == 1
         Del_sig_r = jac_sig_r_tl(r_n,r_e,r_d,v,gamma,xi,w_e,w_n,w_d,terr_dis,p1(2),p1(1),p1(3),p2(2),p2(1),p2(3),p3(2),p3(1),p3(3),phi_max,delta_r0,g,k_r);
     end
+    disp(['d(sig_r)/d(r_n) = ',num2str(Del_sig_r(1))]);
+    disp(['d(sig_r)/d(r_e) = ',num2str(Del_sig_r(2))]);
+    disp(['d(sig_r)/d(r_d) = ',num2str(Del_sig_r(3))]);
+    disp(['d(sig_r)/d(v) = ',num2str(Del_sig_r(4))]);
+    disp(['d(sig_r)/d(gamma) = ',num2str(Del_sig_r(5))]);
+    disp(['d(sig_r)/d(xi) = ',num2str(Del_sig_r(6))]);
 end
-disp(['d(sig_r)/d(r_n) = ',num2str(Del_sig_r(1))]);
-disp(['d(sig_r)/d(r_e) = ',num2str(Del_sig_r(2))]);
-disp(['d(sig_r)/d(r_d) = ',num2str(Del_sig_r(3))]);
-disp(['d(sig_r)/d(v) = ',num2str(Del_sig_r(4))]);
-disp(['d(sig_r)/d(gamma) = ',num2str(Del_sig_r(5))]);
-disp(['d(sig_r)/d(xi) = ',num2str(Del_sig_r(6))]);
 
 %% interpolate terrain map  - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -210,3 +211,23 @@ xlabel('East [m]');
 ylabel('North [m]');
 zlabel('Height [m]');
 
+%% timing
+
+figure('color','w'); 
+
+subplot(2,1,1); hold on; grid on; box on;
+
+plot(1:i_occ,t1(1:i_occ)*1e3);
+plot(1:i_occ,t2(1:i_occ)*1e3);
+plot(1:i_occ,t3(1:i_occ)*1e3);
+
+xlabel('iteration');
+ylabel('time [ms]');
+
+subplot(2,1,2); hold on; grid on; box on;
+
+tt=[t_init*1e3,sum(t1(1:i_occ)*1e3),sum(t1(1:i_occ)*1e3),sum(t1(1:i_occ)*1e3)];
+bar([tt,sum(tt)]);
+disp(['sum t * 60 = ',num2str(sum(tt)*70),' ms']);
+
+ylabel('time [ms]');
