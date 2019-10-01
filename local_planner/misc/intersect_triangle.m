@@ -1,4 +1,4 @@
-function [ret, t, p] = intersect_triangle(r, v, p1, p2, p3)
+function [ret, t, p] = intersect_triangle(r, v_ray, p1, p2, p3)
 % following: "Fast, Minimum Storage Ray/Triangle Intersection", Moeller et.
 % al., Journal of Graphics Tools, Vol.2(1), 1997
 
@@ -14,7 +14,7 @@ e1 = p2 - p1;
 e2 = p3 - p1;
 
 % begin calculating determinant - also used to calculate U parameter
-pvec = cross(v, e2);
+pvec = cross(v_ray, e2);
 
 % we don't test for backwards culling here as, assuming this ray casting
 % algorithm is properly detecting the first occluding triangles, we should
@@ -45,7 +45,7 @@ end
 qvec = cross(tvec, e1);
 
 % calculate v parameter and test bounds
-v = dot(v, qvec) * inv_det;
+v = dot(v_ray, qvec) * inv_det;
 if (v < 0.0 || u + v > 1.0)
     ret = false;
     return;
