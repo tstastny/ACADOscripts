@@ -17,7 +17,7 @@ n_U = 3;
 n_X = 9; % number of nmpc states
 n_Y = 9;
 n_Z = 3;
-n_OD = 21+841;
+n_OD = 21+3249;%841;
 
 Ts_step = 0.1; % step size in nmpc
 Ts_nmpc = 0.1; % interval between nmpc calls
@@ -56,9 +56,9 @@ aoa_p = deg2rad(8);
 
 % terrain avoidance
 delta_h = 20;
-len_local_idx_n = 29;
-len_local_idx_e = 29;
-terr_dis = 10;
+len_local_idx_n = 57;%29;
+len_local_idx_e = 57;%29;
+terr_dis = 5;
 terrain_constructor;
 
 %% INITIALIZATION ---------------------------------------------------------
@@ -95,8 +95,8 @@ zref = [0.5 0 deg2rad(3)];
 Q_scale = [1 1 1 1 1 1 1 1 1];
 R_scale = [0.1 deg2rad(1) deg2rad(1)];
 
-Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 0*1e7]./Q_scale.^2;
-QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 0*1e7]./Q_scale.^2;
+Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e7]./Q_scale.^2;
+QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e7]./Q_scale.^2;
 R_controls  = [1e1 1e0 1e0]./R_scale.^2;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);

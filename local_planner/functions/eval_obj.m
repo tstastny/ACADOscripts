@@ -170,10 +170,15 @@ function [idx_q, dh] = lookup_terrain_idx( pos_n, pos_e, pos_n_origin, pos_e_ori
 %     LEN_IDX_N_1 = 140;
 %     LEN_IDX_E_1 = 140;
 
-    LEN_IDX_N = 29;
-    LEN_IDX_E = 29;
-    LEN_IDX_N_1 = 28;
-    LEN_IDX_E_1 = 28;
+%     LEN_IDX_N = 29;
+%     LEN_IDX_E = 29;
+%     LEN_IDX_N_1 = 28;
+%     LEN_IDX_E_1 = 28;
+
+    LEN_IDX_N = 57;
+    LEN_IDX_E = 57;
+    LEN_IDX_N_1 = 56;
+    LEN_IDX_E_1 = 56;
     
     % relative position / indices
     rel_n = pos_n - pos_n_origin;

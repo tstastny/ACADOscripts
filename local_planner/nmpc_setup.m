@@ -62,7 +62,7 @@ OnlineData delta_h;
 OnlineData terr_local_origin_n;
 OnlineData terr_local_origin_e;
 OnlineData terr_dis;
-LEN_TERR_DATA = 841;%19881;
+LEN_TERR_DATA = 3249;%19881;
 OnlineData terrain_data(LEN_TERR_DATA);
 
 % MODEL -------------------------------------------------------------------
