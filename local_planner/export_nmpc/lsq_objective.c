@@ -2,6 +2,8 @@
 #include <math.h>
 #include <string.h>
 
+#define EPSILON 0.000001
+
 // lookup table constants
 // #define LEN_IDX_N 141
 // #define LEN_IDX_E 141
@@ -12,8 +14,54 @@
 #define LEN_IDX_N_1 28
 #define LEN_IDX_E_1 28
 
-void lookup_terrain_idx( const double pos_n, const double pos_e, const double pos_n_origin,
+// math functions / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
+int constrain_int(int x, int xmin, int xmax) {
+    return (x < xmin) ? xmin : ((x > xmax) ? xmax : x);
+}
+
+void cross(double *v, const double v1[3], const double v2[3]) {
+    v[0] = v1[1]*v2[2] - v1[2]*v2[1];
+    v[1] = v1[2]*v2[0] - v1[0]*v2[2];
+    v[2] = v1[0]*v2[1] - v1[1]*v2[0];
+}
+
+double dot(const double v1[3], const double v2[3]) {
+    return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
+}
+// / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
+
+// objective helper functions / / / / / / / / / / / / / / / / / / / / / / /
+void lookup_terrain_idx(const double pos_n, const double pos_e, const double pos_n_origin,
         const double pos_e_origin, const double terr_dis, int *idx_q, double *dh);
+
+void jac_sig_r_br(double *jac,
+        const double r_n, const double r_e, const double r_d,
+        const double v, const double gamma, const double xi,
+        const double w_e, const double w_n, const double w_d,
+        const double terr_dis,
+        const double p1_n, const double p1_e, const double p1_h,
+        const double p2_n, const double p2_e, const double p2_h,
+        const double p3_n, const double p3_e, const double p3_h,
+        const double phi_max, const double delta_r0, const double g, const double k_r);
+        
+void jac_sig_r_tl(double *jac,
+        const double r_n, const double r_e, const double r_d,
+        const double v, const double gamma, const double xi,
+        const double w_e, const double w_n, const double w_d,
+        const double terr_dis,
+        const double p1_n, const double p1_e, const double p1_h,
+        const double p2_n, const double p2_e, const double p2_h,
+        const double p3_n, const double p3_e, const double p3_h,
+        const double phi_max, const double delta_r0, const double g, const double k_r);
+
+int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
+        const double r0[3], const double r1[3], const double v[3],
+        const double pos_n_origin, const double pos_e_origin, const double terr_dis, double *terr_map);
+
+int intersect_triangle(double *d_occ, double *p_occ,
+        const double r0[3], const double v[3],
+        const double p1[3], const double p2[3], const double p3[3]);
+// / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
 
 void lsq_obj_eval( real_t *in, real_t *out )
 {
@@ -176,19 +224,104 @@ void lsq_obj_eval( real_t *in, real_t *out )
     out[7] = sig_h * prio_aoa;
     
     // control output
-    out[8] = u_T;
-    out[9] = phi_ref;
-    out[10] = theta_ref;
+    out[9] = u_T;
+    out[10] = phi_ref;
+    out[11] = theta_ref;
 }
 
 void acado_evaluateLSQ( const real_t *in, real_t *out )
 {
     double in_Delta[ACADO_NX+ACADO_NU+ACADO_NOD];
     memcpy(in_Delta, in, sizeof(in_Delta));
+    
+    // EVALUATE (MOST) OBJECTIVES / / / / / / / / / / / / / / / / / / / / /
     lsq_obj_eval( in_Delta, out );
+    
+    // HANDLE OTHER OBJECTIVES / / / / / / / / / / / / / / / / / / / / / /
+    
+    // copy for easy reading..
+    /* states */
+    const double r_n = in_Delta[0];
+    const double r_e = in_Delta[1];
+    const double r_d = in_Delta[2];
+    const double v = in_Delta[3];
+    const double gamma = in_Delta[4];
+    const double xi = in_Delta[5];
+    /* online data */
+    const double w_n = in_Delta[12];
+    const double w_e = in_Delta[13];
+    const double w_d = in_Delta[14];
+    // soft angle of attack constraints
+    const double delta_aoa = in_Delta[26];
+    const double aoa_m = in_Delta[27];
+    const double aoa_p = in_Delta[28];
+    // terrain
+    const double terr_local_origin_n = in_Delta[30];
+    const double terr_local_origin_e = in_Delta[31];
+    const double terr_dis = in_Delta[32];
+    int IDX_TERR_DATA = 33;
+    // intermediate calculations
+    // ground speed
+    double v_cos_gamma = v*cos(gamma);
+    const double vG_n = v_cos_gamma*cos(xi) + w_n;
+    const double vG_e = v_cos_gamma*sin(xi) + w_e;
+    const double vG_d = -v*sin(gamma) + w_d;
+    const double vG_norm = sqrt(vG_n*vG_n + vG_e*vG_e + vG_d*vG_d);
+    
+    // cast ray along ground speed vector to check for occlusions
+    double d_occ;
+    double p_occ[3];
+    double p1[3];
+    double p2[3];
+    double p3[3];
+    double r0[3];
+    double v_ray[3] = {vG_e/vG_norm, vG_n/vG_norm, -vG_d/vG_norm}; // in ENU
+    const double phi_max = 0.6109;
+    const double delta_r0 = 10.0;
+    const double g = 9.81;
+    const double k_r = 1.0;
+    const double delta_r = vG_norm * vG_norm * 14.0101 * k_r + delta_r0; // radial buffer zone
+    const double d_ray = delta_r + terr_dis;
+    double r1[3] = {r0[0] + v_ray[0] * d_ray, r0[1] + v_ray[1] * d_ray, r0[2] + v_ray[2] * d_ray};
+    int occ_detected = castray(&d_occ, p_occ, p1, p2, p3, r0, r1, v_ray,
+        terr_local_origin_n, terr_local_origin_e, terr_dis, in_Delta+IDX_TERR_DATA);
+    
+    // calculate radial cost
+    double sig_r = 0.0;
+    if ((d_occ < delta_r) && occ_detected>0) {
+        sig_r = (delta_r - d_occ);
+        sig_r = sig_r*sig_r*sig_r;
+    }
+    out[8] = sig_r;
 
     /* lsq_obj jacobians */
+    
+    // calculate radial cost jacobians
+    double jac_sig_r[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    if (occ_detected==2) {
+        jac_sig_r_tl(jac_sig_r,
+            r_n, r_e, r_d,
+            v, gamma, xi,
+            w_e, w_n, w_d,
+            terr_dis,
+            p1[0], p1[1], p1[2],
+            p2[0], p2[1], p2[2],
+            p3[0], p3[1], p3[2],
+            phi_max, delta_r0, g, k_r);
+    }
+    else if (occ_detected==1) {
+        jac_sig_r_br(jac_sig_r,
+            r_n, r_e, r_d,
+            v, gamma, xi,
+            w_e, w_n, w_d,
+            terr_dis,
+            p1[0], p1[1], p1[2],
+            p2[0], p2[1], p2[2],
+            p3[0], p3[1], p3[2],
+            phi_max, delta_r0, g, k_r);
+    }
 
+    // numerical jacobians / / / / / / / / / / / / / / / / / / / / / / / /
     double f_Delta_m[ACADO_NY];
     double f_Delta_p[ACADO_NY];
     const double Delta = 0.00001;
@@ -204,10 +337,22 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
         lsq_obj_eval( in_Delta, f_Delta_p );
         in_Delta[i] = in[i];
         
-        for (j = 0; j < ACADO_NY; j=j+1) {
+        for (j = 0; j < 8; j=j+1) {
+            out[ACADO_NY+j*ACADO_NX+i] = (f_Delta_p[j] - f_Delta_m[j]) / Delta2;
+        }
+        for (j = 9; j < ACADO_NY; j=j+1) {
             out[ACADO_NY+j*ACADO_NX+i] = (f_Delta_p[j] - f_Delta_m[j]) / Delta2;
         }
     }
+    out[ACADO_NY+8*ACADO_NX+0] = jac_sig_r[0];
+    out[ACADO_NY+8*ACADO_NX+1] = jac_sig_r[1];
+    out[ACADO_NY+8*ACADO_NX+2] = jac_sig_r[2];
+    out[ACADO_NY+8*ACADO_NX+3] = jac_sig_r[3];
+    out[ACADO_NY+8*ACADO_NX+4] = jac_sig_r[4];
+    out[ACADO_NY+8*ACADO_NX+5] = jac_sig_r[5];
+    out[ACADO_NY+8*ACADO_NX+6] = 0.0;
+    out[ACADO_NY+8*ACADO_NX+7] = 0.0;
+    out[ACADO_NY+8*ACADO_NX+8] = 0.0;
 
     for (i = 0; i < ACADO_NU; i=i+1) {
 
@@ -217,10 +362,16 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
         lsq_obj_eval( in_Delta, f_Delta_p );
         in_Delta[i+ACADO_NX] = in[i+ACADO_NX];
 
-        for (j = 0; j < ACADO_NY; j=j+1) {
+        for (j = 0; j < 8; j=j+1) {
+            out[ACADO_NY+ACADO_NY*ACADO_NX+j*ACADO_NU+i] = (f_Delta_p[j] - f_Delta_m[j]) / Delta2;
+        }
+        for (j = 9; j < ACADO_NY-1; j=j+1) {
             out[ACADO_NY+ACADO_NY*ACADO_NX+j*ACADO_NU+i] = (f_Delta_p[j] - f_Delta_m[j]) / Delta2;
         }
     }
+    out[ACADO_NY+ACADO_NY*ACADO_NX+8*ACADO_NU+0] = 0.0;
+    out[ACADO_NY+ACADO_NY*ACADO_NX+8*ACADO_NU+1] = 0.0;
+    out[ACADO_NY+ACADO_NY*ACADO_NX+8*ACADO_NU+2] = 0.0;
 
 }
 
@@ -384,7 +535,95 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
 {
     double in_Delta[ACADO_NX+ACADO_NOD];
     memcpy(in_Delta, in, sizeof(in_Delta));
+    
+    // EVALUATE (MOST) OBJECTIVES / / / / / / / / / / / / / / / / / / / / /
     lsq_objN_eval( in_Delta, out );
+    
+    // HANDLE OTHER OBJECTIVES / / / / / / / / / / / / / / / / / / / / / /
+    
+    // copy for easy reading..
+    /* states */
+    const double r_n = in_Delta[0];
+    const double r_e = in_Delta[1];
+    const double r_d = in_Delta[2];
+    const double v = in_Delta[3];
+    const double gamma = in_Delta[4];
+    const double xi = in_Delta[5];
+    /* online data */
+    const double w_n = in_Delta[9];
+    const double w_e = in_Delta[10];
+    const double w_d = in_Delta[11];
+    // soft angle of attack constraints
+    const double delta_aoa = in_Delta[23];
+    const double aoa_m = in_Delta[24];
+    const double aoa_p = in_Delta[25];
+    // terrain
+    const double terr_local_origin_n = in_Delta[27];
+    const double terr_local_origin_e = in_Delta[28];
+    const double terr_dis = in_Delta[29];
+    int IDX_TERR_DATA = 30;
+    // intermediate calculations
+    // ground speed
+    double v_cos_gamma = v*cos(gamma);
+    const double vG_n = v_cos_gamma*cos(xi) + w_n;
+    const double vG_e = v_cos_gamma*sin(xi) + w_e;
+    const double vG_d = -v*sin(gamma) + w_d;
+    const double vG_norm = sqrt(vG_n*vG_n + vG_e*vG_e + vG_d*vG_d);
+    
+    // cast ray along ground speed vector to check for occlusions
+    double d_occ;
+    double p_occ[3];
+    double p1[3];
+    double p2[3];
+    double p3[3];
+    double r0[3];
+    double v_ray[3] = {vG_e/vG_norm, vG_n/vG_norm, -vG_d/vG_norm}; // in ENU
+    const double phi_max = 0.6109;
+    const double delta_r0 = 10.0;
+    const double g = 9.81;
+    const double k_r = 1.0;
+    const double delta_r = vG_norm * vG_norm * 14.0101 * k_r + delta_r0; // radial buffer zone
+    const double d_ray = delta_r + terr_dis;
+    double r1[3] = {r0[0] + v_ray[0] * d_ray, r0[1] + v_ray[1] * d_ray, r0[2] + v_ray[2] * d_ray};
+    int occ_detected = castray(&d_occ, p_occ, p1, p2, p3, r0, r1, v_ray,
+        terr_local_origin_n, terr_local_origin_e, terr_dis, in_Delta+IDX_TERR_DATA);
+    
+    // calculate radial cost
+    double sig_r = 0.0;
+    if ((d_occ < delta_r) && occ_detected>0) {
+        sig_r = (delta_r - d_occ);
+        sig_r = sig_r*sig_r*sig_r;
+    }
+    out[8] = sig_r;
+
+    /* lsq_obj jacobians */
+    
+    // calculate radial cost jacobians
+    double jac_sig_r[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    if (occ_detected==2) {
+        jac_sig_r_tl(jac_sig_r,
+            r_n, r_e, r_d,
+            v, gamma, xi,
+            w_e, w_n, w_d,
+            terr_dis,
+            p1[0], p1[1], p1[2],
+            p2[0], p2[1], p2[2],
+            p3[0], p3[1], p3[2],
+            phi_max, delta_r0, g, k_r);
+    }
+    else if (occ_detected==1) {
+        jac_sig_r_br(jac_sig_r,
+            r_n, r_e, r_d,
+            v, gamma, xi,
+            w_e, w_n, w_d,
+            terr_dis,
+            p1[0], p1[1], p1[2],
+            p2[0], p2[1], p2[2],
+            p3[0], p3[1], p3[2],
+            phi_max, delta_r0, g, k_r);
+    }
+
+    // numerical jacobians / / / / / / / / / / / / / / / / / / / / / / / /
 
     /* lsq_objN jacobians */
 
@@ -403,13 +642,22 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
         lsq_objN_eval( in_Delta, f_Delta_p );
         in_Delta[i] = in[i];
 
-        for (j = 0; j < ACADO_NYN; j=j+1) {
+        for (j = 0; j < ACADO_NYN-1; j=j+1) {
             out[ACADO_NYN+j*ACADO_NX+i] = (f_Delta_p[j] - f_Delta_m[j]) / Delta2;
         }
     }
+    out[ACADO_NYN+(ACADO_NYN-1)*ACADO_NX+0] = jac_sig_r[0];
+    out[ACADO_NYN+(ACADO_NYN-1)*ACADO_NX+1] = jac_sig_r[1];
+    out[ACADO_NYN+(ACADO_NYN-1)*ACADO_NX+2] = jac_sig_r[2];
+    out[ACADO_NYN+(ACADO_NYN-1)*ACADO_NX+3] = jac_sig_r[3];
+    out[ACADO_NYN+(ACADO_NYN-1)*ACADO_NX+4] = jac_sig_r[4];
+    out[ACADO_NYN+(ACADO_NYN-1)*ACADO_NX+5] = jac_sig_r[5];
+    out[ACADO_NYN+(ACADO_NYN-1)*ACADO_NX+6] = 0.0;
+    out[ACADO_NYN+(ACADO_NYN-1)*ACADO_NX+7] = 0.0;
+    out[ACADO_NYN+(ACADO_NYN-1)*ACADO_NX+8] = 0.0;
 }
 
-void lookup_terrain_idx( const double pos_n, const double pos_e, const double pos_n_origin,
+void lookup_terrain_idx(const double pos_n, const double pos_e, const double pos_n_origin,
         const double pos_e_origin, const double terr_dis, int *idx_q, double *dh)
 {
     // relative position / indices
@@ -499,3 +747,756 @@ void lookup_terrain_idx( const double pos_n, const double pos_e, const double po
     dh[0] = dh_n;
     dh[1] = dh_e;
 }
+
+void jac_sig_r_br(double *jac,
+        const double r_n, const double r_e, const double r_d,
+        const double v, const double gamma, const double xi,
+        const double w_e, const double w_n, const double w_d,
+        const double terr_dis,
+        const double p1_n, const double p1_e, const double p1_h,
+        const double p2_n, const double p2_e, const double p2_h,
+        const double p3_n, const double p3_e, const double p3_h,
+        const double phi_max, const double delta_r0, const double g, const double k_r) {
+        
+    const double t2 = p2_h-p3_h;
+    const double t3 = cos(gamma);
+    const double t4 = cos(xi);
+    const double t5 = t3*t4*v;
+    const double t6 = t5+w_n;
+    const double t7 = sin(xi);
+    const double t8 = t3*t7*v;
+    const double t9 = t8+w_e;
+    const double t10 = sin(gamma);
+    const double t16 = t10*v;
+    const double t11 = -t16+w_d;
+    const double t12 = terr_dis*terr_dis;
+    const double t13 = p1_h-p2_h;
+    const double t14 = t6*t6;
+    const double t15 = t9*t9;
+    const double t17 = t11*t11;
+    const double t18 = t14+t15+t17;
+    const double t20 = t11*t12;
+    const double t21 = t2*t6*terr_dis;
+    const double t22 = t9*t13*terr_dis;
+    const double t23 = -t20+t21+t22;
+    const double t24 = 1.0/t23;
+    const double t25 = sqrt(t18);
+    const double t26 = p1_h+r_d;
+    const double t27 = t12*t26;
+    const double t28 = p1_h*t12;
+    const double t29 = p1_e-r_e;
+    const double t30 = t13*t29*terr_dis;
+    const double t31 = p1_n-r_n;
+    const double t32 = t2*t31*terr_dis;
+    const double t33 = t27+t28+t30+t32;
+    const double t34 = t24*t25*t33;
+    const double t35 = 1.0/g;
+    const double t36 = tan(phi_max);
+    const double t37 = 1.0/t36;
+    const double t38 = k_r*t18*t35*t37;
+    const double t19 = delta_r0-t34+t38;
+    const double t39 = t19*t19;
+    const double t40 = t3*t4*t6*2.0;
+    const double t41 = t3*t7*t9*2.0;
+    const double t42 = t40+t41-t10*t11*2.0;
+    const double t43 = 1.0/(t23*t23);
+    const double t44 = t3*t11*v*2.0;
+    const double t45 = t4*t6*t10*v*2.0;
+    const double t46 = t7*t9*t10*v*2.0;
+    const double t47 = t44+t45+t46;
+    const double t48 = 1.0/sqrt(t18);
+    const double t49 = t3*t4*t9*v*2.0;
+    const double t50 = t49-t3*t6*t7*v*2.0;
+    jac[0] = t2*t24*t25*t39*terr_dis*3.0;
+    jac[1] = t13*t24*t25*t39*terr_dis*3.0;
+    jac[2] = t12*t24*t25*t39*-3.0;
+    jac[3] = t39*(k_r*t35*t37*t42-t24*t33*t42*t48*(1.0/2.0)+t25*t33*t43*(t10*t12+t2*t3*t4*terr_dis+t3*t7*t13*terr_dis))*3.0;
+    jac[4] = t39*(t25*t33*t43*(-t3*t12*v+t2*t4*t10*terr_dis*v+t7*t10*t13*terr_dis*v)+k_r*t35*t37*t47-t24*t33*t47*t48*(1.0/2.0))*-3.0;
+    jac[5] = t39*(-k_r*t35*t37*t50+t24*t33*t48*t50*(1.0/2.0)+t25*t33*t43*(t2*t3*t7*terr_dis*v-t3*t4*t13*terr_dis*v))*-3.0;
+}
+
+void jac_sig_r_tl(double *jac,
+        const double r_n, const double r_e, const double r_d,
+        const double v, const double gamma, const double xi,
+        const double w_e, const double w_n, const double w_d,
+        const double terr_dis,
+        const double p1_n, const double p1_e, const double p1_h,
+        const double p2_n, const double p2_e, const double p2_h,
+        const double p3_n, const double p3_e, const double p3_h,
+        const double phi_max, const double delta_r0, const double g, const double k_r) {
+        
+    const double t2 = p1_h-p2_h;
+    const double t3 = cos(gamma);
+    const double t4 = cos(xi);
+    const double t5 = t3*t4*v;
+    const double t6 = t5+w_n;
+    const double t7 = sin(xi);
+    const double t8 = t3*t7*v;
+    const double t9 = t8+w_e;
+    const double t10 = sin(gamma);
+    const double t16 = t10*v;
+    const double t11 = -t16+w_d;
+    const double t12 = terr_dis*terr_dis;
+    const double t13 = p2_h-p3_h;
+    const double t14 = t6*t6;
+    const double t15 = t9*t9;
+    const double t17 = t11*t11;
+    const double t18 = t14+t15+t17;
+    const double t20 = t11*t12;
+    const double t21 = t2*t6*terr_dis;
+    const double t22 = t9*t13*terr_dis;
+    const double t23 = -t20+t21+t22;
+    const double t24 = 1.0/t23;
+    const double t25 = sqrt(t18);
+    const double t26 = p1_h+r_d;
+    const double t27 = t12*t26;
+    const double t28 = p1_h*t12;
+    const double t29 = p1_e-r_e;
+    const double t30 = t13*t29*terr_dis;
+    const double t31 = p1_n-r_n;
+    const double t32 = t2*t31*terr_dis;
+    const double t33 = t27+t28+t30+t32;
+    const double t34 = t24*t25*t33;
+    const double t35 = 1.0/g;
+    const double t36 = tan(phi_max);
+    const double t37 = 1.0/t36;
+    const double t38 = k_r*t18*t35*t37;
+    const double t19 = delta_r0-t34+t38;
+    const double t39 = t19*t19;
+    const double t40 = t3*t4*t6*2.0;
+    const double t41 = t3*t7*t9*2.0;
+    const double t42 = t40+t41-t10*t11*2.0;
+    const double t43 = 1.0/(t23*t23);
+    const double t44 = t3*t11*v*2.0;
+    const double t45 = t4*t6*t10*v*2.0;
+    const double t46 = t7*t9*t10*v*2.0;
+    const double t47 = t44+t45+t46;
+    const double t48 = 1.0/sqrt(t18);
+    const double t49 = t3*t4*t9*v*2.0;
+    const double t50 = t49-t3*t6*t7*v*2.0;
+    jac[0] = t2*t24*t25*t39*terr_dis*3.0;
+    jac[1] = t13*t24*t25*t39*terr_dis*3.0;
+    jac[2] = t12*t24*t25*t39*-3.0;
+    jac[3] = t39*(k_r*t35*t37*t42-t24*t33*t42*t48*(1.0/2.0)+t25*t33*t43*(t10*t12+t2*t3*t4*terr_dis+t3*t7*t13*terr_dis))*3.0;
+    jac[4] = t39*(t25*t33*t43*(-t3*t12*v+t2*t4*t10*terr_dis*v+t7*t10*t13*terr_dis*v)+k_r*t35*t37*t47-t24*t33*t47*t48*(1.0/2.0))*-3.0;
+    jac[5] = t39*(-k_r*t35*t37*t50+t24*t33*t48*t50*(1.0/2.0)+t25*t33*t43*(t2*t3*t7*terr_dis*v-t3*t4*t13*terr_dis*v))*-3.0;
+}
+
+int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
+        const double r0[3], const double r1[3], const double v[3],
+        const double pos_n_origin, const double pos_e_origin, const double terr_dis, double *terr_map) {
+    
+    /* INPUTS:
+     *
+     * (double) r0[3]             	start position (e,n,u) [m]
+     * (double) r1[3]             	end position (e,n,u) [m]
+     * (double) v[3]              	ray unit vector (e,n,u)
+     * (double) pos_n_origin        northing origin of terrain map
+     * (double) pos_e_origin        easting origin of terrain map
+     * (double) terr_dis          	terrain discretization
+     * (double) terr_map          	terrain map
+     *
+     * OUTPUTS:
+     *
+     * (int)   occ_detected         0=no detection, 1=BR triangle detected, 2=TL triangle detected
+     * (double) d_occ           	distance to the ray-triangle intersection [m]
+     * (double) p_occ[3]        	coord. of the ray-triangle intersection [m]
+     * (double) p1[3]           	coord. of triangle vertex 1 (e,n,u) [m]
+     * (double) p2[3]             	coord. of triangle vertex 2 (e,n,u) [m]
+     * (double)	p3[3]           	coord. of triangle vertex 3 (e,n,u) [m]
+     */ 
+
+    // initialize
+    int occ_detected = 0;
+
+    // relative start position
+    const double x0 = (r0[0] - pos_e_origin)/terr_dis;
+    const double y0 = (r0[1] - pos_n_origin)/terr_dis;
+
+    // initial height
+    const double h0 = r0[2];
+
+    // relative end position
+    const double x1 = r1[0]/terr_dis;
+    const double y1 = r1[1]/terr_dis;
+
+    // end height
+    const double h1 = r1[2];
+
+    // line deltas
+    const double dx = fabs(x1 - x0);
+    const double dy = fabs(y1 - y0);
+
+    // initial cell origin
+    int x = int(floor(x0));
+    int y = int(floor(y0));
+
+    // unit change in line length per x/y (see definition below)
+    double dt_dx;
+    double dt_dy;
+
+    // change in height per unit line length (t)
+    const double dh = h1 - h0;
+
+    // number of cells we pass through
+    int n = int(floor(x1)-x + floor(y1)-y) + 1;
+
+    // initialize stepping criteria
+    double t_next_horizontal, t_last_horizontal;
+    double t_next_vertical, t_last_vertical;
+    double x_inc, y_inc;
+
+    if (dx < 0.00001) {
+        x_inc = 0.0;
+        t_next_horizontal = INFINITY;
+        t_last_horizontal = INFINITY;
+    }
+    else if (x1 > x0) {
+        x_inc = 1.0;
+        dt_dx = 1.0 / dx;
+        t_next_horizontal = (x + 1.0 - x0) * dt_dx; // remember x is "floor(x0)" here
+        t_last_horizontal = (x0 - x) * dt_dx;
+    }
+    else {
+        x_inc = -1.0;
+        dt_dx = 1.0 / dx;
+        t_next_horizontal = (x0 - x) * dt_dx; // remember x is "floor(x0)" here
+        t_last_horizontal = (x + 1.0 - x0) * dt_dx;
+    }
+
+    if (dy < 0.00001) {
+        y_inc = 0.0;
+        t_next_vertical = INFINITY;
+        t_last_vertical = INFINITY;
+    }
+    else if (y1 > y0) {
+        y_inc = 1.0;
+        dt_dy = 1.0 / dy;
+        t_next_vertical = (y + 1.0 - y0) * dt_dy; // remember y is "floor(y0)" here
+        t_last_vertical = (y0 - y) * dt_dy;
+    }
+    else {
+        y_inc = -1.0;
+        dt_dy = 1.0 / dy;
+        t_next_vertical = (y0 - y) * dt_dy; // remember y is "floor(y0)" here
+        t_last_vertical = (y + 1.0 - y0) * dt_dy;
+    }
+
+    // find cell intersection in opposite direction to initialize cell entrance
+    // condition
+    bool last_step_was_vert = (t_last_vertical < t_last_horizontal);
+
+    // initialize entrance height
+    double h_entr = h0;
+
+    // for loop init
+    int x_check, y_check, x_check1, y_check1, idx_corner1, idx_corner2, idx_corner3, idx_corner4, ret;
+    double t, h_exit, h_check;
+    bool take_vert_step, check1, check2, check3, check4;
+
+    int i;
+    for (i = 0; i < n; i=i+1) {
+
+        // bound corner coordinates
+        x_check = constrain_int(x, 0, LEN_IDX_E_1);
+        y_check = constrain_int(y, 0, LEN_IDX_N_1);
+        x_check1 = constrain_int(x_check+1, 0, LEN_IDX_E_1);
+        y_check1 = constrain_int(y_check+1, 0, LEN_IDX_N_1);
+        // convert to row-major indices
+        idx_corner1 = y_check*LEN_IDX_E + x_check;
+        idx_corner2 = y_check1*LEN_IDX_E + x_check;
+        idx_corner3 = y_check1*LEN_IDX_E + x_check1;
+        idx_corner4 = y_check*LEN_IDX_E + x_check1;
+        // check the four corners
+        check1 = terr_map[idx_corner1] > h_check; // corner 1 (bottom left)
+        check2 = terr_map[idx_corner2] > h_check; // corner 2 (top left)
+        check3 = terr_map[idx_corner3] > h_check; // corner 3 (top right)
+        check4 = terr_map[idx_corner4] > h_check; // corner 4 (bottom right) 
+
+        // check the next step we will take and compute the exit height
+        if (t_next_vertical < t_next_horizontal) {
+            // next step is vertical
+            take_vert_step = true;
+            t = t_next_vertical; // current step
+            t_next_vertical = t_next_vertical + dt_dy;
+        }
+        else {
+            // next step is horizontal
+            take_vert_step = false;
+            t = t_next_horizontal; // current step
+            t_next_horizontal = t_next_horizontal + dt_dx;
+        }
+
+        // take minimum of entrance and exit height for check
+        // TODO: should be a way to get rid of this if statement by looking at dh outside for loop...
+        h_exit = h0 + dh * t;
+        if (dh > 0.0) {
+            h_check = h_entr;
+        }
+        else {
+            h_check = h_exit;
+        }
+        h_entr = h_exit;
+
+        // check cell triangles
+        if (last_step_was_vert) { // / / / / / / / / / / / / / / / / / / / / /
+            // vertical entrance step
+
+            if (take_vert_step) {
+                // next step is vertical
+
+                if (y_inc > 0) { //TODO: should be able to get rid of a few of these ifs by making the decision outside the for loop...
+                    // BR, TL
+
+                    // check bottom-right triangle corners
+                    if (check1 || check4 || check3) {
+
+                        // set 3 corners
+                        p1[0] = terr_dis*x;
+                        p1[1] = terr_dis*y;
+                        p1[2] = terr_map[idx_corner1];
+                        p2[0] = terr_dis*(x+1);
+                        p2[1] = terr_dis*y;
+                        p2[2] = terr_map[idx_corner4];
+                        p3[0] = terr_dis*(x+1);
+                        p3[1] = terr_dis*(y+1);
+                        p3[2] = terr_map[idx_corner3];
+
+                        // check for ray-triangle intersection
+                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+
+                        occ_detected += ret; // =1 if detection
+                    }
+
+                    // check top-left triangle corners
+                    if ((check1 || check2 || check3) && (occ_detected==0)) {
+
+                        // set 3 corners
+                        p1[0] = terr_dis*x;
+                        p1[1] = terr_dis*y;
+                        p1[2] = terr_map[idx_corner1];
+                        p2[0] = terr_dis*x;
+                        p2[1] = terr_dis*(y+1);
+                        p2[2] = terr_map[idx_corner2];
+                        p3[0] = terr_dis*(x+1);
+                        p3[1] = terr_dis*(y+1);
+                        p3[2] = terr_map[idx_corner3];
+
+                        // check for ray-triangle intersection
+                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+
+                        occ_detected += ret*2; // =2 if detection
+                    }
+                }
+                else {
+                    // TL, BR
+
+                    // check top-left triangle corners
+                    if (check1 || check2 || check3) {
+
+                        // set 3 corners
+                        p1[0] = terr_dis*x;
+                        p1[1] = terr_dis*y;
+                        p1[2] = terr_map[idx_corner1];
+                        p2[0] = terr_dis*x;
+                        p2[1] = terr_dis*(y+1);
+                        p2[2] = terr_map[idx_corner2];
+                        p3[0] = terr_dis*(x+1);
+                        p3[1] = terr_dis*(y+1);
+                        p3[2] = terr_map[idx_corner3];
+
+                        // check for ray-triangle intersection
+                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+
+                        occ_detected += ret*2; // =2 if detection
+                    }
+
+                    // check bottom-right triangle corners
+                    if ((check1 || check4 || check3) && occ_detected==0) {
+
+                        // set 3 corners
+                        p1[0] = terr_dis*x;
+                        p1[1] = terr_dis*y;
+                        p1[2] = terr_map[idx_corner1];
+                        p2[0] = terr_dis*(x+1);
+                        p2[1] = terr_dis*y;
+                        p2[2] = terr_map[idx_corner4];
+                        p3[0] = terr_dis*(x+1);
+                        p3[1] = terr_dis*(y+1);
+                        p3[2] = terr_map[idx_corner3];
+
+                        // check for ray-triangle intersection
+                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+
+                        occ_detected += ret; // =1 if detection
+                    }
+                }
+            }   
+            else  {// - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                // next step is horizontal
+
+                if (y_inc > 0 && x_inc > 0) {
+                    // BR
+
+                    // check bottom-right triangle corners
+                    if (check1 || check4 || check3) {
+
+                        // set 3 corners
+                        p1[0] = terr_dis*x;
+                        p1[1] = terr_dis*y;
+                        p1[2] = terr_map[idx_corner1];
+                        p2[0] = terr_dis*(x+1);
+                        p2[1] = terr_dis*y;
+                        p2[2] = terr_map[idx_corner4];
+                        p3[0] = terr_dis*(x+1);
+                        p3[1] = terr_dis*(y+1);
+                        p3[2] = terr_map[idx_corner3];
+
+                        // check for ray-triangle intersection
+                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+
+                        occ_detected += ret; // =1 if detection
+                    }
+                }
+                else if (y_inc < 0 && x_inc < 0) {
+                    // TL
+
+                    // check top-left triangle corners
+                    if (check1 || check2 || check3) {
+
+                        // set 3 corners
+                        p1[0] = terr_dis*x;
+                        p1[1] = terr_dis*y;
+                        p1[2] = terr_map[idx_corner1];
+                        p2[0] = terr_dis*x;
+                        p2[1] = terr_dis*(y+1);
+                        p2[2] = terr_map[idx_corner2];
+                        p3[0] = terr_dis*(x+1);
+                        p3[1] = terr_dis*(y+1);
+                        p3[2] = terr_map[idx_corner3];
+
+                        // check for ray-triangle intersection
+                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+
+                        occ_detected += ret*2; // =2 if detection
+                    }
+                }
+                else {
+                    // BR, TL
+
+                    // check bottom-right triangle corners
+                    if (check1 || check4 || check3) {
+
+                        // set 3 corners
+                        p1[0] = terr_dis*x;
+                        p1[1] = terr_dis*y;
+                        p1[2] = terr_map[idx_corner1];
+                        p2[0] = terr_dis*(x+1);
+                        p2[1] = terr_dis*y;
+                        p2[2] = terr_map[idx_corner4];
+                        p3[0] = terr_dis*(x+1);
+                        p3[1] = terr_dis*(y+1);
+                        p3[2] = terr_map[idx_corner3];
+
+                        // check for ray-triangle intersection
+                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+
+                        occ_detected += ret; // =1 if detection
+                    }
+
+                    // check top-left triangle corners
+                    if ((check1 || check2 || check3) && (occ_detected==0)) {
+
+                        // set 3 corners
+                        p1[0] = terr_dis*x;
+                        p1[1] = terr_dis*y;
+                        p1[2] = terr_map[idx_corner1];
+                        p2[0] = terr_dis*x;
+                        p2[1] = terr_dis*(y+1);
+                        p2[2] = terr_map[idx_corner2];
+                        p3[0] = terr_dis*(x+1);
+                        p3[1] = terr_dis*(y+1);
+                        p3[2] = terr_map[idx_corner3];
+
+                        // check for ray-triangle intersection
+                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+
+                        occ_detected += ret*2; // =2 if detection
+                    }
+                }
+            }
+        }
+        else { // last step was horizontal / / / / / / / / / / / / / / / / / / 
+            if (take_vert_step) {
+                // next step is vertical
+
+                if (x_inc > 0) {
+                    // TL
+
+                    // check top-left triangle corners
+                    if (check1 || check2 || check3) {
+
+                        // set 3 corners
+                        p1[0] = terr_dis*x;
+                        p1[1] = terr_dis*y;
+                        p1[2] = terr_map[idx_corner1];
+                        p2[0] = terr_dis*x;
+                        p2[1] = terr_dis*(y+1);
+                        p2[2] = terr_map[idx_corner2];
+                        p3[0] = terr_dis*(x+1);
+                        p3[1] = terr_dis*(y+1);
+                        p3[2] = terr_map[idx_corner3];
+
+                        // check for ray-triangle intersection
+                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+
+                        occ_detected += ret*2; // =2 if detection
+                    }
+
+                    if ((y_inc < 0) && (occ_detected==0)) {
+                        // BR
+
+                        // check bottom-right triangle corners
+                        if (check1 || check4 || check3) {
+
+                            // set 3 corners
+                            p1[0] = terr_dis*x;
+                            p1[1] = terr_dis*y;
+                            p1[2] = terr_map[idx_corner1];
+                            p2[0] = terr_dis*(x+1);
+                            p2[1] = terr_dis*y;
+                            p2[2] = terr_map[idx_corner4];
+                            p3[0] = terr_dis*(x+1);
+                            p3[1] = terr_dis*(y+1);
+                            p3[2] = terr_map[idx_corner3];
+
+                            // check for ray-triangle intersection
+                            ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+
+                            occ_detected += ret; // =1 if detection
+                        }
+                    }
+                }
+                else {
+                    // BR
+
+                    // check bottom-right triangle corners
+                    if (check1 || check4 || check3) {
+
+                        // set 3 corners
+                        p1[0] = terr_dis*x;
+                        p1[1] = terr_dis*y;
+                        p1[2] = terr_map[idx_corner1];
+                        p2[0] = terr_dis*(x+1);
+                        p2[1] = terr_dis*y;
+                        p2[2] = terr_map[idx_corner4];
+                        p3[0] = terr_dis*(x+1);
+                        p3[1] = terr_dis*(y+1);
+                        p3[2] = terr_map[idx_corner3];
+
+                        // check for ray-triangle intersection
+                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+
+                        occ_detected += ret; // =1 if detection
+                    }
+
+                    if ((y > 0) && (occ_detected==0)) {
+                        // TL
+
+                        // check top-left triangle corners
+                        if (check1 || check2 || check3) {
+
+                            // set 3 corners
+                            p1[0] = terr_dis*x;
+                            p1[1] = terr_dis*y;
+                            p1[2] = terr_map[idx_corner1];
+                            p2[0] = terr_dis*x;
+                            p2[1] = terr_dis*(y+1);
+                            p2[2] = terr_map[idx_corner2];
+                            p3[0] = terr_dis*(x+1);
+                            p3[1] = terr_dis*(y+1);
+                            p3[2] = terr_map[idx_corner3];
+
+                            // check for ray-triangle intersection
+                            ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+
+                            occ_detected += ret*2; // =2 if detection
+                        }
+                    }
+                }
+            }
+            else { // - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                // next step is horizontal
+
+                if (x_inc > 0) {
+                    // TL, BR
+
+                    // check top-left triangle corners
+                    if (check1 || check2 || check3) {
+
+                        // set 3 corners
+                        p1[0] = terr_dis*x;
+                        p1[1] = terr_dis*y;
+                        p1[2] = terr_map[idx_corner1];
+                        p2[0] = terr_dis*x;
+                        p2[1] = terr_dis*(y+1);
+                        p2[2] = terr_map[idx_corner2];
+                        p3[0] = terr_dis*(x+1);
+                        p3[1] = terr_dis*(y+1);
+                        p3[2] = terr_map[idx_corner3];
+
+                        // check for ray-triangle intersection
+                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+
+                        occ_detected += ret*2; // =2 if detection
+                    }
+
+                    // check bottom-right triangle corners
+                    if ((check1 || check4 || check3) && (occ_detected==0)) {
+
+                        // set 3 corners
+                        p1[0] = terr_dis*x;
+                        p1[1] = terr_dis*y;
+                        p1[2] = terr_map[idx_corner1];
+                        p2[0] = terr_dis*(x+1);
+                        p2[1] = terr_dis*y;
+                        p2[2] = terr_map[idx_corner4];
+                        p3[0] = terr_dis*(x+1);
+                        p3[1] = terr_dis*(y+1);
+                        p3[2] = terr_map[idx_corner3];
+
+                        // check for ray-triangle intersection
+                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+
+                        occ_detected += ret; // =1 if detection
+                    }
+                }
+                else {
+                    // BR, TL
+
+                    // check bottom-right triangle corners
+                    if (check1 || check4 || check3) {
+
+                        // set 3 corners
+                        p1[0] = terr_dis*x;
+                        p1[1] = terr_dis*y;
+                        p1[2] = terr_map[idx_corner1];
+                        p2[0] = terr_dis*(x+1);
+                        p2[1] = terr_dis*y;
+                        p2[2] = terr_map[idx_corner4];
+                        p3[0] = terr_dis*(x+1);
+                        p3[1] = terr_dis*(y+1);
+                        p3[2] = terr_map[idx_corner3];
+
+                        // check for ray-triangle intersection
+                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+
+                        occ_detected += ret; // =1 if detection
+                    }
+
+                    // check top-left triangle corners
+                    if ((check1 || check2 || check3) && (occ_detected==0)) {
+
+                        // set 3 corners
+                        p1[0] = terr_dis*x;
+                        p1[1] = terr_dis*y;
+                        p1[2] = terr_map[idx_corner1];
+                        p2[0] = terr_dis*x;
+                        p2[1] = terr_dis*(y+1);
+                        p2[2] = terr_map[idx_corner2];
+                        p3[0] = terr_dis*(x+1);
+                        p3[1] = terr_dis*(y+1);
+                        p3[2] = terr_map[idx_corner3];
+
+                        // check for ray-triangle intersection
+                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+
+                        occ_detected += ret*2; // =2 if detection
+                    }
+                }
+            }
+        } // / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
+
+        // return if occlusion detected
+        if (occ_detected > 0) {
+            return occ_detected;
+        }
+
+        // actually take the step
+        if (take_vert_step) { // (t_next_vertical < t_next_horizontal)
+            // take a vertical step
+            y = y + y_inc;
+        }
+        else {
+            // take a horizontal step
+            x = x + x_inc;
+        }
+        last_step_was_vert = take_vert_step;
+    }
+    return occ_detected;
+}
+
+int intersect_triangle(double *d_occ, double *p_occ,
+        const double r0[3], const double v_ray[3],
+        const double p1[3], const double p2[3], const double p3[3]) {
+    /* following: "Fast, Minimum Storage Ray/Triangle Intersection",
+     * Moeller et. al., Journal of Graphics Tools, Vol.2(1), 1997
+     */
+
+    // NOTE: all vectors in here are E,N,U
+    
+    // find vectors for two edges sharing p1
+    const double e1[3] = {p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]};
+    const double e2[3] = {p3[0] - p1[0], p3[1] - p1[1], p3[2] - p1[2]};
+
+    // begin calculating determinant - also used to calculate U parameter
+    double pvec[3];
+    cross(pvec, v_ray, e2);
+
+    // we don't test for backwards culling here as, assuming this ray casting
+    // algorithm is properly detecting the first occluding triangles, we should
+    // not run into a case of a true "backwards" facing triangle (also the
+    // current BR and TL definitions have opposite vertex spin definitions..
+    // should probably change that in the future.. could maybe avoid a few
+    // divisions of the determinant)
+
+    // if the determinant is near zero, ray lies in the triangle plane
+    const double det = dot(e1, pvec);
+    if (det > -EPSILON && det < EPSILON) {
+        return 0;
+    }
+    
+    // divide the determinant (XXX: could possibly find a way to avoid this until the last minute possible..)
+    const double inv_det = 1.0 / det;
+
+    // calculate distance from p1 to ray origin
+    const double tvec[3] = {r0[0] - p1[0], r0[1] - p1[1], r0[2] - p1[2]};
+
+    // calculate u parameter and test bounds
+    const double u = dot(tvec, pvec) * inv_det;
+    if (u < 0.0 || u > 1.0) {
+        return 0;
+    }
+    
+    // prepare to test v parameter
+    double qvec[3];
+    cross(qvec, tvec, e1);
+
+    // calculate v parameter and test bounds
+    const double v = dot(v_ray, qvec) * inv_det;
+    if (v < 0.0 || u + v > 1.0) {
+        return 0;
+    }
+
+    // calculate d_occ, scale parameters, ray intersects triangle
+    *d_occ = dot(e2, qvec) * inv_det;
+
+    // calculate and return intersection point
+    const double one_u_v = (1 - u - v);
+    p_occ[0] = one_u_v * p1[0] + u * p2[0] + v * p3[0];
+    p_occ[1] = one_u_v * p1[1] + u * p2[1] + v * p3[1];
+    p_occ[2] = one_u_v * p1[2] + u * p2[2] + v * p3[2];
+    
+    return 1;
+}
+    

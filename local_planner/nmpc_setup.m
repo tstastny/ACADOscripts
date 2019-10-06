@@ -134,7 +134,7 @@ f.add(dot(n_p) == dot_n_p);
 % lengths
 n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
-n_Y = 8;                    % outputs
+n_Y = 9;                    % outputs
 n_Z = 3;                    % objectives
 n_OD = 21+LEN_TERR_DATA;    % online data
 

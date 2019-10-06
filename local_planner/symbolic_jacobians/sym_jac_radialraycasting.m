@@ -69,6 +69,7 @@ jac_sig_r_br = jacobian(sig_r_br, [r_n; r_e; r_d; v; gamma; xi]);
 
 
 %% export to m code
+if 0
 matlabFunction(jac_sig_r_tl,'File','jac_sig_r_tl.m', ...
     'Vars',{r_n, r_e, r_d, v, gamma, xi, w_e, w_n, w_d, ...
     terr_dis, p1_n, p1_e, p1_h, p2_n, p2_e, p2_h, p3_n, p3_e, p3_h, phi_max, ...
@@ -77,9 +78,10 @@ matlabFunction(jac_sig_r_br,'File','jac_sig_r_br.m', ...
     'Vars',{r_n, r_e, r_d, v, gamma, xi, w_e, w_n, w_d, ...
     terr_dis, p1_n, p1_e, p1_h, p2_n, p2_e, p2_h, p3_n, p3_e, p3_h, phi_max, ...
     delta_r0, g, k_r},'Outputs',{'out'});
+end
 
 %% export to c code
 if 0
-    ccode(jac_sig_r_ul,'jac_sig_r_tl_ccode.c');
-    ccode(jac_sig_r_br,'jac_sig_r_br_ccode.c');
+ccode(jac_sig_r_tl,'file','jac_sig_r_tl_ccode.c');
+ccode(jac_sig_r_br,'file','jac_sig_r_br_ccode.c');
 end
