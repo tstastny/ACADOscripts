@@ -280,7 +280,7 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
     const double delta_r0 = 10.0;
     const double g = 9.81;
     const double k_r = 1.0;
-    const double delta_r = vG_norm * vG_norm * 14.0101 * k_r + delta_r0; // radial buffer zone
+    const double delta_r = vG_norm * vG_norm * 0.1456 * k_r + delta_r0; // radial buffer zone
     const double d_ray = delta_r + terr_dis;
     double r1[3] = {r0[0] + v_ray[0] * d_ray, r0[1] + v_ray[1] * d_ray, r0[2] + v_ray[2] * d_ray};
     int occ_detected = castray(&d_occ, p_occ, p1, p2, p3, r0, r1, v_ray,
@@ -289,7 +289,7 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
     // calculate radial cost
     double sig_r = 0.0;
     if ((d_occ < delta_r) && occ_detected>0) {
-        sig_r = (delta_r - d_occ);
+        sig_r = fabs(delta_r - d_occ);
         sig_r = sig_r*sig_r*sig_r;
     }
     out[8] = sig_r;
@@ -582,7 +582,7 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
     const double delta_r0 = 10.0;
     const double g = 9.81;
     const double k_r = 1.0;
-    const double delta_r = vG_norm * vG_norm * 14.0101 * k_r + delta_r0; // radial buffer zone
+    const double delta_r = vG_norm * vG_norm * 0.1456 * k_r + delta_r0; // radial buffer zone
     const double d_ray = delta_r + terr_dis;
     double r1[3] = {r0[0] + v_ray[0] * d_ray, r0[1] + v_ray[1] * d_ray, r0[2] + v_ray[2] * d_ray};
     int occ_detected = castray(&d_occ, p_occ, p1, p2, p3, r0, r1, v_ray,
@@ -591,7 +591,7 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
     // calculate radial cost
     double sig_r = 0.0;
     if ((d_occ < delta_r) && occ_detected>0) {
-        sig_r = (delta_r - d_occ);
+        sig_r = fabs(delta_r - d_occ);
         sig_r = sig_r*sig_r*sig_r;
     }
     out[8] = sig_r;
