@@ -15,7 +15,7 @@ run('model_config/sysid_config_Techpod.m');
 N = 70;
 n_U = 3;
 n_X = 9; % number of nmpc states
-n_Y = 8;
+n_Y = 9;
 n_Z = 3;
 n_OD = 21+841;
 
@@ -89,14 +89,14 @@ onlinedatak = [ ...
 % acado inputs
 nmpc_ic.x = x_init;
 nmpc_ic.u = u_init;
-yref = [0 0 0 0 0 v_ref 0 0];
+yref = [0 0 0 0 0 v_ref 0 0 0];
 zref = [0.5 0 deg2rad(3)];
 
-Q_scale = [1 1 1 1 1 1 1 1];
+Q_scale = [1 1 1 1 1 1 1 1 1];
 R_scale = [0.1 deg2rad(1) deg2rad(1)];
 
-Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7]./Q_scale.^2;
-QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7]./Q_scale.^2;
+Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 0*1e7]./Q_scale.^2;
+QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 0*1e7]./Q_scale.^2;
 R_controls  = [1e1 1e0 1e0]./R_scale.^2;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
@@ -118,7 +118,7 @@ input.WN    = diag(QN_output);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 100;
+Tf = 30;
 Ts = 0.01;
 time = T0:Ts:Tf;
 len_t = length(time);
@@ -239,7 +239,7 @@ for k = 1:len_t
 %     rec.dJ_dn(k,:) = (3*180*(1/300)^2*exp(- (1/300)^2*(simout(2) - 100)^2 - (1/300)^2*(simout(1) - 750)^2)*(2*simout(1) - 2*750)*(delta_h + h_terr_ + simout(3))^2)/delta_h^3;
     
     %
-    rec.yz(k,:) = out;
+    rec.yz(k,:) = [out 0];
     rec.aux(k,:) = aux;
     trec(k) = toc(st_rec);
     

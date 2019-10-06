@@ -13,6 +13,8 @@ hold on; grid on; %axis equal;
 % terrain
 surf1 = surf(ee_plot,nn_plot,terrain_data_plot,'edgecolor','none');
 surf2 = surf(eek,nnk,terrain_data_matrix+1,'edgecolor','none');
+alpha(surf1,0.5);
+alpha(surf2,0.5);
 
 % path
 len_path = 1500;
