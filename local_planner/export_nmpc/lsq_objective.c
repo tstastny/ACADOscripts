@@ -663,7 +663,7 @@ void lookup_terrain_idx(const double pos_n, const double pos_e, const double pos
     // relative position / indices
     const double rel_n = pos_n - pos_n_origin;
     const double rel_n_bar = rel_n / terr_dis;
-    int idx_n = rel_n_bar;
+    int idx_n = int(floor(rel_n_bar));
     if (idx_n < 0) {
         idx_n = 0;
     }
@@ -672,7 +672,7 @@ void lookup_terrain_idx(const double pos_n, const double pos_e, const double pos
     }
     const double rel_e = pos_e - pos_e_origin;
     const double rel_e_bar = rel_e / terr_dis;
-    int idx_e = rel_e_bar;
+    int idx_e = int(floor(rel_e_bar));
     if (idx_e < 0) {
         idx_e = 0;
     }
