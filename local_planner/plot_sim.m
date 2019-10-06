@@ -24,12 +24,9 @@ plot3([b_e, b_e+len_path*sin(chi_p)*cos(Gamma_p)], ...
 
 % position horizons
 hor_int = round(10/Ts);
-horO = plot3(rec.x_hor(1,1:hor_int:end,2), rec.x_hor(1,1:hor_int:end,1), ...
-    -rec.x_hor(1,1:hor_int:end,3), 'o', 'MarkerSize', 4, 'Color', color_hor(1:3));
-% horO.Color = color_hor;
-hor1 = plot3(rec.x_hor(:,1:hor_int:end,2), rec.x_hor(:,1:hor_int:end,1), ...
-    -rec.x_hor(:,1:hor_int:end,3), 'Color', color_hor(1:3));
-% hor1.Color = color_hor;
+node_int = 10;
+hor1 = plot3(rec.x_hor(1:node_int:end,1:hor_int:end,2), rec.x_hor(1:node_int:end,1:hor_int:end,1), ...
+    -rec.x_hor(1:node_int:end,1:hor_int:end,3), '-o', 'MarkerSize', 4, 'Color', color_hor(1:3));
 
 % position
 plot3(rec.x(:,2),rec.x(:,1),-rec.x(:,3), 'linewidth', 1.5, 'color', cmap(2,:));
@@ -55,12 +52,9 @@ plot3([b_e, b_ed_e], ...
 
 % position horizons
 hor_int = round(10/Ts);
-horO = plot3(rec.x_hor(1,1:hor_int:end,2), rec.x_hor(1,1:hor_int:end,1), ...
-    -rec.x_hor(1,1:hor_int:end,3), 'o', 'MarkerSize', 4, 'Color', color_hor(1:3));
-% horO.Color = color_hor;
-hor1 = plot3(rec.x_hor(:,1:hor_int:end,2), rec.x_hor(:,1:hor_int:end,1), ...
-    -rec.x_hor(:,1:hor_int:end,3), 'Color', color_hor(1:3));
-% hor1.Color = color_hor;
+node_int = 10;
+hor1 = plot3(rec.x_hor(1:node_int:end,1:hor_int:end,2), rec.x_hor(1:node_int:end,1:hor_int:end,1), ...
+    -rec.x_hor(1:node_int:end,1:hor_int:end,3), '-o', 'MarkerSize', 4, 'Color', color_hor(1:3));
 
 % position
 plot3(rec.x(:,2),rec.x(:,1),-rec.x(:,3), 'linewidth', 1.5, 'color', color_state);
