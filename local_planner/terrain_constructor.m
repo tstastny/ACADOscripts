@@ -15,13 +15,13 @@ len_global_idx_n = length(nn);
 len_global_idx_e = length(ee);
 
 % terrain
-% hh_sine = 0*10*sin(pi*((nn')/2000)).^2 + 0*ee;
+% hh_sine = 100*sin(pi*((nn')/2000)).^2 + 0*ee;
 % hh_hill = 180*exp(-((ee - 100)/300).^2-((nn - 750)'/300).^2);
 
 hh_wall = zeros(len_global_idx_n, len_global_idx_e);
 hh_wall(nn > 300, :) = 300;
 
-% terrain_data0 = max(hh_sine,hh_hill);
+% terrain_data0 = max(hh_sine,hh_hill)+(rand(len_global_idx_n, len_global_idx_e)*2-1)*3;
 terrain_data0 = hh_wall+(rand(len_global_idx_n, len_global_idx_e)*2-1)*3;
 
 % for plotting

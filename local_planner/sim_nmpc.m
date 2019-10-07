@@ -118,7 +118,7 @@ input.WN    = diag(QN_output);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 30;
+Tf = 60;
 Ts = 0.01;
 time = T0:Ts:Tf;
 len_t = length(time);
