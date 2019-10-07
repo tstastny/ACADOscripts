@@ -23,7 +23,7 @@ plot3([b_e, b_e+len_path*sin(chi_p)*cos(Gamma_p)], ...
     -[b_d, b_d-len_path*sin(Gamma_p)],'color',color_ref,'linewidth',1.5);
 
 % position horizons
-hor_int = round(10/Ts);
+hor_int = round(1/Ts);
 node_int = 10;
 hor1 = plot3(rec.x_hor(1:node_int:end,1:hor_int:end,2), rec.x_hor(1:node_int:end,1:hor_int:end,1), ...
     -rec.x_hor(1:node_int:end,1:hor_int:end,3), '-o', 'MarkerSize', 4, 'Color', color_hor(1:3));
@@ -51,7 +51,7 @@ plot3([b_e, b_ed_e], ...
     -[b_d, b_ed_d],'color',color_ref,'linewidth',1.5);
 
 % position horizons
-hor_int = round(10/Ts);
+hor_int = round(3/Ts);
 node_int = 10;
 hor1 = plot3(rec.x_hor(1:node_int:end,1:hor_int:end,2), rec.x_hor(1:node_int:end,1:hor_int:end,1), ...
     -rec.x_hor(1:node_int:end,1:hor_int:end,3), '-o', 'MarkerSize', 4, 'Color', color_hor(1:3));
@@ -235,7 +235,10 @@ linkaxes(hand_obj,'x');
 % 
 % %%
 
-figure('color','w','name','Sim. timing'); hold on; grid on; box on;
+figure('color','w','name','Sim. timing');
+
+subplot(5,1,1:4); hold on; grid on; box on;
+
 idx_ = find(nmpc_executed);
 area(time(idx_),tsim(idx_)*1000,'FaceColor',cmap(1,:));
 area(time(idx_),tsolve(idx_)*1000,'FaceColor',cmap(2,:));
@@ -243,6 +246,11 @@ area(time(idx_),tarray(idx_)*1000,'FaceColor',cmap(3,:));
 area(time(idx_),trec(idx_)*1000,'FaceColor',cmap(4,:));
 
 legend('total sim.','solve','array allo.','rec.');
-xlabel('time [s]');
 ylabel('cpu time [ms]');
 
+subplot(5,1,5); hold on; grid on; box on;
+
+plot(time(idx_), [INFO_MPC.QP_iter]);
+ylabel('qp iter.');
+
+xlabel('time [s]');
