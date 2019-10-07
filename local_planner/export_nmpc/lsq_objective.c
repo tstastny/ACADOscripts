@@ -124,8 +124,10 @@ void lsq_obj_eval( real_t *in, real_t *out )
     
     // ground speed
     double v_cos_gamma = v*cos(gamma);
-    const double vG_n = v_cos_gamma*cos(xi) + w_n;
-    const double vG_e = v_cos_gamma*sin(xi) + w_e;
+    const double cos_xi = cos(xi);
+    const double sin_xi = sin(xi);
+    const double vG_n = v_cos_gamma*cos_xi + w_n;
+    const double vG_e = v_cos_gamma*sin_xi + w_e;
     const double vG_d = -v*sin(gamma) + w_d;
     const double vG_norm = sqrt(vG_n*vG_n + vG_e*vG_e + vG_d*vG_d);
     
@@ -197,8 +199,8 @@ void lsq_obj_eval( real_t *in, real_t *out )
     lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, dh);
     
     // bi-linear interpolation
-    const double h12 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[0]] + dh[0]*in[IDX_TERR_DATA+idx_q[1]];
-    const double h34 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[2]] + dh[0]*in[IDX_TERR_DATA+idx_q[3]];
+    double h12 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[0]] + dh[0]*in[IDX_TERR_DATA+idx_q[1]];
+    double h34 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[2]] + dh[0]*in[IDX_TERR_DATA+idx_q[3]];
     const double h_terr = (1-dh[1])*h12 + dh[1]*h34;
     
     // soft constraint
@@ -207,6 +209,40 @@ void lsq_obj_eval( real_t *in, real_t *out )
         sig_h = fabs(-r_d - h_terr - delta_h) / delta_h;
         sig_h = sig_h * sig_h * sig_h;
     }
+    
+    // TEST - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    
+    const double r_side = 5.0;
+    
+    // lookup 2.5d grid (left side)
+    lookup_terrain_idx(r_n + sin_xi * r_side, r_e + -cos_xi * r_side, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, dh);
+    
+    // bi-linear interpolation
+    h12 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[0]] + dh[0]*in[IDX_TERR_DATA+idx_q[1]];
+    h34 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[2]] + dh[0]*in[IDX_TERR_DATA+idx_q[3]];
+    const double h_terr_left = (1-dh[1])*h12 + dh[1]*h34;
+    
+    // soft constraint
+    if (-r_d < h_terr_left + delta_h) {
+        const double sig_h_left = fabs(-r_d - h_terr_left - delta_h) / delta_h;
+        sig_h = sig_h + sig_h_left * sig_h_left * sig_h_left;
+    }
+    
+    // lookup 2.5d grid (right side)
+    lookup_terrain_idx(r_n + -sin_xi * r_side, r_e + cos_xi * r_side, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, dh);
+    
+    // bi-linear interpolation
+    h12 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[0]] + dh[0]*in[IDX_TERR_DATA+idx_q[1]];
+    h34 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[2]] + dh[0]*in[IDX_TERR_DATA+idx_q[3]];
+    const double h_terr_right = (1-dh[1])*h12 + dh[1]*h34;
+    
+    // soft constraint
+    if (-r_d < h_terr_right + delta_h) {
+        const double sig_h_right = fabs(-r_d - h_terr_right - delta_h) / delta_h;
+        sig_h = sig_h + sig_h_right * sig_h_right * sig_h_right;
+    }
+    
+    // TEST - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     
     // prioritization
     const double prio_aoa = 1.0;//1.0 - ((sig_aoa > 1.0) ? 1.0 : sig_aoa);
@@ -431,8 +467,10 @@ void lsq_objN_eval( real_t *in, real_t *out )
     
     // ground speed
     double v_cos_gamma = v*cos(gamma);
-    const double vG_n = v_cos_gamma*cos(xi) + w_n;
-    const double vG_e = v_cos_gamma*sin(xi) + w_e;
+    const double cos_xi = cos(xi);
+    const double sin_xi = sin(xi);
+    const double vG_n = v_cos_gamma*cos_xi + w_n;
+    const double vG_e = v_cos_gamma*sin_xi + w_e;
     const double vG_d = -v*sin(gamma) + w_d;
     const double vG_norm = sqrt(vG_n*vG_n + vG_e*vG_e + vG_d*vG_d);
     
@@ -504,8 +542,8 @@ void lsq_objN_eval( real_t *in, real_t *out )
     lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, dh);
     
     // bi-linear interpolation
-    const double h12 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[0]] + dh[0]*in[IDX_TERR_DATA+idx_q[1]];
-    const double h34 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[2]] + dh[0]*in[IDX_TERR_DATA+idx_q[3]];
+    double h12 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[0]] + dh[0]*in[IDX_TERR_DATA+idx_q[1]];
+    double h34 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[2]] + dh[0]*in[IDX_TERR_DATA+idx_q[3]];
     const double h_terr = (1-dh[1])*h12 + dh[1]*h34;
     
     // soft constraint
@@ -514,6 +552,40 @@ void lsq_objN_eval( real_t *in, real_t *out )
         sig_h = fabs(-r_d - h_terr - delta_h) / delta_h;
         sig_h = sig_h * sig_h * sig_h;
     }
+    
+    // TEST - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    
+    const double r_side = 5.0;
+    
+    // lookup 2.5d grid (left side)
+    lookup_terrain_idx(r_n + sin_xi * r_side, r_e + -cos_xi * r_side, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, dh);
+    
+    // bi-linear interpolation
+    h12 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[0]] + dh[0]*in[IDX_TERR_DATA+idx_q[1]];
+    h34 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[2]] + dh[0]*in[IDX_TERR_DATA+idx_q[3]];
+    const double h_terr_left = (1-dh[1])*h12 + dh[1]*h34;
+    
+    // soft constraint
+    if (-r_d < h_terr_left + delta_h) {
+        const double sig_h_left = fabs(-r_d - h_terr_left - delta_h) / delta_h;
+        sig_h = sig_h + sig_h_left * sig_h_left * sig_h_left;
+    }
+    
+    // lookup 2.5d grid (right side)
+    lookup_terrain_idx(r_n + -sin_xi * r_side, r_e + cos_xi * r_side, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, dh);
+    
+    // bi-linear interpolation
+    h12 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[0]] + dh[0]*in[IDX_TERR_DATA+idx_q[1]];
+    h34 = (1-dh[0])*in[IDX_TERR_DATA+idx_q[2]] + dh[0]*in[IDX_TERR_DATA+idx_q[3]];
+    const double h_terr_right = (1-dh[1])*h12 + dh[1]*h34;
+    
+    // soft constraint
+    if (-r_d < h_terr_right + delta_h) {
+        const double sig_h_right = fabs(-r_d - h_terr_right - delta_h) / delta_h;
+        sig_h = sig_h + sig_h_right * sig_h_right * sig_h_right;
+    }
+    
+    // TEST - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     
     // prioritization
     const double prio_aoa = 1.0;//1.0 - ((sig_aoa > 1.0) ? 1.0 : sig_aoa);

@@ -37,7 +37,7 @@ b_n = 0;
 b_e = 0;
 b_d = -50;
 Gamma_p = deg2rad(5);
-chi_p = deg2rad(15);
+chi_p = deg2rad(0);
 
 % guidance
 T_b_lat = 5;
@@ -95,8 +95,8 @@ zref = [0.5 0 deg2rad(3)];
 Q_scale = [1 1 1 1 1 1 1 1 1];
 R_scale = [0.1 deg2rad(1) deg2rad(1)];
 
-Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e7]./Q_scale.^2;
-QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e7]./Q_scale.^2;
+Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 0*1e7]./Q_scale.^2;
+QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 0*1e7]./Q_scale.^2;
 R_controls  = [1e1 1e0 1e0]./R_scale.^2;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
