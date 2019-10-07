@@ -63,7 +63,7 @@ int intersect_triangle(double *d_occ, double *p_occ,
         const double p1[3], const double p2[3], const double p3[3]);
 // / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
 
-void lsq_obj_eval( real_t *in, real_t *out )
+void lsq_obj_eval( real_t *in, real_t *out, double sig_r )
 {
     /* DEFINE INPUTS -- this is just simply easier to read.. */
     
@@ -247,7 +247,8 @@ void lsq_obj_eval( real_t *in, real_t *out )
     // prioritization
     const double prio_aoa = 1.0;//1.0 - ((sig_aoa > 1.0) ? 1.0 : sig_aoa);
     const double prio_h = 1.0 - ((sig_h > 1.0) ? 1.0 : sig_h);
-    const double prio_aoa_h = prio_aoa * prio_h;
+    const double prio_r = 1.0 - ((sig_r > 1.0) ? 1.0 : sig_r);
+    const double prio_aoa_h = prio_aoa * prio_h * prio_r;
 
     // state output
     out[0] = e_lat * prio_aoa_h;
@@ -269,9 +270,6 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
 {
     double in_Delta[ACADO_NX+ACADO_NU+ACADO_NOD];
     memcpy(in_Delta, in, sizeof(in_Delta));
-    
-    // EVALUATE (MOST) OBJECTIVES / / / / / / / / / / / / / / / / / / / / /
-    lsq_obj_eval( in_Delta, out );
     
     // HANDLE OTHER OBJECTIVES / / / / / / / / / / / / / / / / / / / / / /
     
@@ -310,7 +308,6 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
     double p1[3];
     double p2[3];
     double p3[3];
-    double r0[3];
     double v_ray[3] = {vG_e/vG_norm, vG_n/vG_norm, -vG_d/vG_norm}; // in ENU
     const double phi_max = 0.6109;
     const double delta_r0 = 10.0;
@@ -318,9 +315,18 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
     const double k_r = 2.0;
     const double delta_r = vG_norm * vG_norm * 0.1456 * k_r + delta_r0; // radial buffer zone
     const double d_ray = delta_r + terr_dis;
-    double r1[3] = {r0[0] + v_ray[0] * d_ray, r0[1] + v_ray[1] * d_ray, r0[2] + v_ray[2] * d_ray};
+    const double r0[3] = {r_e, r_n, -r_d};
+    const double r1[3] = {r0[0] + v_ray[0] * d_ray, r0[1] + v_ray[1] * d_ray, r0[2] + v_ray[2] * d_ray};
     int occ_detected = castray(&d_occ, p_occ, p1, p2, p3, r0, r1, v_ray,
         terr_local_origin_n, terr_local_origin_e, terr_dis, in_Delta+IDX_TERR_DATA);
+    p1[0] = p1[0] + terr_local_origin_e;
+    p1[1] = p1[1] + terr_local_origin_n;
+    p2[0] = p2[0] + terr_local_origin_e;
+    p2[1] = p2[1] + terr_local_origin_n;
+    p3[0] = p3[0] + terr_local_origin_e;
+    p3[1] = p3[1] + terr_local_origin_n;
+    p_occ[0] = p_occ[0] + terr_local_origin_e;
+    p_occ[1] = p_occ[1] + terr_local_origin_n;
     
     // calculate radial cost
     double sig_r = 0.0;
@@ -329,6 +335,9 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
         sig_r = sig_r*sig_r*sig_r;
     }
     out[8] = sig_r;
+    
+    // EVALUATE (MOST) OBJECTIVES / / / / / / / / / / / / / / / / / / / / /
+    lsq_obj_eval( in_Delta, out, sig_r );
 
     /* lsq_obj jacobians */
     
@@ -368,9 +377,9 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
     for (i = 0; i < ACADO_NX; i=i+1) {
 
         in_Delta[i] = in[i] - Delta;
-        lsq_obj_eval( in_Delta, f_Delta_m );
+        lsq_obj_eval( in_Delta, f_Delta_m, sig_r );
         in_Delta[i] = in[i] + Delta;
-        lsq_obj_eval( in_Delta, f_Delta_p );
+        lsq_obj_eval( in_Delta, f_Delta_p, sig_r );
         in_Delta[i] = in[i];
         
         for (j = 0; j < 8; j=j+1) {
@@ -393,9 +402,9 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
     for (i = 0; i < ACADO_NU; i=i+1) {
 
         in_Delta[i+ACADO_NX] = in[i+ACADO_NX] - Delta;
-        lsq_obj_eval( in_Delta, f_Delta_m );
+        lsq_obj_eval( in_Delta, f_Delta_m, sig_r );
         in_Delta[i+ACADO_NX] = in[i+ACADO_NX] + Delta;
-        lsq_obj_eval( in_Delta, f_Delta_p );
+        lsq_obj_eval( in_Delta, f_Delta_p, sig_r );
         in_Delta[i+ACADO_NX] = in[i+ACADO_NX];
 
         for (j = 0; j < 8; j=j+1) {
@@ -411,7 +420,7 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
 
 }
 
-void lsq_objN_eval( real_t *in, real_t *out )
+void lsq_objN_eval( real_t *in, real_t *out, double sig_r )
 {
     /* DEFINE INPUTS -- this is just simply easier to read.. */
     
@@ -590,7 +599,8 @@ void lsq_objN_eval( real_t *in, real_t *out )
     // prioritization
     const double prio_aoa = 1.0;//1.0 - ((sig_aoa > 1.0) ? 1.0 : sig_aoa);
     const double prio_h = 1.0 - ((sig_h > 1.0) ? 1.0 : sig_h);
-    const double prio_aoa_h = prio_aoa * prio_h;
+    const double prio_r = 1.0 - ((sig_r > 1.0) ? 1.0 : sig_r);
+    const double prio_aoa_h = prio_aoa * prio_h * prio_r;
     
     // state output
     out[0] = e_lat * prio_aoa_h;
@@ -607,9 +617,6 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
 {
     double in_Delta[ACADO_NX+ACADO_NOD];
     memcpy(in_Delta, in, sizeof(in_Delta));
-    
-    // EVALUATE (MOST) OBJECTIVES / / / / / / / / / / / / / / / / / / / / /
-    lsq_objN_eval( in_Delta, out );
     
     // HANDLE OTHER OBJECTIVES / / / / / / / / / / / / / / / / / / / / / /
     
@@ -648,7 +655,6 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
     double p1[3];
     double p2[3];
     double p3[3];
-    double r0[3];
     double v_ray[3] = {vG_e/vG_norm, vG_n/vG_norm, -vG_d/vG_norm}; // in ENU
     const double phi_max = 0.6109;
     const double delta_r0 = 10.0;
@@ -656,9 +662,18 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
     const double k_r = 2.0;
     const double delta_r = vG_norm * vG_norm * 0.1456 * k_r + delta_r0; // radial buffer zone
     const double d_ray = delta_r + terr_dis;
-    double r1[3] = {r0[0] + v_ray[0] * d_ray, r0[1] + v_ray[1] * d_ray, r0[2] + v_ray[2] * d_ray};
+    const double r0[3] = {r_e, r_n, -r_d};
+    const double r1[3] = {r0[0] + v_ray[0] * d_ray, r0[1] + v_ray[1] * d_ray, r0[2] + v_ray[2] * d_ray};
     int occ_detected = castray(&d_occ, p_occ, p1, p2, p3, r0, r1, v_ray,
         terr_local_origin_n, terr_local_origin_e, terr_dis, in_Delta+IDX_TERR_DATA);
+    p1[0] = p1[0] + terr_local_origin_e;
+    p1[1] = p1[1] + terr_local_origin_n;
+    p2[0] = p2[0] + terr_local_origin_e;
+    p2[1] = p2[1] + terr_local_origin_n;
+    p3[0] = p3[0] + terr_local_origin_e;
+    p3[1] = p3[1] + terr_local_origin_n;
+    p_occ[0] = p_occ[0] + terr_local_origin_e;
+    p_occ[1] = p_occ[1] + terr_local_origin_n;
     
     // calculate radial cost
     double sig_r = 0.0;
@@ -667,14 +682,16 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
         sig_r = sig_r*sig_r*sig_r;
     }
     out[8] = sig_r;
+    
+     // EVALUATE (MOST) OBJECTIVES / / / / / / / / / / / / / / / / / / / / /
+    lsq_objN_eval( in_Delta, out, sig_r );
 
     /* lsq_obj jacobians */
     
     // calculate radial cost jacobians
     double jac_sig_r[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     if (occ_detected==2) {
-        jac_sig_r_tl(jac_sig_r,
-            r_n, r_e, r_d,
+        jac_sig_r_tl(jac_sig_r, r_n, r_e, r_d,
             v, gamma, xi,
             w_e, w_n, w_d,
             terr_dis,
@@ -684,8 +701,7 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
             phi_max, delta_r0, g, k_r);
     }
     else if (occ_detected==1) {
-        jac_sig_r_br(jac_sig_r,
-            r_n, r_e, r_d,
+        jac_sig_r_br(jac_sig_r, r_n, r_e, r_d,
             v, gamma, xi,
             w_e, w_n, w_d,
             terr_dis,
@@ -709,9 +725,9 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
     for (i = 0; i < ACADO_NX; i=i+1) {
 
         in_Delta[i] = in[i] - Delta;
-        lsq_objN_eval( in_Delta, f_Delta_m );
+        lsq_objN_eval( in_Delta, f_Delta_m, sig_r );
         in_Delta[i] = in[i] + Delta;
-        lsq_objN_eval( in_Delta, f_Delta_p );
+        lsq_objN_eval( in_Delta, f_Delta_p, sig_r );
         in_Delta[i] = in[i];
 
         for (j = 0; j < ACADO_NYN-1; j=j+1) {
@@ -959,16 +975,19 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
     // initialize
     int occ_detected = 0;
 
-    // relative start position
+    // relative (unit) start position
     const double x0 = (r0[0] - pos_e_origin)/terr_dis;
     const double y0 = (r0[1] - pos_n_origin)/terr_dis;
 
     // initial height
     const double h0 = r0[2];
+    
+    // vector for triangle intersect inputs
+    const double r0_rel[3] = {x0*terr_dis,y0*terr_dis,h0}; //XXX: this origin subtracting/adding is inefficient.. pick one and go with it for this function
 
     // relative end position
-    const double x1 = r1[0]/terr_dis;
-    const double y1 = r1[1]/terr_dis;
+    const double x1 = (r1[0] - pos_e_origin)/terr_dis;
+    const double y1 = (r1[1] - pos_n_origin)/terr_dis;
 
     // end height
     const double h1 = r1[2];
@@ -989,7 +1008,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
     const double dh = h1 - h0;
 
     // number of cells we pass through
-    int n = int(floor(x1)-x + floor(y1)-y) + 1;
+    int n = fabs(floor(x1)-x) + fabs(floor(y1)-y) + 1; //XXX: what is the real difference between this and using dx / dy?
 
     // initialize stepping criteria
     double t_next_horizontal, t_last_horizontal;
@@ -998,6 +1017,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
 
     if (dx < 0.00001) {
         x_inc = 0.0;
+        dt_dx = INFINITY;
         t_next_horizontal = INFINITY;
         t_last_horizontal = INFINITY;
     }
@@ -1016,6 +1036,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
 
     if (dy < 0.00001) {
         y_inc = 0.0;
+        dt_dy = INFINITY;
         t_next_vertical = INFINITY;
         t_last_vertical = INFINITY;
     }
@@ -1047,22 +1068,6 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
     int i;
     for (i = 0; i < n; i=i+1) {
 
-        // bound corner coordinates
-        x_check = constrain_int(x, 0, LEN_IDX_E_1);
-        y_check = constrain_int(y, 0, LEN_IDX_N_1);
-        x_check1 = constrain_int(x_check+1, 0, LEN_IDX_E_1);
-        y_check1 = constrain_int(y_check+1, 0, LEN_IDX_N_1);
-        // convert to row-major indices
-        idx_corner1 = y_check*LEN_IDX_E + x_check;
-        idx_corner2 = y_check1*LEN_IDX_E + x_check;
-        idx_corner3 = y_check1*LEN_IDX_E + x_check1;
-        idx_corner4 = y_check*LEN_IDX_E + x_check1;
-        // check the four corners
-        check1 = terr_map[idx_corner1] > h_check; // corner 1 (bottom left)
-        check2 = terr_map[idx_corner2] > h_check; // corner 2 (top left)
-        check3 = terr_map[idx_corner3] > h_check; // corner 3 (top right)
-        check4 = terr_map[idx_corner4] > h_check; // corner 4 (bottom right) 
-
         // check the next step we will take and compute the exit height
         if (t_next_vertical < t_next_horizontal) {
             // next step is vertical
@@ -1087,6 +1092,22 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
             h_check = h_exit;
         }
         h_entr = h_exit;
+        
+        // bound corner coordinates
+        x_check = constrain_int(x, 0, LEN_IDX_E_1);
+        y_check = constrain_int(y, 0, LEN_IDX_N_1);
+        x_check1 = constrain_int(x_check+1, 0, LEN_IDX_E_1);
+        y_check1 = constrain_int(y_check+1, 0, LEN_IDX_N_1);
+        // convert to row-major indices
+        idx_corner1 = y_check*LEN_IDX_E + x_check;
+        idx_corner2 = y_check1*LEN_IDX_E + x_check;
+        idx_corner3 = y_check1*LEN_IDX_E + x_check1;
+        idx_corner4 = y_check*LEN_IDX_E + x_check1;
+        // check the four corners
+        check1 = terr_map[idx_corner1] > h_check; // corner 1 (bottom left)
+        check2 = terr_map[idx_corner2] > h_check; // corner 2 (top left)
+        check3 = terr_map[idx_corner3] > h_check; // corner 3 (top right)
+        check4 = terr_map[idx_corner4] > h_check; // corner 4 (bottom right) 
 
         // check cell triangles
         if (last_step_was_vert) { // / / / / / / / / / / / / / / / / / / / / /
@@ -1113,7 +1134,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         // check for ray-triangle intersection
-                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
 
                         occ_detected += ret; // =1 if detection
                     }
@@ -1133,7 +1154,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         // check for ray-triangle intersection
-                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
 
                         occ_detected += ret*2; // =2 if detection
                     }
@@ -1156,7 +1177,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         // check for ray-triangle intersection
-                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
 
                         occ_detected += ret*2; // =2 if detection
                     }
@@ -1176,7 +1197,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         // check for ray-triangle intersection
-                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
 
                         occ_detected += ret; // =1 if detection
                     }
@@ -1203,7 +1224,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         // check for ray-triangle intersection
-                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
 
                         occ_detected += ret; // =1 if detection
                     }
@@ -1226,7 +1247,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         // check for ray-triangle intersection
-                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
 
                         occ_detected += ret*2; // =2 if detection
                     }
@@ -1249,7 +1270,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         // check for ray-triangle intersection
-                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
 
                         occ_detected += ret; // =1 if detection
                     }
@@ -1269,7 +1290,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         // check for ray-triangle intersection
-                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
 
                         occ_detected += ret*2; // =2 if detection
                     }
@@ -1298,7 +1319,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         // check for ray-triangle intersection
-                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
 
                         occ_detected += ret*2; // =2 if detection
                     }
@@ -1321,7 +1342,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                             p3[2] = terr_map[idx_corner3];
 
                             // check for ray-triangle intersection
-                            ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+                            ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
 
                             occ_detected += ret; // =1 if detection
                         }
@@ -1345,7 +1366,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         // check for ray-triangle intersection
-                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
 
                         occ_detected += ret; // =1 if detection
                     }
@@ -1368,7 +1389,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                             p3[2] = terr_map[idx_corner3];
 
                             // check for ray-triangle intersection
-                            ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+                            ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
 
                             occ_detected += ret*2; // =2 if detection
                         }
@@ -1396,7 +1417,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         // check for ray-triangle intersection
-                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
 
                         occ_detected += ret*2; // =2 if detection
                     }
@@ -1416,7 +1437,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         // check for ray-triangle intersection
-                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
 
                         occ_detected += ret; // =1 if detection
                     }
@@ -1439,7 +1460,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         // check for ray-triangle intersection
-                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
 
                         occ_detected += ret; // =1 if detection
                     }
@@ -1459,7 +1480,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         // check for ray-triangle intersection
-                        ret = intersect_triangle(d_occ, p_occ, r0, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
 
                         occ_detected += ret*2; // =2 if detection
                     }

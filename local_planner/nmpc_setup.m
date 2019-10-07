@@ -174,6 +174,7 @@ nmpc.set( 'SPARSE_QP_SOLUTION', 'FULL_CONDENSING' );
 nmpc.set( 'INTEGRATOR_TYPE', 'INT_IRK_GL4' );
 nmpc.set( 'NUM_INTEGRATOR_STEPS', N  );
 nmpc.set( 'QP_SOLVER', 'QP_QPOASES' );
+nmpc.set( 'MAX_NUM_QP_ITERATIONS', 500 );
 nmpc.set( 'HOTSTART_QP', 'YES' );
 nmpc.set( 'LEVENBERG_MARQUARDT', 1e-10 );
 nmpc.set( 'CG_HARDCODE_CONSTRAINT_VALUES', 'YES' );

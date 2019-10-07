@@ -3378,6 +3378,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: NUM_INTEGRATOR_STEPS");
     options_flag = ExportModule1.set( QP_SOLVER, QP_QPOASES );
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: QP_SOLVER");
+    options_flag = ExportModule1.set( MAX_NUM_QP_ITERATIONS, 500 );
+    if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: MAX_NUM_QP_ITERATIONS");
     options_flag = ExportModule1.set( HOTSTART_QP, YES );
     if(options_flag != 0) mexErrMsgTxt("ACADO export failed when setting the following option: HOTSTART_QP");
     options_flag = ExportModule1.set( LEVENBERG_MARQUARDT, 1.000000E-10 );

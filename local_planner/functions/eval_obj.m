@@ -1,4 +1,4 @@
-function [out,aux] = eval_obj(in)
+function [out,aux] = eval_obj(in, len_idx_n, len_idx_e)
 
 % DEFINE INPUTS -- this is just simply easier to read.. */ 
  
@@ -139,10 +139,39 @@ if (-r_d < h_terr + delta_h)
     sig_h = sig_h * sig_h * sig_h;
 end
 
+% cast ray along ground speed vector to check for occlusions
+v_ray = [vG_e/vG_norm, vG_n/vG_norm, -vG_d/vG_norm]; % in ENU
+delta_r0 = 10.0;
+k_r = 2.0;
+g = 9.81;
+phi_max = 0.6109;
+delta_r = vG_norm * vG_norm * 0.1456 * k_r + delta_r0; % radial buffer zone
+d_ray = delta_r + terr_dis;
+r0 = [r_e, r_n, -r_d];
+r1 = [r0(1) + v_ray(1) * d_ray, r0(2) + v_ray(2) * d_ray, r0(3) + v_ray(3) * d_ray];
+[occ_detected, d_occ, p_occ, p1, p2, p3] = castray(r0, r1, v_ray, ...
+    terr_local_origin_n, terr_local_origin_e, len_idx_n, len_idx_e, terr_dis, in(IDX_TERR_DATA:end));
+p1(1) = p1(1) + terr_local_origin_e;
+p1(2) = p1(2) + terr_local_origin_n;
+p2(1) = p2(1) + terr_local_origin_e;
+p2(2) = p2(2) + terr_local_origin_n;
+p3(1) = p3(1) + terr_local_origin_e;
+p3(2) = p3(2) + terr_local_origin_n;
+p_occ(1) = p_occ(1) + terr_local_origin_e;
+p_occ(2) = p_occ(2) + terr_local_origin_n;
+
+% calculate radial cost
+sig_r = 0.0;
+if ((d_occ < delta_r) && occ_detected>0)
+    sig_r = abs(delta_r - d_occ);
+    sig_r = sig_r*sig_r*sig_r;
+end
+
 % prioritization
 prio_aoa = 1;%1 - min(sig_aoa, 1.0);
 prio_h = 1 - min(sig_h, 1.0);
-prio_aoa_h = prio_aoa * prio_h;
+prio_r = 1 - min(sig_r, 1.0);
+prio_aoa_h = prio_aoa * prio_h * prio_r;
 
 % state output 
 out(1) = e_lat * prio_aoa_h; 
@@ -152,13 +181,41 @@ out(4) = e_v_e * prio_aoa_h;
 out(5) = e_v_d * prio_aoa_h;
 out(6) = v; 
 out(7) = sig_aoa; 
-out(8) = sig_h * prio_aoa; 
+out(8) = sig_h * prio_aoa;
+out(9) = sig_r * prio_aoa;
 
 % control output
-out(9) = u_T;
-out(10) = phi_ref;
-out(11) = theta_ref;
+out(10) = u_T;
+out(11) = phi_ref;
+out(12) = theta_ref;
 
-aux = [h_terr, e_lat, e_lon, e_v_n, e_v_e, e_v_d, sig_aoa, sig_h, prio_aoa, prio_h, prio_aoa_h, Gamma_app, chi_app, Gamma_p, chi_p];
+% calculate radial cost jacobians
+jac_sig_r = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+if (occ_detected==2) 
+    jac_sig_r = jac_sig_r_tl( ...
+        r_n, r_e, r_d, ...
+        v, gamma, xi, ...
+        w_e, w_n, w_d, ...
+        terr_dis, ...
+        p1(1), p1(2), p1(3), ...
+        p2(1), p2(2), p2(3), ...
+        p3(1), p3(2), p3(3), ...
+        phi_max, delta_r0, g, k_r);
+elseif (occ_detected==1) 
+    jac_sig_r = jac_sig_r_br( ...
+        r_n, r_e, r_d, ... 
+        v, gamma, xi, ...
+        w_e, w_n, w_d, ...
+        terr_dis, ...
+        p1(1), p1(2), p1(3), ...
+        p2(1), p2(2), p2(3), ...
+        p3(1), p3(2), p3(3), ...
+        phi_max, delta_r0, g, k_r);
+end
+
+aux = [h_terr, e_lat, e_lon, e_v_n, e_v_e, e_v_d, ...
+    sig_aoa, sig_h, prio_aoa, prio_h, prio_aoa_h, ...
+    Gamma_app, chi_app, Gamma_p, chi_p, ...
+    occ_detected, sig_r, jac_sig_r, delta_r];
 
 end

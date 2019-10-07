@@ -95,8 +95,8 @@ zref = [0.5 0 deg2rad(3)];
 Q_scale = [1 1 1 1 1 1 1 1 1];
 R_scale = [0.1 deg2rad(1) deg2rad(1)];
 
-Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 0*1e7]./Q_scale.^2;
-QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 0*1e7]./Q_scale.^2;
+Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e7]./Q_scale.^2;
+QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e7]./Q_scale.^2;
 R_controls  = [1e1 1e0 1e0]./R_scale.^2;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
@@ -118,7 +118,7 @@ input.WN    = diag(QN_output);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 60;
+Tf = 30;
 Ts = 0.01;
 time = T0:Ts:Tf;
 len_t = length(time);
@@ -153,7 +153,7 @@ rec.x_hor = zeros(N+1,len_t,n_X);
 rec.u_hor = zeros(N,len_t,n_U);
 rec.u = zeros(len_t,n_U);
 rec.yz = zeros(len_t,n_Y+n_Z);
-rec.aux = zeros(len_t,15);
+rec.aux = zeros(len_t,24);
 
 % simulate
 for k = 1:len_t
@@ -223,23 +223,12 @@ for k = 1:len_t
     rec.x_hor(:,k,:) = output.x(:,:);
     rec.u_hor(:,k,:) = output.u(:,:);
     rec.u(k,:) = controls;
-    [out,aux] = eval_obj([simout,controls,input.od(1,:)]);
-    %
-%     [out_m,~] = eval_obj([simout-[0.00001,zeros(1,8)],controls,input.od(1,:)]);
-%     [out_p,~] = eval_obj([simout+[0.00001,zeros(1,8)],controls,input.od(1,:)]);
-%     rec.dJdn(k,:) = (out_p - out_m) / 2 / 0.00001;
-%     [out_m,~] = eval_obj([simout-[zeros(1,1),0.00001,zeros(1,7)],controls,input.od(1,:)]);
-%     [out_p,~] = eval_obj([simout+[zeros(1,1),0.00001,zeros(1,7)],controls,input.od(1,:)]);
-%     rec.dJde(k,:) = (out_p - out_m) / 2 / 0.00001;
-%     [out_m,~] = eval_obj([simout-[zeros(1,2),0.00001,zeros(1,6)],controls,input.od(1,:)]);
-%     [out_p,~] = eval_obj([simout+[zeros(1,2),0.00001,zeros(1,6)],controls,input.od(1,:)]);
-%     rec.dJdd(k,:) = (out_p - out_m) / 2 / 0.00001;
-%     
-%     h_terr_ = 180*exp(-((simout(2) - 100)/300)^2-((simout(1) - 750)/300)^2);
-%     rec.dJ_dn(k,:) = (3*180*(1/300)^2*exp(- (1/300)^2*(simout(2) - 100)^2 - (1/300)^2*(simout(1) - 750)^2)*(2*simout(1) - 2*750)*(delta_h + h_terr_ + simout(3))^2)/delta_h^3;
-    
-    %
-    rec.yz(k,:) = [out 0];
+%     if k>=2151
+%         stoppp=1;
+% %         [out1,aux1] = eval_obj([reshape(rec.x_hor(50,k,:),[1 n_X]),reshape(rec.u_hor(50,k,:),[1 n_U]),input.od(1,:)], len_local_idx_n, len_local_idx_e);
+%     end
+    [out,aux] = eval_obj([simout,controls,input.od(1,:)], len_local_idx_n, len_local_idx_e);
+    rec.yz(k,:) = out;
     rec.aux(k,:) = aux;
     trec(k) = toc(st_rec);
     

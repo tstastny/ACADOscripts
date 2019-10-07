@@ -250,7 +250,8 @@ ylabel('cpu time [ms]');
 
 subplot(5,1,5); hold on; grid on; box on;
 
-plot(time(idx_), [INFO_MPC.QP_iter]);
+qp_iter = [INFO_MPC.QP_iter];
+plot(time(idx_), qp_iter(1:length(idx_)));
 ylabel('qp iter.');
 
 xlabel('time [s]');
