@@ -664,15 +664,21 @@ void lookup_terrain_idx(const double pos_n, const double pos_e, const double pos
     const double rel_n = pos_n - pos_n_origin;
     const double rel_n_bar = rel_n / terr_dis;
     int idx_n = int(floor(rel_n_bar));
+    const double rel_e = pos_e - pos_e_origin;
+    const double rel_e_bar = rel_e / terr_dis;
+    int idx_e = int(floor(rel_e_bar));
+    
+    // interpolation weights
+    const double dh_n = rel_n_bar-idx_n;
+    const double dh_e = rel_e_bar-idx_e;
+    
+    // cap ends
     if (idx_n < 0) {
         idx_n = 0;
     }
     else if (idx_n > LEN_IDX_N_1) {
         idx_n = LEN_IDX_N_1;
     }
-    const double rel_e = pos_e - pos_e_origin;
-    const double rel_e_bar = rel_e / terr_dis;
-    int idx_e = int(floor(rel_e_bar));
     if (idx_e < 0) {
         idx_e = 0;
     }
@@ -680,61 +686,33 @@ void lookup_terrain_idx(const double pos_n, const double pos_e, const double pos
         idx_e = LEN_IDX_E_1;
     }
     
-    // neighbor orientation / interpolation weights
-    const double delta_n = rel_n_bar-idx_n;
-    int down;
-    double dh_n;
-    if (delta_n<0.5) {
-        down = -1;
-        dh_n = 0.5 + delta_n;
-    }
-    else {
-        down = 0;
-        dh_n = delta_n - 0.5;
-    }
-    const double delta_e = rel_e_bar-idx_e;
-    int left;
-    double dh_e;
-    if (delta_e<0.5) {
-        left = -1;
-        dh_e = 0.5 + delta_e;
-    }
-    else {
-        left = 0;
-        dh_e = delta_e - 0.5;
-    }
-    
-    // neighbor origin (down,left)
-    int q1_n = idx_n + down;
-    int q1_e = idx_e + left;
-    
     // neighbors (north)
     int q_n[4];
-    if (q1_n >= LEN_IDX_N_1) {
+    if (idx_n >= LEN_IDX_N_1) {
         q_n[0] = LEN_IDX_N_1;
         q_n[1] = LEN_IDX_N_1;
         q_n[2] = LEN_IDX_N_1;
         q_n[3] = LEN_IDX_N_1;
     }
     else {
-        q_n[0] = q1_n;
-        q_n[1] = q1_n + 1;
-        q_n[2] = q1_n;
-        q_n[3] = q1_n + 1;
+        q_n[0] = idx_n;
+        q_n[1] = idx_n + 1;
+        q_n[2] = idx_n;
+        q_n[3] = idx_n + 1;
     }
     // neighbors (east)
     int q_e[4];
-    if (q1_e >= LEN_IDX_E_1) {
+    if (idx_e >= LEN_IDX_E_1) {
         q_e[0] = LEN_IDX_E_1;
         q_e[1] = LEN_IDX_E_1;
         q_e[2] = LEN_IDX_E_1;
         q_e[3] = LEN_IDX_E_1;
     }
     else {
-        q_e[0] = q1_e;
-        q_e[1] = q1_e;
-        q_e[2] = q1_e + 1;
-        q_e[3] = q1_e + 1;
+        q_e[0] = idx_e;
+        q_e[1] = idx_e;
+        q_e[2] = idx_e + 1;
+        q_e[3] = idx_e + 1;
     }
     
     // neighbors row-major indices
