@@ -4,6 +4,12 @@ color_ref = [0.5 0.5 0.5];
 color_hor = [min(ones(1,3), cmap(5,:)*1.6) 0.2];%[0.2 0.2 1 0.6];
 color_state = cmap(1,:);
 
+% start/end time
+t_st_plot = 0;
+t_ed_plot = time(end);
+isp = find(time<=t_st_plot, 1, 'last');
+iep = find(time<=t_ed_plot, 1, 'last');
+
 %% ////////////////////////////////////////////////////////////////////////
 % POSITION
 
@@ -25,11 +31,11 @@ plot3([b_e, b_e+len_path*sin(chi_p)*cos(Gamma_p)], ...
 % position horizons
 hor_int = round(1/Ts);
 node_int = 10;
-hor1 = plot3(rec.x_hor(1:node_int:end,1:hor_int:end,2), rec.x_hor(1:node_int:end,1:hor_int:end,1), ...
-    -rec.x_hor(1:node_int:end,1:hor_int:end,3), '-o', 'MarkerSize', 4, 'Color', color_hor(1:3));
+hor1 = plot3(rec.x_hor(1:node_int:end,isp:hor_int:iep,2), rec.x_hor(1:node_int:end,isp:hor_int:iep,1), ...
+    -rec.x_hor(1:node_int:end,isp:hor_int:iep,3), '-o', 'MarkerSize', 4, 'Color', color_hor(1:3));
 
 % position
-plot3(rec.x(:,2),rec.x(:,1),-rec.x(:,3), 'linewidth', 1.5, 'color', cmap(2,:));
+plot3(rec.x(isp:iep,2),rec.x(isp:iep,1),-rec.x(isp:iep,3), 'linewidth', 1.5, 'color', cmap(2,:));
 
 xlabel('East [m]')
 ylabel('North [m]')
@@ -53,11 +59,11 @@ plot3([b_e, b_ed_e], ...
 % position horizons
 hor_int = round(3/Ts);
 node_int = 10;
-hor1 = plot3(rec.x_hor(1:node_int:end,1:hor_int:end,2), rec.x_hor(1:node_int:end,1:hor_int:end,1), ...
-    -rec.x_hor(1:node_int:end,1:hor_int:end,3), '-o', 'MarkerSize', 4, 'Color', color_hor(1:3));
+hor1 = plot3(rec.x_hor(1:node_int:end,isp:hor_int:iep,2), rec.x_hor(1:node_int:end,isp:hor_int:iep,1), ...
+    -rec.x_hor(1:node_int:end,isp:hor_int:iep,3), '-o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
 
 % position
-plot3(rec.x(:,2),rec.x(:,1),-rec.x(:,3), 'linewidth', 1.5, 'color', color_state);
+plot3(rec.x(isp:iep,2),rec.x(isp:iep,1),-rec.x(isp:iep,3), 'linewidth', 1.5, 'color', color_state);
 
 xlabel('East [m]')
 ylabel('North [m]')
@@ -70,21 +76,21 @@ figure('color','w','name','Attitude');
 
 % roll angle
 hand_att(1) = subplot(3,1,1); hold on; grid on; box on;
-plot(time,rad2deg(rec.u(:,2)),'color',color_ref);
-plot(time,rad2deg(rec.x(:,7)),'color',color_state);
+plot(time(isp:iep),rad2deg(rec.u(isp:iep,2)),'color',color_ref);
+plot(time(isp:iep),rad2deg(rec.x(isp:iep,7)),'color',color_state);
 legend('ref','state')
 ylabel('\phi [deg]')
 
 % pitch
 hand_att(2) = subplot(3,1,2); hold on; grid on; box on;
-plot(time,rad2deg(rec.u(:,3)),'color',color_ref);
-plot(time,rad2deg(rec.x(:,8)),'color',color_state);
+plot(time(isp:iep),rad2deg(rec.u(isp:iep,3)),'color',color_ref);
+plot(time(isp:iep),rad2deg(rec.x(isp:iep,8)),'color',color_state);
 legend('ref','state')
 ylabel('\theta [deg]')
 
 % heading
 hand_att(3) = subplot(3,1,3); hold on; grid on; box on;
-plot(time,rad2deg(rec.x(:,6)),'color',color_state);
+plot(time(isp:iep),rad2deg(rec.x(isp:iep,6)),'color',color_state);
 ylabel('\xi [deg]')
 
 xlabel('Time [s]')
@@ -98,16 +104,16 @@ figure('color','w','name','Motor');
 
 % u_T
 hand_mot(1) = subplot(2,1,1); hold on; grid on; box on;
-plot(time,rec.u(:,1),'color',color_ref);
+plot(time(isp:iep),rec.u(isp:iep,1),'color',color_ref);
 ylabel('u_T [~]')
 
 % prop speed
 hand_mot(2) = subplot(2,1,2); hold on; grid on; box on;
 
-u_n = calc_prop_speed(rec.u(:,1),rec.x(:,4),rec.x(:,8)-rec.x(:,5),model_params,sysid_config);
+u_n = calc_prop_speed(rec.u(isp:iep,1),rec.x(isp:iep,4),rec.x(isp:iep,8)-rec.x(isp:iep,5),model_params,sysid_config);
 
-plot(time,u_n,'color',color_ref);
-plot(time,rec.x(:,9),'color',color_state);
+plot(time(isp:iep),u_n,'color',color_ref);
+plot(time(isp:iep),rec.x(isp:iep,9),'color',color_state);
 legend('ref','state')
 ylabel('n_p [rps]')
 
@@ -122,17 +128,17 @@ figure('color','w','name','Position errors')
 
 hand_pos_err(1)=subplot(2,1,1); hold on; grid on; box on;
 
-plot(time,rec.aux(:,2));
-plot(time,rec.aux(:,3));
+plot(time(isp:iep),rec.aux(isp:iep,2));
+plot(time(isp:iep),rec.aux(isp:iep,3));
 
 legend('e_{lat}','e_{lon}')
 ylabel('e [m]')
 
 hand_pos_err(2)=subplot(2,1,2); hold on; grid on; box on;
 
-plot(time,rec.aux(:,1),'color',color_ref);
-plot(time,rec.aux(:,1)+delta_h,'color',color_ref,'linestyle','--');
-plot(time,-rec.x(:,3),'color',color_state);
+plot(time(isp:iep),rec.aux(isp:iep,1),'color',color_ref);
+plot(time(isp:iep),rec.aux(isp:iep,1)+delta_h,'color',color_ref,'linestyle','--');
+plot(time(isp:iep),-rec.x(isp:iep,3),'color',color_state);
 
 legend('h_{terr}','h_{terr,buf}','h')
 ylabel('Height [m]')
@@ -148,15 +154,15 @@ figure('color','w','name','Directional errors')
 
 hand_dir_err(1)=subplot(2,1,1); hold on; grid on; box on;
 
-plot(time,rec.aux(:,4));
-plot(time,rec.aux(:,5));
+plot(time(isp:iep),rec.aux(isp:iep,4));
+plot(time(isp:iep),rec.aux(isp:iep,5));
 
 legend('e_{v_n}','e_{v_e}')
 ylabel('e_v [m/s]')
 
 hand_dir_err(2)=subplot(2,1,2); hold on; grid on; box on;
 
-plot(time,rec.aux(:,6));
+plot(time(isp:iep),rec.aux(isp:iep,6));
 
 ylabel('e_{v_d} [m/s]')
 
@@ -168,7 +174,7 @@ figure('color','w','name','Wind axis');
 % airspeed
 hand_vab(1) = subplot(2,1,1); hold on; grid on; box on;
 plot(time([1 end]),[v_ref v_ref],'color',color_ref);
-plot(time,rec.x(:,4),'color',color_state);
+plot(time(isp:iep),rec.x(isp:iep,4),'color',color_state);
 legend('ref','state')
 ylabel('v [m/s]')
 
@@ -176,19 +182,19 @@ ylabel('v [m/s]')
 hand_vab(2) = subplot(2,1,2); hold on; grid on; box on;
 plot(time([1 end]),rad2deg([aoa_m aoa_m]),'color',color_ref);
 plot(time([1 end]),rad2deg([aoa_p aoa_p]),'color',color_ref);
-plot(time,rad2deg(rec.x(:,8) - rec.x(:,5)),'color',color_state);
+plot(time(isp:iep),rad2deg(rec.x(isp:iep,8) - rec.x(isp:iep,5)),'color',color_state);
 ylabel('\alpha [deg]')
 
 %% ////////////////////////////////////////////////////////////////////////
 % OBJECTIVE COSTS
 
-obj_cost = zeros(len_t, n_Y+n_Z);
+obj_cost = zeros(length(isp:iep), n_Y+n_Z);
 for ii = 1:n_Y
-    obj_cost(:,ii) = (yref(ii)*ones(length(time),1)-rec.yz(:,ii)).^2*Q_output(ii);
+    obj_cost(:,ii) = (yref(ii)*ones(length(time(isp:iep)),1)-rec.yz(isp:iep,ii)).^2*Q_output(ii);
 end
 
 for ii = 1:n_Z
-    obj_cost(:,n_Y+ii) = (zref(ii)*ones(length(time),1)-rec.yz(:,n_Y+ii)).^2*R_controls(ii);
+    obj_cost(:,n_Y+ii) = (zref(ii)*ones(length(time(isp:iep)),1)-rec.yz(isp:iep,n_Y+ii)).^2*R_controls(ii);
 end
 
 figure('color','w','name','Objective Costs')
@@ -197,7 +203,7 @@ hand_obj(1)=subplot(2,1,1); hold on; grid on; box on;
 
 leg_str_ = cell(1,n_Y);
 for ii = 1:n_Y
-    plot(time,obj_cost(:,ii));
+    plot(time(isp:iep),obj_cost(:,ii));
     leg_str_{ii} = ['y',int2str(ii)];
 end
 
@@ -209,7 +215,7 @@ hand_obj(2)=subplot(2,1,2); hold on; grid on; box on;
 
 leg_str_ = cell(1,n_Z);
 for ii = 1:n_Z
-    plot(time,obj_cost(:,n_Y+ii));
+    plot(time(isp:iep),obj_cost(:,n_Y+ii));
     leg_str_{ii} = ['z',int2str(ii)];
 end
 
@@ -226,8 +232,8 @@ linkaxes(hand_obj,'x');
 
 % figure('color','w','name','NMPC timing'); hold on; grid on; box on;
 % 
-% plot(time,tsolve);
-% plot(time,tarray);
+% plot(time(isp:iep),tsolve);
+% plot(time(isp:iep),tarray);
 % 
 % legend('nmpc','array allocation');
 % ylabel('cpu time [s]');
