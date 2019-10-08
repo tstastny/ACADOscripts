@@ -12,7 +12,7 @@ load('model_config/model_params.mat');
 run('model_config/sysid_config_Techpod.m');
 
 %% NMPC SETUP -------------------------------------------------------------
-N = 70;
+N = 40;
 n_U = 3;
 n_X = 9; % number of nmpc states
 n_Y = 9;
@@ -61,6 +61,9 @@ len_local_idx_e = 57;%29;
 terr_dis = 5;
 terrain_constructor;
 
+% horizon handling
+shift_states_controls = true;
+
 %% INITIALIZATION ---------------------------------------------------------
 
 % initial states
@@ -95,8 +98,8 @@ zref = [0.5 0 deg2rad(3)];
 Q_scale = [1 1 1 1 1 1 1 1 1];
 R_scale = [0.1 deg2rad(1) deg2rad(1)];
 
-Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e7]./Q_scale.^2;
-QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e7]./Q_scale.^2;
+Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e3]./Q_scale.^2;
+QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e3]./Q_scale.^2;
 R_controls  = [1e1 1e0 1e0]./R_scale.^2;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
@@ -170,10 +173,22 @@ for k = 1:len_t
         % START NMPC - - - - -
         st_nmpc = tic;
 
-         % shift initial states and controls
+         % shift (or dont) initial states and controls
         if k > 1
-            input.x     = output.x;
-            input.u     = output.u;
+            if shift_states_controls
+                % shift
+                v_end = output.x(end,4)*[...
+                    cos(output.x(end,5))*cos(output.x(end,6)), ...
+                    cos(output.x(end,5))*sin(output.x(end,6)), ...
+                    -sin(output.x(end,5))] + ...
+                    [w_n, w_e, w_d];
+                input.x = [output.x(2:end,:); [output.x(end,1:3)+v_end*Ts_nmpc output.x(end,4:end)] ];
+                input.u = [output.u(2:end,:); output.u(end,:)];
+            else
+                % dont
+                input.x = output.x;
+                input.u = output.u;
+            end
         end
         
         % update online data
@@ -223,10 +238,6 @@ for k = 1:len_t
     rec.x_hor(:,k,:) = output.x(:,:);
     rec.u_hor(:,k,:) = output.u(:,:);
     rec.u(k,:) = controls;
-%     if k>=2151
-%         stoppp=1;
-% %         [out1,aux1] = eval_obj([reshape(rec.x_hor(50,k,:),[1 n_X]),reshape(rec.u_hor(50,k,:),[1 n_U]),input.od(1,:)], len_local_idx_n, len_local_idx_e);
-%     end
     [out,aux] = eval_obj([simout,controls,input.od(1,:)], len_local_idx_n, len_local_idx_e);
     rec.yz(k,:) = out;
     rec.aux(k,:) = aux;
