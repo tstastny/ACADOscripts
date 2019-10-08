@@ -312,7 +312,7 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
     const double phi_max = 0.6109;
     const double delta_r0 = 10.0;
     const double g = 9.81;
-    const double k_r = 2.0;
+    const double k_r = 3.0;
     const double delta_r = vG_norm * vG_norm * 0.1456 * k_r + delta_r0; // radial buffer zone
     const double d_ray = delta_r + terr_dis;
     const double r0[3] = {r_e, r_n, -r_d};
@@ -365,6 +365,9 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
             p3[0], p3[1], p3[2],
             phi_max, delta_r0, g, k_r);
     }
+    jac_sig_r[3] = 0.0;
+    jac_sig_r[4] = 0.0;
+    jac_sig_r[5] = 0.0;
 
     // numerical jacobians / / / / / / / / / / / / / / / / / / / / / / / /
     double f_Delta_m[ACADO_NY];
@@ -659,7 +662,7 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
     const double phi_max = 0.6109;
     const double delta_r0 = 10.0;
     const double g = 9.81;
-    const double k_r = 2.0;
+    const double k_r = 3.0;
     const double delta_r = vG_norm * vG_norm * 0.1456 * k_r + delta_r0; // radial buffer zone
     const double d_ray = delta_r + terr_dis;
     const double r0[3] = {r_e, r_n, -r_d};
@@ -710,6 +713,9 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
             p3[0], p3[1], p3[2],
             phi_max, delta_r0, g, k_r);
     }
+    jac_sig_r[3] = 0.0;
+    jac_sig_r[4] = 0.0;
+    jac_sig_r[5] = 0.0;
 
     // numerical jacobians / / / / / / / / / / / / / / / / / / / / / / / /
 
