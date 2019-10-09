@@ -98,8 +98,8 @@ zref = [0.5 0 deg2rad(3)];
 Q_scale = [1 1 1 1 1 1 1 1 1];
 R_scale = [0.1 deg2rad(1) deg2rad(1)];
 
-Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e3]./Q_scale.^2;
-QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e3]./Q_scale.^2;
+Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e4]./Q_scale.^2;
+QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e4]./Q_scale.^2;
 R_controls  = [1e1 1e0 1e1]./R_scale.^2;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
@@ -121,7 +121,7 @@ input.WN    = diag(QN_output);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 30;
+Tf = 90;
 Ts = 0.01;
 time = T0:Ts:Tf;
 len_t = length(time);

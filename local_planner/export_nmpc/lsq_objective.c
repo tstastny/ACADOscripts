@@ -253,10 +253,13 @@ void lsq_obj_eval( real_t *in, real_t *out, double sig_r, double *jac_sig_r )
     const double prio_aoa_h = prio_aoa * prio_h * prio_r;
     
     // velocity error
-    const double e_v_n = vP_n * prio_r + (1.0-prio_r) * v_occ_n - vG_n;
-    const double e_v_e = vP_e * prio_r + (1.0-prio_r) * v_occ_e - vG_e;
-    const double e_v_d = vP_d * prio_r + (1.0-prio_r) * v_occ_d - vG_d;
-
+//     const double e_v_n = vP_n * prio_r + (1.0-prio_r) * v_occ_n - vG_n;
+//     const double e_v_e = vP_e * prio_r + (1.0-prio_r) * v_occ_e - vG_e;
+//     const double e_v_d = vP_d * prio_r + (1.0-prio_r) * v_occ_d - vG_d;
+    const double e_v_n = vP_n - vG_n;
+    const double e_v_e = vP_e - vG_e;
+    const double e_v_d = vP_d - vG_d;
+    
     // state output
     out[0] = e_lat * prio_aoa_h;
     out[1] = e_lon * prio_aoa_h;
@@ -615,9 +618,12 @@ void lsq_objN_eval( real_t *in, real_t *out, double sig_r, double *jac_sig_r )
     const double prio_aoa_h = prio_aoa * prio_h * prio_r;
     
     // velocity error
-    const double e_v_n = vP_n * prio_r + (1.0-prio_r) * v_occ_n - vG_n;
-    const double e_v_e = vP_e * prio_r + (1.0-prio_r) * v_occ_e - vG_e;
-    const double e_v_d = vP_d * prio_r + (1.0-prio_r) * v_occ_d - vG_d;
+//     const double e_v_n = vP_n * prio_r + (1.0-prio_r) * v_occ_n - vG_n;
+//     const double e_v_e = vP_e * prio_r + (1.0-prio_r) * v_occ_e - vG_e;
+//     const double e_v_d = vP_d * prio_r + (1.0-prio_r) * v_occ_d - vG_d;
+    const double e_v_n = vP_n - vG_n;
+    const double e_v_e = vP_e - vG_e;
+    const double e_v_d = vP_d - vG_d;
     
     // state output
     out[0] = e_lat * prio_aoa_h;
