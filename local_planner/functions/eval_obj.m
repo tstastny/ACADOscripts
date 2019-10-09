@@ -158,7 +158,7 @@ p_occ(2) = p_occ(2) + terr_local_origin_n;
 % calculate radial cost
 sig_r = 0.0;
 if ((d_occ < delta_r) && occ_detected>0)
-    sig_r = abs(delta_r - d_occ);
+    sig_r = abs(delta_r - d_occ)/delta_r;
     sig_r = sig_r*sig_r*sig_r;
 end
 
@@ -236,6 +236,7 @@ aux = [h_terr, e_lat, e_lon, e_v_n, e_v_e, e_v_d, ...
     vcmd_n, vcmd_e, vcmd_d, ...
     v_cos_gamma*cos(chi_p), ...
     v_cos_gamma*sin(chi_p), ...
-    -vG_norm*sin(Gamma_p)];
+    -vG_norm*sin(Gamma_p), ...
+    d_occ];
 
 end

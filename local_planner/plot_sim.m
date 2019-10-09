@@ -268,6 +268,28 @@ plot(time(isp:iep),rad2deg(rec.x(isp:iep,8) - rec.x(isp:iep,5)),'color',color_st
 ylabel('\alpha [deg]')
 
 %% ////////////////////////////////////////////////////////////////////////
+% RADIAL COST
+
+figure('color','w','name','Radial cost');
+
+% r
+hand_r(1) = subplot(5,1,1:2); hold on; grid on; box on;
+plot(time(isp:iep),rec.aux(isp:iep,24),'color',color_ref);
+plot(time(isp:iep),rec.aux(isp:iep,38).*double(rec.aux(isp:iep,16)>0),'color',color_state);
+legend('\Delta_r','d_{occ}')
+ylabel('r [m]')
+
+% angle of attack
+hand_r(2) = subplot(5,1,3:4); hold on; grid on; box on;
+plot(time(isp:iep),rec.aux(isp:iep,17),'color',color_ref);
+ylabel('\sigma_r')
+
+hand_r(3) = subplot(5,1,5); hold on; grid on; box on;
+plot(time(isp:iep),rec.aux(isp:iep,16),'color',color_state);
+ylabel('Detect')
+
+
+%% ////////////////////////////////////////////////////////////////////////
 % OBJECTIVE COSTS
 
 obj_cost = zeros(length(isp:iep), n_Y+n_Z);
