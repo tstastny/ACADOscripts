@@ -167,21 +167,103 @@ plot(time(isp:iep),rec.aux(isp:iep,6));
 ylabel('e_{v_d} [m/s]')
 
 %% ////////////////////////////////////////////////////////////////////////
+% VELOCITY TRACKING
+
+figure('color','w','name','Velocity tracking')
+
+v_cos_gamma = rec.x(isp:iep,4).*cos(rec.x(isp:iep,5)); 
+vG_n = v_cos_gamma.*cos(rec.x(isp:iep,6)) + w_n; 
+vG_e = v_cos_gamma.*sin(rec.x(isp:iep,6)) + w_e; 
+vG_d = -rec.x(isp:iep,4).*sin(rec.x(isp:iep,5)) + w_d;
+
+% VGN - - - - 
+hand_vel(1)=subplot(7,1,1:2); hold on; grid on; box on;
+
+% vP
+plot(time(isp:iep),rec.aux(isp:iep,35),'color',cmap(5,:),'linestyle',':');
+
+% vP app
+plot(time(isp:iep),rec.aux(isp:iep,26),'color',cmap(4,:),'linestyle','--');
+
+% v_occ
+plot(time(isp:iep),rec.aux(isp:iep,29),'color',cmap(2,:),'linestyle','--');
+
+% vP * sig_r + v_occ (1 - sig_r)
+plot(time(isp:iep),rec.aux(isp:iep,32),'color',color_ref);
+
+% v
+plot(time(isp:iep),vG_n,'color',color_state);
+
+legend('v_P','v_{P_{app}}','v_{occ}','v_{cmd}','v_G');
+ylabel('v_{G_n} [m/s]');
+
+% VGE - - - - 
+hand_vel(2)=subplot(7,1,3:4); hold on; grid on; box on;
+
+% vP
+plot(time(isp:iep),rec.aux(isp:iep,36),'color',cmap(5,:),'linestyle',':');
+
+% vP app
+plot(time(isp:iep),rec.aux(isp:iep,27),'color',cmap(4,:),'linestyle','--');
+
+% v_occ
+plot(time(isp:iep),rec.aux(isp:iep,30),'color',cmap(2,:),'linestyle','--');
+
+% vP * sig_r + v_occ (1 - sig_r)
+plot(time(isp:iep),rec.aux(isp:iep,33),'color',color_ref);
+
+% v
+plot(time(isp:iep),vG_e,'color',color_state);
+
+legend('v_P','v_{P_{app}}','v_{occ}','v_{cmd}','v_G');
+ylabel('v_{G_e} [m/s]');
+
+% VGD - - - - 
+hand_vel(3)=subplot(7,1,5:6); hold on; grid on; box on;
+
+% vP
+plot(time(isp:iep),rec.aux(isp:iep,37),'color',cmap(5,:),'linestyle',':');
+
+% vP app
+plot(time(isp:iep),rec.aux(isp:iep,28),'color',cmap(4,:),'linestyle','--');
+
+% v_occ
+plot(time(isp:iep),rec.aux(isp:iep,31),'color',cmap(2,:),'linestyle','--');
+
+% vP * sig_r + v_occ (1 - sig_r)
+plot(time(isp:iep),rec.aux(isp:iep,34),'color',color_ref);
+
+% v
+plot(time(isp:iep),vG_d,'color',color_state);
+
+legend('v_P','v_{P_{app}}','v_{occ}','v_{cmd}','v_G');
+ylabel('v_{G_d} [m/s]');
+
+% PRIO - - - - 
+hand_vel(4)=subplot(7,1,7); hold on; grid on; box on;
+
+plot(time(isp:iep),rec.aux(isp:iep,25));
+
+ylabel('{prio}_r');
+
+xlabel('Time [s]');
+
+%% ////////////////////////////////////////////////////////////////////////
 % WIND AXIS
 
 figure('color','w','name','Wind axis');
 
 % airspeed
 hand_vab(1) = subplot(2,1,1); hold on; grid on; box on;
-plot(time([1 end]),[v_ref v_ref],'color',color_ref);
+plot(time([isp iep]),[v_ref v_ref],'color',color_ref);
 plot(time(isp:iep),rec.x(isp:iep,4),'color',color_state);
 legend('ref','state')
 ylabel('v [m/s]')
 
 % angle of attack
 hand_vab(2) = subplot(2,1,2); hold on; grid on; box on;
-plot(time([1 end]),rad2deg([aoa_m aoa_m]),'color',color_ref);
-plot(time([1 end]),rad2deg([aoa_p aoa_p]),'color',color_ref);
+plot(time([isp iep]),rad2deg([aoa_m aoa_m]),'color',color_ref);
+plot(time([isp iep]),rad2deg([aoa_p aoa_p]),'color',color_ref);
 plot(time(isp:iep),rad2deg(rec.x(isp:iep,8) - rec.x(isp:iep,5)),'color',color_state);
 ylabel('\alpha [deg]')
 

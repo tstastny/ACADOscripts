@@ -85,17 +85,17 @@ e_lon = p_d - r_d;
 e_b_lat = T_b_lat * sqrt(vG_n*vG_n + vG_e*vG_e);
 
 % course approach angle
-chi_app = -atan(pi/2*e_lat/e_b_lat);
+chi_app = atan(pi/2*e_lat/e_b_lat);
 
 % longitudinal track error boundary
-if (abs(vG_d) < 1.0)
-    e_b_lon = T_b_lon * 0.5 * (1.0 + vG_d*vG_d);
-else
-    e_b_lon = T_b_lon * abs(vG_d);
-end
+% if (abs(vG_d) < 1.0)
+%     e_b_lon = T_b_lon * 0.5 * (1.0 + vG_d*vG_d);
+% else
+    e_b_lon = T_b_lon * 4.0;%abs(vG_d);
+% end
 
 % flight path approach angle
-Gamma_app = 0.3/(pi/2) * atan(pi/2*e_lon/e_b_lon); % XXX: MAGIC NUMBER
+Gamma_app = -0.3/(pi/2) * atan(pi/2*e_lon/e_b_lon); % XXX: MAGIC NUMBER
 
 % ground velocity setpoint
 v_cos_gamma = vG_norm*cos(Gamma_p + Gamma_app);
@@ -103,11 +103,6 @@ vP_n = v_cos_gamma*cos(chi_p + chi_app);
 vP_e = v_cos_gamma*sin(chi_p + chi_app);
 vP_d = -vG_norm*sin(Gamma_p + Gamma_app);
 
-% velocity error
-e_v_n = vP_n - vG_n; 
-e_v_e = vP_e - vG_e; 
-e_v_d = vP_d - vG_d;
- 
 % SOFT CONSTRAINTS */ 
  
 % angle of attack 
@@ -167,28 +162,6 @@ if ((d_occ < delta_r) && occ_detected>0)
     sig_r = sig_r*sig_r*sig_r;
 end
 
-% prioritization
-prio_aoa = 1;%1 - min(sig_aoa, 1.0);
-prio_h = 1 - min(sig_h, 1.0);
-prio_r = 1 - min(sig_r, 1.0);
-prio_aoa_h = prio_aoa * prio_h * prio_r;
-
-% state output 
-out(1) = e_lat * prio_aoa_h; 
-out(2) = e_lon * prio_aoa_h;
-out(3) = e_v_n * prio_aoa_h;
-out(4) = e_v_e * prio_aoa_h;
-out(5) = e_v_d * prio_aoa_h;
-out(6) = v; 
-out(7) = sig_aoa; 
-out(8) = sig_h * prio_aoa;
-out(9) = sig_r * prio_aoa;
-
-% control output
-out(10) = u_T;
-out(11) = phi_ref;
-out(12) = theta_ref;
-
 % calculate radial cost jacobians
 jac_sig_r = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 if (occ_detected==2) 
@@ -213,9 +186,56 @@ elseif (occ_detected==1)
         phi_max, delta_r0, g, k_r);
 end
 
+% terrain avoidance velocity setpoint
+norm_jac_sig_r = sqrt(jac_sig_r(1)*jac_sig_r(1) + jac_sig_r(2)*jac_sig_r(2) + jac_sig_r(3)*jac_sig_r(3));
+if (norm_jac_sig_r > 0.0001)
+    one_over_norm_jac_sig_r = 1.0/norm_jac_sig_r;
+else
+    one_over_norm_jac_sig_r = 10000.0;
+end
+v_occ_n = -jac_sig_r(1) * one_over_norm_jac_sig_r * vG_norm;
+v_occ_e = -jac_sig_r(2) * one_over_norm_jac_sig_r * vG_norm;
+v_occ_d = -jac_sig_r(3) * one_over_norm_jac_sig_r * vG_norm;
+
+% prioritization
+prio_aoa = 1.0;%1 - min(sig_aoa, 1.0);
+prio_h = 1.0 - min(sig_h, 1.0);
+prio_r = 1.0 - min(sig_r, 1.0);
+prio_aoa_h = prio_aoa * prio_h * prio_r;
+
+% velocity error
+vcmd_n = vP_n * prio_r + (1.0-prio_r) * v_occ_n;
+vcmd_e = vP_e * prio_r + (1.0-prio_r) * v_occ_e;
+vcmd_d = vP_d * prio_r + (1.0-prio_r) * v_occ_d;
+e_v_n = vcmd_n - vG_n; 
+e_v_e = vcmd_e - vG_e; 
+e_v_d = vcmd_d - vG_d;
+
+% state output 
+out(1) = e_lat * prio_aoa_h; 
+out(2) = e_lon * prio_aoa_h;
+out(3) = e_v_n * prio_aoa_h;
+out(4) = e_v_e * prio_aoa_h;
+out(5) = e_v_d * prio_aoa_h;
+out(6) = v; 
+out(7) = sig_aoa; 
+out(8) = sig_h * prio_aoa;
+out(9) = sig_r * prio_aoa;
+
+% control output
+out(10) = u_T;
+out(11) = phi_ref;
+out(12) = theta_ref;
+
 aux = [h_terr, e_lat, e_lon, e_v_n, e_v_e, e_v_d, ...
     sig_aoa, sig_h, prio_aoa, prio_h, prio_aoa_h, ...
     Gamma_app, chi_app, Gamma_p, chi_p, ...
-    occ_detected, sig_r, jac_sig_r, delta_r];
+    occ_detected, sig_r, jac_sig_r, delta_r, prio_r, ...
+    vP_n, vP_e, vP_d, ...
+    v_occ_n, v_occ_e, v_occ_d, ...
+    vcmd_n, vcmd_e, vcmd_d, ...
+    v_cos_gamma*cos(chi_p), ...
+    v_cos_gamma*sin(chi_p), ...
+    -vG_norm*sin(Gamma_p)];
 
 end

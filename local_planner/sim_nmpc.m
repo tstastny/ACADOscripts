@@ -62,7 +62,7 @@ terr_dis = 5;
 terrain_constructor;
 
 % horizon handling
-shift_states_controls = true;
+shift_states_controls = false;
 
 %% INITIALIZATION ---------------------------------------------------------
 
@@ -98,8 +98,8 @@ zref = [0.5 0 deg2rad(3)];
 Q_scale = [1 1 1 1 1 1 1 1 1];
 R_scale = [0.1 deg2rad(1) deg2rad(1)];
 
-Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e3]./Q_scale.^2;
-QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e3]./Q_scale.^2;
+Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 0]./Q_scale.^2;
+QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 0]./Q_scale.^2;
 R_controls  = [1e1 1e0 1e0]./R_scale.^2;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
@@ -156,7 +156,7 @@ rec.x_hor = zeros(N+1,len_t,n_X);
 rec.u_hor = zeros(N,len_t,n_U);
 rec.u = zeros(len_t,n_U);
 rec.yz = zeros(len_t,n_Y+n_Z);
-rec.aux = zeros(len_t,24);
+rec.aux = zeros(len_t,37);
 
 % simulate
 for k = 1:len_t

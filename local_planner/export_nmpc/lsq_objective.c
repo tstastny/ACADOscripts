@@ -63,7 +63,7 @@ int intersect_triangle(double *d_occ, double *p_occ,
         const double p1[3], const double p2[3], const double p3[3]);
 // / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
 
-void lsq_obj_eval( real_t *in, real_t *out, double sig_r )
+void lsq_obj_eval( real_t *in, real_t *out, double sig_r, double *jac_sig_r )
 {
     /* DEFINE INPUTS -- this is just simply easier to read.. */
     
@@ -172,10 +172,12 @@ void lsq_obj_eval( real_t *in, real_t *out, double sig_r )
     const double vP_e = v_cos_gamma*sin(chi_p + chi_app);
     const double vP_d = -vG_norm*sin(Gamma_p + Gamma_app);
     
-    // velocity error
-    const double e_v_n = vP_n - vG_n;
-    const double e_v_e = vP_e - vG_e;
-    const double e_v_d = vP_d - vG_d;
+    // terrain avoidance velocity setpoint
+    const double norm_jac_sig_r = sqrt(jac_sig_r[0]*jac_sig_r[0] + jac_sig_r[1]*jac_sig_r[1] + jac_sig_r[2]*jac_sig_r[2]);
+    const double one_over_norm_jac_sig_r = (norm_jac_sig_r > 0.0001) ? 1.0/norm_jac_sig_r : 10000.0;
+    const double v_occ_n = -jac_sig_r[0] * one_over_norm_jac_sig_r * vG_norm;
+    const double v_occ_e = -jac_sig_r[1] * one_over_norm_jac_sig_r * vG_norm;
+    const double v_occ_d = -jac_sig_r[2] * one_over_norm_jac_sig_r * vG_norm;
     
     /* SOFT CONSTRAINTS */
     
@@ -249,6 +251,11 @@ void lsq_obj_eval( real_t *in, real_t *out, double sig_r )
     const double prio_h = 1.0 - ((sig_h > 1.0) ? 1.0 : sig_h);
     const double prio_r = 1.0 - ((sig_r > 1.0) ? 1.0 : sig_r);
     const double prio_aoa_h = prio_aoa * prio_h * prio_r;
+    
+    // velocity error
+    const double e_v_n = vP_n * prio_r + (1.0-prio_r) * v_occ_n - vG_n;
+    const double e_v_e = vP_e * prio_r + (1.0-prio_r) * v_occ_e - vG_e;
+    const double e_v_d = vP_d * prio_r + (1.0-prio_r) * v_occ_d - vG_d;
 
     // state output
     out[0] = e_lat * prio_aoa_h;
@@ -336,11 +343,6 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
     }
     out[8] = sig_r;
     
-    // EVALUATE (MOST) OBJECTIVES / / / / / / / / / / / / / / / / / / / / /
-    lsq_obj_eval( in_Delta, out, sig_r );
-
-    /* lsq_obj jacobians */
-    
     // calculate radial cost jacobians
     double jac_sig_r[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     if (occ_detected==2) {
@@ -368,6 +370,11 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
     jac_sig_r[3] = 0.0;
     jac_sig_r[4] = 0.0;
     jac_sig_r[5] = 0.0;
+    
+    // EVALUATE (MOST) OBJECTIVES / / / / / / / / / / / / / / / / / / / / /
+    lsq_obj_eval( in_Delta, out, sig_r, jac_sig_r );
+
+    /* lsq_obj jacobians */
 
     // numerical jacobians / / / / / / / / / / / / / / / / / / / / / / / /
     double f_Delta_m[ACADO_NY];
@@ -380,9 +387,9 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
     for (i = 0; i < ACADO_NX; i=i+1) {
 
         in_Delta[i] = in[i] - Delta;
-        lsq_obj_eval( in_Delta, f_Delta_m, sig_r );
+        lsq_obj_eval( in_Delta, f_Delta_m, sig_r, jac_sig_r );
         in_Delta[i] = in[i] + Delta;
-        lsq_obj_eval( in_Delta, f_Delta_p, sig_r );
+        lsq_obj_eval( in_Delta, f_Delta_p, sig_r, jac_sig_r );
         in_Delta[i] = in[i];
         
         for (j = 0; j < 8; j=j+1) {
@@ -405,9 +412,9 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
     for (i = 0; i < ACADO_NU; i=i+1) {
 
         in_Delta[i+ACADO_NX] = in[i+ACADO_NX] - Delta;
-        lsq_obj_eval( in_Delta, f_Delta_m, sig_r );
+        lsq_obj_eval( in_Delta, f_Delta_m, sig_r, jac_sig_r );
         in_Delta[i+ACADO_NX] = in[i+ACADO_NX] + Delta;
-        lsq_obj_eval( in_Delta, f_Delta_p, sig_r );
+        lsq_obj_eval( in_Delta, f_Delta_p, sig_r, jac_sig_r );
         in_Delta[i+ACADO_NX] = in[i+ACADO_NX];
 
         for (j = 0; j < 8; j=j+1) {
@@ -423,7 +430,7 @@ void acado_evaluateLSQ( const real_t *in, real_t *out )
 
 }
 
-void lsq_objN_eval( real_t *in, real_t *out, double sig_r )
+void lsq_objN_eval( real_t *in, real_t *out, double sig_r, double *jac_sig_r )
 {
     /* DEFINE INPUTS -- this is just simply easier to read.. */
     
@@ -527,10 +534,12 @@ void lsq_objN_eval( real_t *in, real_t *out, double sig_r )
     const double vP_e = v_cos_gamma*sin(chi_p + chi_app);
     const double vP_d = -vG_norm*sin(Gamma_p + Gamma_app);
     
-    // velocity error
-    const double e_v_n = vP_n - vG_n;
-    const double e_v_e = vP_e - vG_e;
-    const double e_v_d = vP_d - vG_d;
+    // terrain avoidance velocity setpoint
+    const double norm_jac_sig_r = sqrt(jac_sig_r[0]*jac_sig_r[0] + jac_sig_r[1]*jac_sig_r[1] + jac_sig_r[2]*jac_sig_r[2]);
+    const double one_over_norm_jac_sig_r = (norm_jac_sig_r > 0.0001) ? 1.0/norm_jac_sig_r : 10000.0;
+    const double v_occ_n = -jac_sig_r[0] * one_over_norm_jac_sig_r * vG_norm;
+    const double v_occ_e = -jac_sig_r[1] * one_over_norm_jac_sig_r * vG_norm;
+    const double v_occ_d = -jac_sig_r[2] * one_over_norm_jac_sig_r * vG_norm;
     
     /* SOFT CONSTRAINTS */
     
@@ -604,6 +613,11 @@ void lsq_objN_eval( real_t *in, real_t *out, double sig_r )
     const double prio_h = 1.0 - ((sig_h > 1.0) ? 1.0 : sig_h);
     const double prio_r = 1.0 - ((sig_r > 1.0) ? 1.0 : sig_r);
     const double prio_aoa_h = prio_aoa * prio_h * prio_r;
+    
+    // velocity error
+    const double e_v_n = vP_n * prio_r + (1.0-prio_r) * v_occ_n - vG_n;
+    const double e_v_e = vP_e * prio_r + (1.0-prio_r) * v_occ_e - vG_e;
+    const double e_v_d = vP_d * prio_r + (1.0-prio_r) * v_occ_d - vG_d;
     
     // state output
     out[0] = e_lat * prio_aoa_h;
@@ -686,11 +700,6 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
     }
     out[8] = sig_r;
     
-     // EVALUATE (MOST) OBJECTIVES / / / / / / / / / / / / / / / / / / / / /
-    lsq_objN_eval( in_Delta, out, sig_r );
-
-    /* lsq_obj jacobians */
-    
     // calculate radial cost jacobians
     double jac_sig_r[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     if (occ_detected==2) {
@@ -716,10 +725,11 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
     jac_sig_r[3] = 0.0;
     jac_sig_r[4] = 0.0;
     jac_sig_r[5] = 0.0;
-
+    
+    // EVALUATE (MOST) OBJECTIVES / / / / / / / / / / / / / / / / / / / / /
+    lsq_objN_eval( in_Delta, out, sig_r, jac_sig_r );
+    
     // numerical jacobians / / / / / / / / / / / / / / / / / / / / / / / /
-
-    /* lsq_objN jacobians */
 
     double f_Delta_m[ACADO_NYN];
     double f_Delta_p[ACADO_NYN];
@@ -731,9 +741,9 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
     for (i = 0; i < ACADO_NX; i=i+1) {
 
         in_Delta[i] = in[i] - Delta;
-        lsq_objN_eval( in_Delta, f_Delta_m, sig_r );
+        lsq_objN_eval( in_Delta, f_Delta_m, sig_r, jac_sig_r );
         in_Delta[i] = in[i] + Delta;
-        lsq_objN_eval( in_Delta, f_Delta_p, sig_r );
+        lsq_objN_eval( in_Delta, f_Delta_p, sig_r, jac_sig_r );
         in_Delta[i] = in[i];
 
         for (j = 0; j < ACADO_NYN-1; j=j+1) {
