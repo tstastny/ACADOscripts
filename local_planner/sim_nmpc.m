@@ -12,12 +12,12 @@ load('model_config/model_params.mat');
 run('model_config/sysid_config_Techpod.m');
 
 %% NMPC SETUP -------------------------------------------------------------
-N = 70;
+N = 40;
 n_U = 3;
 n_X = 9; % number of nmpc states
-n_Y = 8;
+n_Y = 9;
 n_Z = 3;
-n_OD = 21+841;
+n_OD = 21+3249;%841;
 
 Ts_step = 0.1; % step size in nmpc
 Ts_nmpc = 0.1; % interval between nmpc calls
@@ -37,7 +37,7 @@ b_n = 0;
 b_e = 0;
 b_d = -50;
 Gamma_p = deg2rad(5);
-chi_p = deg2rad(15);
+chi_p = deg2rad(0);
 
 % guidance
 T_b_lat = 5;
@@ -56,10 +56,13 @@ aoa_p = deg2rad(8);
 
 % terrain avoidance
 delta_h = 20;
-len_local_idx_n = 29;
-len_local_idx_e = 29;
-terr_dis = 10;
+len_local_idx_n = 57;%29;
+len_local_idx_e = 57;%29;
+terr_dis = 5;
 terrain_constructor;
+
+% horizon handling
+shift_states_controls = false;
 
 %% INITIALIZATION ---------------------------------------------------------
 
@@ -89,15 +92,15 @@ onlinedatak = [ ...
 % acado inputs
 nmpc_ic.x = x_init;
 nmpc_ic.u = u_init;
-yref = [0 0 0 0 0 v_ref 0 0];
+yref = [0 0 0 0 0 v_ref 0 0 0];
 zref = [0.5 0 deg2rad(3)];
 
-Q_scale = [1 1 1 1 1 1 1 1];
+Q_scale = [1 1 1 1 1 1 1 1 1];
 R_scale = [0.1 deg2rad(1) deg2rad(1)];
 
-Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7]./Q_scale.^2;
-QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7]./Q_scale.^2;
-R_controls  = [1e1 1e0 1e0]./R_scale.^2;
+Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e4]./Q_scale.^2;
+QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e4]./Q_scale.^2;
+R_controls  = [1e1 1e0 1e1]./R_scale.^2;
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
 input.u     = repmat(nmpc_ic.u, N,1);
@@ -118,7 +121,7 @@ input.WN    = diag(QN_output);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 100;
+Tf = 90;
 Ts = 0.01;
 time = T0:Ts:Tf;
 len_t = length(time);
@@ -153,7 +156,7 @@ rec.x_hor = zeros(N+1,len_t,n_X);
 rec.u_hor = zeros(N,len_t,n_U);
 rec.u = zeros(len_t,n_U);
 rec.yz = zeros(len_t,n_Y+n_Z);
-rec.aux = zeros(len_t,15);
+rec.aux = zeros(len_t,38);
 
 % simulate
 for k = 1:len_t
@@ -170,10 +173,22 @@ for k = 1:len_t
         % START NMPC - - - - -
         st_nmpc = tic;
 
-         % shift initial states and controls
+         % shift (or dont) initial states and controls
         if k > 1
-            input.x     = output.x;
-            input.u     = output.u;
+            if shift_states_controls
+                % shift
+                v_end = output.x(end,4)*[...
+                    cos(output.x(end,5))*cos(output.x(end,6)), ...
+                    cos(output.x(end,5))*sin(output.x(end,6)), ...
+                    -sin(output.x(end,5))] + ...
+                    [w_n, w_e, w_d];
+                input.x = [output.x(2:end,:); [output.x(end,1:3)+v_end*Ts_nmpc output.x(end,4:end)] ];
+                input.u = [output.u(2:end,:); output.u(end,:)];
+            else
+                % dont
+                input.x = output.x;
+                input.u = output.u;
+            end
         end
         
         % update online data
@@ -223,22 +238,7 @@ for k = 1:len_t
     rec.x_hor(:,k,:) = output.x(:,:);
     rec.u_hor(:,k,:) = output.u(:,:);
     rec.u(k,:) = controls;
-    [out,aux] = eval_obj([simout,controls,input.od(1,:)]);
-    %
-%     [out_m,~] = eval_obj([simout-[0.00001,zeros(1,8)],controls,input.od(1,:)]);
-%     [out_p,~] = eval_obj([simout+[0.00001,zeros(1,8)],controls,input.od(1,:)]);
-%     rec.dJdn(k,:) = (out_p - out_m) / 2 / 0.00001;
-%     [out_m,~] = eval_obj([simout-[zeros(1,1),0.00001,zeros(1,7)],controls,input.od(1,:)]);
-%     [out_p,~] = eval_obj([simout+[zeros(1,1),0.00001,zeros(1,7)],controls,input.od(1,:)]);
-%     rec.dJde(k,:) = (out_p - out_m) / 2 / 0.00001;
-%     [out_m,~] = eval_obj([simout-[zeros(1,2),0.00001,zeros(1,6)],controls,input.od(1,:)]);
-%     [out_p,~] = eval_obj([simout+[zeros(1,2),0.00001,zeros(1,6)],controls,input.od(1,:)]);
-%     rec.dJdd(k,:) = (out_p - out_m) / 2 / 0.00001;
-%     
-%     h_terr_ = 180*exp(-((simout(2) - 100)/300)^2-((simout(1) - 750)/300)^2);
-%     rec.dJ_dn(k,:) = (3*180*(1/300)^2*exp(- (1/300)^2*(simout(2) - 100)^2 - (1/300)^2*(simout(1) - 750)^2)*(2*simout(1) - 2*750)*(delta_h + h_terr_ + simout(3))^2)/delta_h^3;
-    
-    %
+    [out,aux] = eval_obj([simout,controls,input.od(1,:)], len_local_idx_n, len_local_idx_e);
     rec.yz(k,:) = out;
     rec.aux(k,:) = aux;
     trec(k) = toc(st_rec);

@@ -10,7 +10,7 @@ load('model_config/model_params.mat');
 run('model_config/sysid_config_Techpod.m');
 
 Ts = 0.1;   % model discretization step [0.1 s]
-N = 70;     % horizon
+N = 40;     % horizon
 
 % STATES - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 DifferentialState r_n;      % northing [m]
@@ -62,7 +62,7 @@ OnlineData delta_h;
 OnlineData terr_local_origin_n;
 OnlineData terr_local_origin_e;
 OnlineData terr_dis;
-LEN_TERR_DATA = 841;%19881;
+LEN_TERR_DATA = 3249;%19881;
 OnlineData terrain_data(LEN_TERR_DATA);
 
 % MODEL -------------------------------------------------------------------
@@ -134,7 +134,7 @@ f.add(dot(n_p) == dot_n_p);
 % lengths
 n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
-n_Y = 8;                    % outputs
+n_Y = 9;                    % outputs
 n_Z = 3;                    % objectives
 n_OD = 21+LEN_TERR_DATA;    % online data
 
@@ -174,6 +174,7 @@ nmpc.set( 'SPARSE_QP_SOLUTION', 'FULL_CONDENSING' );
 nmpc.set( 'INTEGRATOR_TYPE', 'INT_IRK_GL4' );
 nmpc.set( 'NUM_INTEGRATOR_STEPS', N  );
 nmpc.set( 'QP_SOLVER', 'QP_QPOASES' );
+nmpc.set( 'MAX_NUM_QP_ITERATIONS', 500 );
 nmpc.set( 'HOTSTART_QP', 'YES' );
 nmpc.set( 'LEVENBERG_MARQUARDT', 1e-10 );
 nmpc.set( 'CG_HARDCODE_CONSTRAINT_VALUES', 'YES' );

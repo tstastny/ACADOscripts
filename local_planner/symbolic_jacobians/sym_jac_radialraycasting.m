@@ -60,8 +60,8 @@ r_br = -(A_br*(r_e-p1_e) + B_br*(r_n-p1_n) + C_br*(-r_d-p1_h) + D_br) * norm_vG 
 
 % radial cost (when buffer is violated)
 delta_r = delta_r0 + vG_2/g/tan(phi_max)*k_r;
-sig_r_tl = (delta_r - r_tl)^3;
-sig_r_br = (delta_r - r_br)^3;
+sig_r_tl = ((delta_r - r_tl)/delta_r)^3;
+sig_r_br = ((delta_r - r_br)/delta_r)^3;
 
 % jacobian of radial cost
 jac_sig_r_tl = jacobian(sig_r_tl, [r_n; r_e; r_d; v; gamma; xi]);
@@ -69,6 +69,7 @@ jac_sig_r_br = jacobian(sig_r_br, [r_n; r_e; r_d; v; gamma; xi]);
 
 
 %% export to m code
+if 0
 matlabFunction(jac_sig_r_tl,'File','jac_sig_r_tl.m', ...
     'Vars',{r_n, r_e, r_d, v, gamma, xi, w_e, w_n, w_d, ...
     terr_dis, p1_n, p1_e, p1_h, p2_n, p2_e, p2_h, p3_n, p3_e, p3_h, phi_max, ...
@@ -77,9 +78,66 @@ matlabFunction(jac_sig_r_br,'File','jac_sig_r_br.m', ...
     'Vars',{r_n, r_e, r_d, v, gamma, xi, w_e, w_n, w_d, ...
     terr_dis, p1_n, p1_e, p1_h, p2_n, p2_e, p2_h, p3_n, p3_e, p3_h, phi_max, ...
     delta_r0, g, k_r},'Outputs',{'out'});
+end
 
 %% export to c code
 if 0
-    ccode(jac_sig_r_ul,'jac_sig_r_tl_ccode.c');
-    ccode(jac_sig_r_br,'jac_sig_r_br_ccode.c');
+ccode(jac_sig_r_tl,'file','jac_sig_r_tl_ccode.c');
+ccode(jac_sig_r_br,'file','jac_sig_r_br_ccode.c');
 end
+
+%% prep c code for mpc model functions
+if 0
+% br
+fid = fopen('jac_sig_r_br_ccode.c');
+txt = textscan(fid,'%s','delimiter','\n'); 
+fclose(fid);
+txt = txt{1};
+for i = 1:length(txt)
+    
+    str1 = txt{i};
+    
+    if strcmp(str1(1),'t')
+        str1 = ['const double ',str1];
+        txt{i} = str1;
+        % t's 
+    elseif length(str1) > 5
+        % A0's
+        if strcmp(str1(1:6),'A0[0][')
+            str1 = ['jac[',str1(7:end)];
+            txt{i} = str1;
+        end
+    end
+end
+fid = fopen('jac_sig_r_br_ccode.c','w');
+for k = 1:length(txt)
+    fprintf(fid,[char(txt{k}),' \n']);
+end
+fclose(fid);
+% tl
+fid = fopen('jac_sig_r_tl_ccode.c');
+txt = textscan(fid,'%s','delimiter','\n'); 
+fclose(fid);
+txt = txt{1};
+for i = 1:length(txt)
+    
+    str1 = txt{i};
+    
+    if strcmp(str1(1),'t')
+        str1 = ['const double ',str1];
+        txt{i} = str1;
+        % t's 
+    elseif length(str1) > 5
+        % A0's
+        if strcmp(str1(1:6),'A0[0][')
+            str1 = ['jac[',str1(7:end)];
+            txt{i} = str1;
+        end
+    end
+end
+fid = fopen('jac_sig_r_tl_ccode.c','w');
+for k = 1:length(txt)
+    fprintf(fid,[char(txt{k}),' \n']);
+end
+end
+

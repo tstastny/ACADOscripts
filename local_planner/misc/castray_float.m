@@ -1,4 +1,4 @@
-function [x_occ, y_occ, h_occ, occ_detected, tri, d_occ, p_occ, p1, p2, p3] = ...
+function [x_occ, y_occ, h_occ, occ_detected, tri, d_occ, p_occ, p1, p2, p3, ii, t_init, t1, t2 ,t3] = ...
     castray_float(r0, r1, v, terr_dis, terr_mat, len_x, len_y, output_everything)
 % / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
 %
@@ -26,6 +26,8 @@ function [x_occ, y_occ, h_occ, occ_detected, tri, d_occ, p_occ, p1, p2, p3] = ..
 % (float) p2[3]                 coord. of triangle vertex 2 (e,n,u) [m]
 % (float) p3[3]                 coord. of triangle vertex 3 (e,n,u) [m]
 % / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
+
+tic;
 
 % initialize
 ret = false;
@@ -71,6 +73,11 @@ dh = h1 - h0;
 % number of cells we pass through
 n = floor(x1)-x + floor(y1)-y + 1;
 
+% allocate lists
+x_occ = zeros(n,1);
+y_occ = zeros(n,1);
+h_occ = zeros(n,1);
+
 if (dx == 0)
     x_inc = 0;
     t_next_horizontal = dt_dx; % infinity
@@ -106,13 +113,16 @@ last_step_was_vert = (t_last_vertical < t_last_horizontal);
 % initialize entrance height
 h_entr = h0;
 
-kk=1;
+t_init = toc;
+
+t1 = zeros(n,1);
+t2 = zeros(n,1);
+t3 = zeros(n,1);
+
 occ_detected = false;
 for ii = 1:n
     
-    if ii>=13
-        stoppp=1;
-    end
+    tic;
     
     % bound corner coordinates
     x_check = max(min(x,len_x-1),0);
@@ -142,6 +152,9 @@ for ii = 1:n
     end
     h_entr = h_exit;
     h_occ(ii) = h_check;
+    
+    t1(ii) = toc;
+    tic;
     
     % check cell triangles
     if last_step_was_vert % / / / / / / / / / / / / / / / / / / / / / / / /
@@ -467,16 +480,18 @@ for ii = 1:n
         end
     end % / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
     
+    t2(ii) = toc;
+    tic;
+    
     % update lists / return if occlusion detected
     if ret
-        x_occ(kk) = x;
-        y_occ(kk) = y;
+        x_occ(ii) = x;
+        y_occ(ii) = y;
         occ_detected = true;
         return;
     elseif output_everything
-        x_occ(kk) = x;
-        y_occ(kk) = y;
-        kk = kk + 1;
+        x_occ(ii) = x;
+        y_occ(ii) = y;
     end
     
     % actually take the step
@@ -489,4 +504,6 @@ for ii = 1:n
     end
     
     last_step_was_vert = take_vert_step;
+    
+    t3(ii) = toc;
 end

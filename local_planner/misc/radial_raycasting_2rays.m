@@ -120,6 +120,7 @@ for i = 1:2
     output_everything = true;
     % cast the ray
     [x_occ_int,y_occ_int,occ_detected] = castray(x0, y0, x1, y1, -r_d, terr_mat, output_everything);
+        t_raycast(k_timing+(i-1)*110) = toc(t_st);
     if i==1
         x_occ1 = double(x_occ_int);
         y_occ1 = double(y_occ_int);

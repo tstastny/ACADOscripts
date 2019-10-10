@@ -1,4 +1,4 @@
-function [x_occ,y_occ,occ_detected] = castray(x0, y0, x1, y1, h, terr_mat, output_everything)
+function [x_occ,y_occ,occ_detected] = castray(x0, y0, x1, y1, h, terr_mat, output_everything, check_occ)
 
 % total x/y distance
 dx = abs(x1 - x0);
@@ -41,7 +41,7 @@ for ii = 1:n
         y_check = y;
     end;
 
-    if (terr_mat(y_check+1,x_check+1) > h) && kk>1 % we assume we are not already in an invalid cell.. otherwise we're dead anyway
+    if (terr_mat(y_check+1,x_check+1) > h) && kk>1 && check_occ % we assume we are not already in an invalid cell.. otherwise we're dead anyway
         x_occ(kk) = x;
         y_occ(kk) = y;
         occ_detected = true;
