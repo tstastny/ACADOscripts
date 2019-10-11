@@ -137,10 +137,11 @@ ylabel('e [m]')
 hand_pos_err(2)=subplot(2,1,2); hold on; grid on; box on;
 
 plot(time(isp:iep),rec.aux(isp:iep,1),'color',color_ref);
-plot(time(isp:iep),rec.aux(isp:iep,1)+delta_h,'color',color_ref,'linestyle','--');
+plot(time(isp:iep),rec.aux(isp:iep,1)+h_offset,'color',color_ref,'linestyle','--');
+plot(time(isp:iep),rec.aux(isp:iep,1)+h_offset+delta_h,'color',color_ref,'linestyle',':');
 plot(time(isp:iep),-rec.x(isp:iep,3),'color',color_state);
 
-legend('h_{terr}','h_{terr,buf}','h')
+legend('h_{terr}','h_{terr,off}','h_{terr}+h_{terr,off}+\Delta_h','h')
 ylabel('Height [m]')
 
 xlabel('time [s]')

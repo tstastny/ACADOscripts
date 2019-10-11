@@ -23,6 +23,7 @@ hh_wall(nn > 300, :) = 200;
 
 % terrain_data0 = max(hh_sine,hh_hill)+(rand(len_global_idx_n, len_global_idx_e)*2-1)*3;
 terrain_data0 = hh_wall+(rand(len_global_idx_n, len_global_idx_e)*2-1)*3;
+terrain_data0(:) = -30;
 
 % for plotting
 center_terr_idx = [(len_global_idx_n-1)/2; (len_global_idx_e-1)/2]+1;

@@ -65,6 +65,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     Control u_T;
     Control phi_ref;
     Control theta_ref;
+    OnlineData rho; 
     OnlineData w_n; 
     OnlineData w_e; 
     OnlineData w_d; 
@@ -75,6 +76,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OnlineData chi_p; 
     OnlineData T_b_lat; 
     OnlineData T_b_lon; 
+    OnlineData gamma_app_max; 
     OnlineData tau_phi; 
     OnlineData tau_theta; 
     OnlineData k_phi; 
@@ -82,7 +84,18 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OnlineData delta_aoa; 
     OnlineData aoa_m; 
     OnlineData aoa_p; 
+    OnlineData log_sqrt_w_over_sig1_aoa; 
+    OnlineData one_over_sqrt_w_aoa; 
+    OnlineData h_offset; 
     OnlineData delta_h; 
+    OnlineData delta_y; 
+    OnlineData log_sqrt_w_over_sig1_h; 
+    OnlineData one_over_sqrt_w_h; 
+    OnlineData r_offset; 
+    OnlineData delta_r0; 
+    OnlineData k_r; 
+    OnlineData log_sqrt_w_over_sig1_r; 
+    OnlineData one_over_sqrt_w_r; 
     OnlineData terr_local_origin_n; 
     OnlineData terr_local_origin_e; 
     OnlineData terr_dis; 
@@ -3343,9 +3356,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     acadodata_f1 << dot(r_n) == (cos(gamma)*cos(xi)*v+w_n);
     acadodata_f1 << dot(r_e) == (cos(gamma)*sin(xi)*v+w_e);
     acadodata_f1 << dot(r_d) == ((-v)*sin(gamma)+w_d);
-    acadodata_f1 << dot(v) == ((((-1.32619999999999987894e-01)/2.80000000000000026645e-01*cos((-3.49065850398865909487e-02-gamma+theta))/n_p*v+1.15210000000000006848e-01)*1.14999999999999991118e+00*6.14656000000000229955e-03*cos((-gamma+theta))*pow(n_p,2.00000000000000000000e+00)-((-gamma+theta)*3.47380000000000022098e-01+2.59919999999999984386e-01*pow((-gamma+theta),2.00000000000000000000e+00)+6.03139999999999995572e-02)*4.17999999999999982681e-01*5.74999999999999955591e-01*pow(v,2.00000000000000000000e+00))*3.20102432778489098819e-01-9.81000000000000049738e+00*sin(gamma));
-    acadodata_f1 << dot(gamma) == ((((-1.32619999999999987894e-01)/2.80000000000000026645e-01*cos((-3.49065850398865909487e-02-gamma+theta))/n_p*v+1.15210000000000006848e-01)*1.14999999999999991118e+00*6.14656000000000229955e-03*pow(n_p,2.00000000000000000000e+00)*sin((-gamma+theta))+((-gamma+theta)*2.85009999999999985576e+00+5.21549999999999958078e-01)*4.17999999999999982681e-01*5.74999999999999955591e-01*pow(v,2.00000000000000000000e+00))*cos(phi)-3.06464400000000019020e+01*cos(gamma))*3.20102432778489098819e-01/v;
-    acadodata_f1 << dot(xi) == (((-1.32619999999999987894e-01)/2.80000000000000026645e-01*cos((-3.49065850398865909487e-02-gamma+theta))/n_p*v+1.15210000000000006848e-01)*1.14999999999999991118e+00*6.14656000000000229955e-03*pow(n_p,2.00000000000000000000e+00)*sin((-gamma+theta))+((-gamma+theta)*2.85009999999999985576e+00+5.21549999999999958078e-01)*4.17999999999999982681e-01*5.74999999999999955591e-01*pow(v,2.00000000000000000000e+00))/3.12400000000000011013e+00/cos(gamma)*sin(phi)/v;
+    acadodata_f1 << dot(v) == ((((-1.32619999999999987894e-01)/2.80000000000000026645e-01*cos((-3.49065850398865909487e-02-gamma+theta))/n_p*v+1.15210000000000006848e-01)*6.14656000000000229955e-03*cos((-gamma+theta))*pow(n_p,2.00000000000000000000e+00)*rho-((-gamma+theta)*3.47380000000000022098e-01+2.59919999999999984386e-01*pow((-gamma+theta),2.00000000000000000000e+00)+6.03139999999999995572e-02)*4.17999999999999982681e-01*5.00000000000000000000e-01*pow(v,2.00000000000000000000e+00)*rho)*3.20102432778489098819e-01-9.81000000000000049738e+00*sin(gamma));
+    acadodata_f1 << dot(gamma) == ((((-1.32619999999999987894e-01)/2.80000000000000026645e-01*cos((-3.49065850398865909487e-02-gamma+theta))/n_p*v+1.15210000000000006848e-01)*6.14656000000000229955e-03*pow(n_p,2.00000000000000000000e+00)*rho*sin((-gamma+theta))+((-gamma+theta)*2.85009999999999985576e+00+5.21549999999999958078e-01)*4.17999999999999982681e-01*5.00000000000000000000e-01*pow(v,2.00000000000000000000e+00)*rho)*cos(phi)-3.06464400000000019020e+01*cos(gamma))*3.20102432778489098819e-01/v;
+    acadodata_f1 << dot(xi) == (((-1.32619999999999987894e-01)/2.80000000000000026645e-01*cos((-3.49065850398865909487e-02-gamma+theta))/n_p*v+1.15210000000000006848e-01)*6.14656000000000229955e-03*pow(n_p,2.00000000000000000000e+00)*rho*sin((-gamma+theta))+((-gamma+theta)*2.85009999999999985576e+00+5.21549999999999958078e-01)*4.17999999999999982681e-01*5.00000000000000000000e-01*pow(v,2.00000000000000000000e+00)*rho)/3.12400000000000011013e+00/cos(gamma)*sin(phi)/v;
     acadodata_f1 << dot(phi) == (k_phi*phi_ref-phi)/tau_phi;
     acadodata_f1 << dot(theta) == (k_theta*theta_ref-theta)/tau_theta;
     acadodata_f1 << dot(n_p) == ((-(-1.00000000000000000000e+01+cos((-3.49065850398865909487e-02-gamma+theta))*v)/1.50000000000000000000e+01+1.00000000000000000000e+00)*(1.22767629097648992342e+02*u_T+4.08990375690176648504e+01)+(-1.00000000000000000000e+01+cos((-3.49065850398865909487e-02-gamma+theta))*v)*(1.02693635333290359313e+02+6.09730313333762978800e+01*u_T)/1.50000000000000000000e+01-n_p)/2.00000000000000011102e-01;
@@ -3357,12 +3370,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     ocp1.subjectTo(0.00000000000000000000e+00 <= u_T <= 1.00000000000000000000e+00);
     ocp1.subjectTo((-6.10865238198015303439e-01) <= phi_ref <= 6.10865238198015303439e-01);
     ocp1.subjectTo((-2.61799387799149407829e-01) <= theta_ref <= 4.36332312998582383390e-01);
-    ocp1.setNOD( 3270 );
+    ocp1.setNOD( 3283 );
 
 
     ocp1.setNU( 3 );
     ocp1.setNP( 0 );
-    ocp1.setNOD( 3270 );
+    ocp1.setNOD( 3283 );
     OCPexport ExportModule1( ocp1 );
     ExportModule1.set( GENERATE_MATLAB_INTERFACE, 1 );
     uint options_flag;

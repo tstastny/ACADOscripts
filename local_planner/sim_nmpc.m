@@ -1,6 +1,6 @@
 % NMPC Simulation
 % ----------------
-close all; clear all; clc;
+clear all; clc; close all; 
 
 % add function paths
 if isempty(strfind(path, ['/home/thomas/Documents/ACADOscripts/local_planner/functions', pathsep]))
@@ -17,15 +17,15 @@ n_U = 3;
 n_X = 9; % number of nmpc states
 n_Y = 9;
 n_Z = 3;
-n_OD = 21+3249;%841;
+n_OD = 34+3249;%841;
 
 Ts_step = 0.1; % step size in nmpc
 Ts_nmpc = 0.1; % interval between nmpc calls
 
 %% ONLINE DATA ------------------------------------------------------------
 
-% airspeed reference
-v_ref = 14;
+% environment
+rho = 1.15;
 
 % disturbances
 w_n = 0;
@@ -42,6 +42,7 @@ chi_p = deg2rad(0);
 % guidance
 T_b_lat = 5;
 T_b_lon = 5;
+gamma_app_max = deg2rad(17)*2/pi;
 
 % control augmented attitude time constants and gains
 tau_phi = 0.5;
@@ -49,26 +50,49 @@ tau_theta = 0.5;
 k_phi = 1.1;
 k_theta = 1.1;
 
-% soft constraints
-delta_aoa = deg2rad(5);
+% angle of attack soft constraint
+delta_aoa = deg2rad(3);
 aoa_m = deg2rad(-5);
 aoa_p = deg2rad(8);
+sig_aoa_1 = 0.001;
 
-% terrain avoidance
+% height soft constraint 
+h_offset = 10;
 delta_h = 20;
+delta_y = 5;
+sig_h_1 = 0.001;
+
+% radial soft constraint
+r_offset = 0;
+delta_r0 = 10;
+k_r = 3/tand(35)/9.81;
+sig_r_1 = 0.001;
+
+% terrain lookup
 len_local_idx_n = 57;%29;
 len_local_idx_e = 57;%29;
 terr_dis = 5;
 terrain_constructor;
 
+%% REFERENCES -------------------------------------------------------------
+
+v_ref = 14;
+
+%% OPTIONS ----------------------------------------------------------------
+
 % horizon handling
 shift_states_controls = false;
+
+% defines
+USE_EXP_SOFT_COST = 0;
+USE_OCC_GRAD_AS_GUIDANCE = 0;
+defines = [USE_EXP_SOFT_COST;USE_OCC_GRAD_AS_GUIDANCE];
 
 %% INITIALIZATION ---------------------------------------------------------
 
 % initial states
 x_init = [ ...
-    -5, 100, -15, ... % r_n, r_e, r_d
+    -5, 100, -20, ... % r_n, r_e, r_d
     14, deg2rad(0), deg2rad(-20), ... % v, gamma, xi
     deg2rad(0), deg2rad(2), ... % phi, theta
     104 ... % n_p
@@ -77,17 +101,6 @@ posk = x_init(1:3);
 
 % initial controls
 u_init = [0.5 0 deg2rad(3)]; % u_T, phi_ref, theta_ref
-
-% initial online data
-get_local_terrain;
-onlinedatak = [ ...
-    w_n, w_e, w_d, ...
-    b_n, b_e, b_d, Gamma_p, chi_p, ...
-    T_b_lat, T_b_lon, ...
-    tau_phi, tau_theta, k_phi, k_theta, ...
-    delta_aoa, aoa_m, aoa_p, ...
-    delta_h, terr_local_origin_n, terr_local_origin_e, terr_dis, terrain_data ...
-    ];
 
 % acado inputs
 nmpc_ic.x = x_init;
@@ -101,6 +114,27 @@ R_scale = [0.1 deg2rad(1) deg2rad(1)];
 Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e4]./Q_scale.^2;
 QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e4]./Q_scale.^2;
 R_controls  = [1e1 1e0 1e1]./R_scale.^2;
+
+% weight dependent parameters
+log_sqrt_w_over_sig1_aoa = sqrt(Q_output(7)/sig_aoa_1);
+one_over_sqrt_w_aoa = 1/max(sqrt(Q_output(7)),0.00001);
+log_sqrt_w_over_sig1_h = sqrt(Q_output(8)/sig_h_1);
+one_over_sqrt_w_h = 1/max(sqrt(Q_output(8)),0.00001);
+log_sqrt_w_over_sig1_r = sqrt(Q_output(9)/sig_r_1);
+one_over_sqrt_w_r = 1/max(sqrt(Q_output(9)),0.00001);
+
+% initial online data
+get_local_terrain;
+onlinedatak = [ ...
+    rho, w_n, w_e, w_d, ...
+    b_n, b_e, b_d, Gamma_p, chi_p, ...
+    T_b_lat, T_b_lon, gamma_app_max, ...
+    tau_phi, tau_theta, k_phi, k_theta, ...
+    delta_aoa, aoa_m, aoa_p, log_sqrt_w_over_sig1_aoa, one_over_sqrt_w_aoa, ...
+    h_offset, delta_h, delta_y, log_sqrt_w_over_sig1_h, one_over_sqrt_w_h, ...
+    r_offset, delta_r0, k_r, log_sqrt_w_over_sig1_r, one_over_sqrt_w_r, ...
+    terr_local_origin_n, terr_local_origin_e, terr_dis, terrain_data ...
+    ];
 
 input.x     = repmat(nmpc_ic.x, N+1,1);
 input.u     = repmat(nmpc_ic.u, N,1);
@@ -121,7 +155,7 @@ input.WN    = diag(QN_output);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 90;
+Tf = 30;
 Ts = 0.01;
 time = T0:Ts:Tf;
 len_t = length(time);
@@ -196,12 +230,14 @@ for k = 1:len_t
         posk = input.x0(1:3);
         get_local_terrain;
         onlinedatak = [ ...
-            w_n, w_e, w_d, ...
+            rho, w_n, w_e, w_d, ...
             b_n, b_e, b_d, Gamma_p, chi_p, ...
-            T_b_lat, T_b_lon, ...
+            T_b_lat, T_b_lon, gamma_app_max, ...
             tau_phi, tau_theta, k_phi, k_theta, ...
-            delta_aoa, aoa_m, aoa_p, ...
-            delta_h, terr_local_origin_n, terr_local_origin_e, terr_dis, terrain_data ...
+            delta_aoa, aoa_m, aoa_p, log_sqrt_w_over_sig1_aoa, one_over_sqrt_w_aoa, ...
+            h_offset, delta_h, delta_y, log_sqrt_w_over_sig1_h, one_over_sqrt_w_h, ...
+            r_offset, delta_r0, k_r, log_sqrt_w_over_sig1_r, one_over_sqrt_w_r, ...
+            terr_local_origin_n, terr_local_origin_e, terr_dis, terrain_data ...
             ];
         input.od = repmat(onlinedatak, N+1, 1);
 %         input.od(1,:) = onlinedatak;
@@ -238,7 +274,7 @@ for k = 1:len_t
     rec.x_hor(:,k,:) = output.x(:,:);
     rec.u_hor(:,k,:) = output.u(:,:);
     rec.u(k,:) = controls;
-    [out,aux] = eval_obj([simout,controls,input.od(1,:)], len_local_idx_n, len_local_idx_e);
+    [out,aux] = eval_obj([simout,controls,input.od(1,:)], len_local_idx_n, len_local_idx_e, defines);
     rec.yz(k,:) = out;
     rec.aux(k,:) = aux;
     trec(k) = toc(st_rec);
