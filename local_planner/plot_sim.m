@@ -4,12 +4,9 @@ color_ref = [0.5 0.5 0.5];
 color_hor = [min(ones(1,3), cmap(5,:)*1.6) 0.2];%[0.2 0.2 1 0.6];
 color_state = cmap(1,:);
 
-% start/end time
-t_st_plot = 0;
-t_ed_plot = time(end);
-isp = find(time<=t_st_plot, 1, 'last');
-iep = find(time<=t_ed_plot, 1, 'last');
+%%
 
+if (plot_opt.position)
 %% ////////////////////////////////////////////////////////////////////////
 % POSITION
 
@@ -41,9 +38,12 @@ xlabel('East [m]')
 ylabel('North [m]')
 zlabel('Height [m]');
 
+end
+
+if (plot_opt.position2)
 %% ////////////////////////////////////////////////////////////////////////
 % POSITION 2
-
+ 
 figure('color','w','name','Position 2');
 hold on; grid on; %axis equal;
 
@@ -57,10 +57,10 @@ plot3([b_e, b_ed_e], ...
     -[b_d, b_ed_d],'color',color_ref,'linewidth',1.5);
 
 % position horizons
-hor_int = round(3/Ts);
+hor_int = round(2/Ts);
 node_int = 10;
 hor1 = plot3(rec.x_hor(1:node_int:end,isp:hor_int:iep,2), rec.x_hor(1:node_int:end,isp:hor_int:iep,1), ...
-    -rec.x_hor(1:node_int:end,isp:hor_int:iep,3), '-o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
+    -rec.x_hor(1:node_int:end,isp:hor_int:iep,3), '-o', 'MarkerSize', 4);
 
 % position
 plot3(rec.x(isp:iep,2),rec.x(isp:iep,1),-rec.x(isp:iep,3), 'linewidth', 1.5, 'color', color_state);
@@ -69,6 +69,9 @@ xlabel('East [m]')
 ylabel('North [m]')
 zlabel('Height [m]');
 
+end
+
+if (plot_opt.attitude)
 %% ////////////////////////////////////////////////////////////////////////
 % ATTITUDE
 
@@ -99,12 +102,15 @@ xlabel('Time [s]')
 
 linkaxes(hand_att,'x')
 
+end
+
+if (plot_opt.roll_horizon)
 %% ////////////////////////////////////////////////////////////////////////
 % ATTITUDE HORIZON (ROLL)
 
 figure('color','w','name','Attitude | Roll');
 
-% pitch
+% roll
 node_int = 1;
 k_int = round(Ts_nmpc/Ts*10);
 idx_k = isp:k_int:iep;
@@ -126,7 +132,7 @@ end
 ylabel('\phi_{ref} [deg]')
 
 hand_att_roll(3) = subplot(3,1,3); hold on; grid on; box on;
-stairs(time(isp:iep),rad2deg(rec.x(isp:iep,7)),'color',color_ref);
+plot(time(isp:iep),rad2deg(rec.x(isp:iep,7)),'color',color_ref);
 for ii=1:length(idx_k)
     tt = time(idx_k(ii))+(0:Ts_step:(N)*Ts_step);
     plot(tt,rad2deg(rec.x_hor(1:node_int:end,idx_k(ii),7)));
@@ -137,6 +143,9 @@ xlabel('Time [s]')
 
 linkaxes(hand_att_roll,'x')
 
+end
+
+if (plot_opt.pitch_horizon)
 %% ////////////////////////////////////////////////////////////////////////
 % ATTITUDE HORIZON (PITCH)
 
@@ -146,6 +155,8 @@ figure('color','w','name','Attitude | Pitch');
 node_int = 1;
 k_int = round(Ts_nmpc/Ts*10);
 idx_k = isp:k_int:iep;
+
+% ^ use nmpc_executed array?
 
 hand_att_pitch(1) = subplot(3,1,1); hold on; grid on; box on;
 stairs(time(isp:iep),rad2deg(rec.u_ref(isp:iep,3)),'color',color_ref);
@@ -164,7 +175,7 @@ end
 ylabel('\theta_{ref} [deg]')
 
 hand_att_pitch(3) = subplot(3,1,3); hold on; grid on; box on;
-stairs(time(isp:iep),rad2deg(rec.x(isp:iep,8)),'color',color_ref);
+plot(time(isp:iep),rad2deg(rec.x(isp:iep,8)),'color',color_ref);
 for ii=1:length(idx_k)
     tt = time(idx_k(ii))+(0:Ts_step:(N)*Ts_step);
     plot(tt,rad2deg(rec.x_hor(1:node_int:end,idx_k(ii),8)));
@@ -175,6 +186,9 @@ xlabel('Time [s]')
 
 linkaxes(hand_att_pitch,'x')
 
+end
+
+if (plot_opt.motor)
 %% ////////////////////////////////////////////////////////////////////////
 % MOTOR
 
@@ -201,9 +215,11 @@ xlabel('Time [s]')
 
 linkaxes(hand_att,'x')
 
+end
+
+if (plot_opt.position_errors)
 %% ////////////////////////////////////////////////////////////////////////
 % POSITION ERRORS
-
 figure('color','w','name','Position errors')
 
 hand_pos_err(1)=subplot(2,1,1); hold on; grid on; box on;
@@ -228,6 +244,9 @@ xlabel('time [s]')
 
 linkaxes(hand_pos_err,'x');
 
+end
+
+if (plot_opt.directional_errors)
 %% ////////////////////////////////////////////////////////////////////////
 % DIRECTIONAL ERRORS
 
@@ -247,24 +266,24 @@ plot(time(isp:iep),rec.aux(isp:iep,6));
 
 ylabel('e_{v_d} [m/s]')
 
+end
+
+if (plot_opt.velocity_tracking)
 %% ////////////////////////////////////////////////////////////////////////
 % VELOCITY TRACKING
 
-figure('color','w','name','Velocity tracking')
+figure('color','w','name','Unit velocity tracking')
 
-v_cos_gamma = rec.x(isp:iep,4).*cos(rec.x(isp:iep,5)); 
-vG_n = v_cos_gamma.*cos(rec.x(isp:iep,6)) + w_n; 
-vG_e = v_cos_gamma.*sin(rec.x(isp:iep,6)) + w_e; 
-vG_d = -rec.x(isp:iep,4).*sin(rec.x(isp:iep,5)) + w_d;
+cos_gamma = cos(rec.x(isp:iep,5)); 
+vG_n = cos_gamma.*cos(rec.x(isp:iep,6)) + w_n; 
+vG_e = cos_gamma.*sin(rec.x(isp:iep,6)) + w_e; 
+vG_d = -sin(rec.x(isp:iep,5)) + w_d;
 
 % VGN - - - - 
 hand_vel(1)=subplot(7,1,1:2); hold on; grid on; box on;
 
 % vP
-plot(time(isp:iep),rec.aux(isp:iep,35),'color',cmap(5,:),'linestyle',':');
-
-% vP app
-plot(time(isp:iep),rec.aux(isp:iep,26),'color',cmap(4,:),'linestyle','--');
+plot(time(isp:iep),rec.aux(isp:iep,35),'color',color_ref,'linestyle','-.');
 
 % v_occ
 plot(time(isp:iep),rec.aux(isp:iep,29),'color',cmap(2,:),'linestyle','--');
@@ -275,17 +294,14 @@ plot(time(isp:iep),rec.aux(isp:iep,32),'color',color_ref);
 % v
 plot(time(isp:iep),vG_n,'color',color_state);
 
-legend('v_P','v_{P_{app}}','v_{occ}','v_{cmd}','v_G');
-ylabel('v_{G_n} [m/s]');
+legend('v_P','v_{occ}','v_{cmd}','v_G');
+ylabel('$\hat{v}_{G_n}$','interpreter','latex');
 
 % VGE - - - - 
 hand_vel(2)=subplot(7,1,3:4); hold on; grid on; box on;
 
 % vP
-plot(time(isp:iep),rec.aux(isp:iep,36),'color',cmap(5,:),'linestyle',':');
-
-% vP app
-plot(time(isp:iep),rec.aux(isp:iep,27),'color',cmap(4,:),'linestyle','--');
+plot(time(isp:iep),rec.aux(isp:iep,36),'color',color_ref,'linestyle','-.');
 
 % v_occ
 plot(time(isp:iep),rec.aux(isp:iep,30),'color',cmap(2,:),'linestyle','--');
@@ -296,17 +312,14 @@ plot(time(isp:iep),rec.aux(isp:iep,33),'color',color_ref);
 % v
 plot(time(isp:iep),vG_e,'color',color_state);
 
-legend('v_P','v_{P_{app}}','v_{occ}','v_{cmd}','v_G');
-ylabel('v_{G_e} [m/s]');
+legend('v_P','v_{occ}','v_{cmd}','v_G');
+ylabel('$\hat{v}_{G_e}$','interpreter','latex');
 
 % VGD - - - - 
 hand_vel(3)=subplot(7,1,5:6); hold on; grid on; box on;
 
 % vP
-plot(time(isp:iep),rec.aux(isp:iep,37),'color',cmap(5,:),'linestyle',':');
-
-% vP app
-plot(time(isp:iep),rec.aux(isp:iep,28),'color',cmap(4,:),'linestyle','--');
+plot(time(isp:iep),rec.aux(isp:iep,37),'color',color_ref,'linestyle','-.');
 
 % v_occ
 plot(time(isp:iep),rec.aux(isp:iep,31),'color',cmap(2,:),'linestyle','--');
@@ -317,8 +330,8 @@ plot(time(isp:iep),rec.aux(isp:iep,34),'color',color_ref);
 % v
 plot(time(isp:iep),vG_d,'color',color_state);
 
-legend('v_P','v_{P_{app}}','v_{occ}','v_{cmd}','v_G');
-ylabel('v_{G_d} [m/s]');
+legend('v_P','v_{occ}','v_{cmd}','v_G');
+ylabel('$\hat{v}_{G_d}$','interpreter','latex');
 
 % PRIO - - - - 
 hand_vel(4)=subplot(7,1,7); hold on; grid on; box on;
@@ -329,9 +342,13 @@ ylabel('{prio}_r');
 
 xlabel('Time [s]');
 
+end
+
 %% ////////////////////////////////////////////////////////////////////////
 % WIND AXIS
 
+if (plot_opt.wind_axis)
+    
 figure('color','w','name','Wind axis');
 
 % airspeed
@@ -348,8 +365,12 @@ plot(time([isp iep]),rad2deg([aoa_p aoa_p]),'color',color_ref);
 plot(time(isp:iep),rad2deg(rec.x(isp:iep,8) - rec.x(isp:iep,5)),'color',color_state);
 ylabel('\alpha [deg]')
 
+end
+
 %% ////////////////////////////////////////////////////////////////////////
 % RADIAL COST
+
+if (plot_opt.radial_cost)
 
 figure('color','w','name','Radial cost');
 
@@ -360,18 +381,22 @@ plot(time(isp:iep),rec.aux(isp:iep,38).*double(rec.aux(isp:iep,16)>0),'color',co
 legend('\Delta_r','d_{occ}');
 ylabel('r [m]');
 
-% angle of attack
+% radial cost
 hand_r(2) = subplot(5,1,3:4); hold on; grid on; box on;
 plot(time(isp:iep),rec.aux(isp:iep,17),'color',color_ref);
 ylabel('\sigma_r');
 
+% detection
 hand_r(3) = subplot(5,1,5); hold on; grid on; box on;
 plot(time(isp:iep),rec.aux(isp:iep,16),'color',color_state);
 ylabel('Detect');
 
+end
 
 %% ////////////////////////////////////////////////////////////////////////
 % OBJECTIVE COSTS
+
+if (plot_opt.objectives)
 
 obj_cost = zeros(length(isp:iep), n_Y+n_Z);
 for ii = 1:n_Y
@@ -412,8 +437,12 @@ xlabel('time [s]');
 
 linkaxes(hand_obj,'x');
 
+end
+
 %% ////////////////////////////////////////////////////////////////////////
 % TIMING
+
+if (plot_opt.timing)
 
 % figure('color','w','name','NMPC timing'); hold on; grid on; box on;
 % 
@@ -446,3 +475,5 @@ plot(time(idx_), qp_iter(1:length(idx_)));
 ylabel('qp iter.');
 
 xlabel('time [s]');
+
+end

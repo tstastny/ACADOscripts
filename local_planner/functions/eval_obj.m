@@ -92,6 +92,16 @@ vG_d = -v*sin(gamma) + w_d;
 vG_sq = vG_n*vG_n + vG_e*vG_e + vG_d*vG_d;
 vG_norm = sqrt(vG_sq);
  
+% unit ground speed
+if (vG_norm < 0.01)
+    one_over_vG_norm = 100.0;
+else
+    one_over_vG_norm = 1.0 / vG_norm;
+end
+vG_n_unit = vG_n * one_over_vG_norm;
+vG_e_unit = vG_e * one_over_vG_norm;
+vG_d_unit = vG_d * one_over_vG_norm;
+
 % PATH FOLLOWING */ 
  
 % path tangent unit vector  
@@ -119,17 +129,17 @@ chi_app = atan(pi/2*e_lat/e_b_lat);
 if (abs(vG_d) < 1.0)
     e_b_lon = T_b_lon * 0.5 * (1.0 + vG_d*vG_d);
 else
-    e_b_lon = abs(vG_d);
+    e_b_lon = T_b_lon * abs(vG_d);
 end
 
 % flight path approach angle
 Gamma_app = -gamma_app_max * atan(pi/2*e_lon/e_b_lon);
 
 % ground velocity setpoint
-v_cos_gamma = vG_norm*cos(Gamma_p + Gamma_app);
-vP_n = v_cos_gamma*cos(chi_p + chi_app);
-vP_e = v_cos_gamma*sin(chi_p + chi_app);
-vP_d = -vG_norm*sin(Gamma_p + Gamma_app);
+v_cos_gamma = cos(Gamma_p + Gamma_app);
+vP_n_unit = v_cos_gamma*cos(chi_p + chi_app);
+vP_e_unit = v_cos_gamma*sin(chi_p + chi_app);
+vP_d_unit = -sin(Gamma_p + Gamma_app);
 
 % TERRAIN */ 
     
@@ -353,31 +363,31 @@ if USE_OCC_GRAD_AS_GUIDANCE %XXX: maybe make this an online param
     else
         one_over_norm_jac_sig_r = 10000.0;
     end
-    v_occ_n = -jac_sig_r(1) * one_over_norm_jac_sig_r * vG_norm;
-    v_occ_e = -jac_sig_r(2) * one_over_norm_jac_sig_r * vG_norm;
-    v_occ_d = -jac_sig_r(3) * one_over_norm_jac_sig_r * vG_norm;
+    v_occ_n_unit = -jac_sig_r(1) * one_over_norm_jac_sig_r;
+    v_occ_e_unit = -jac_sig_r(2) * one_over_norm_jac_sig_r;
+    v_occ_d_unit = -jac_sig_r(3) * one_over_norm_jac_sig_r;
 
     % velocity errors
-    vcmd_n = vP_n * prio_r + (1.0-prio_r) * v_occ_n;
-    vcmd_e = vP_e * prio_r + (1.0-prio_r) * v_occ_e;
-    vcmd_d = vP_d * prio_r + (1.0-prio_r) * v_occ_d;
-    e_v_n = vcmd_n - vG_n; 
-    e_v_e = vcmd_e - vG_e; 
-    e_v_d = vcmd_d - vG_d;
+    vcmd_n_unit = vP_n_unit * prio_r + (1.0-prio_r) * v_occ_n_unit;
+    vcmd_e_unit = vP_e_unit * prio_r + (1.0-prio_r) * v_occ_e_unit;
+    vcmd_d_unit = vP_d_unit * prio_r + (1.0-prio_r) * v_occ_d_unit;
+    e_v_n = vcmd_n_unit - vG_n_unit; 
+    e_v_e = vcmd_e_unit - vG_e_unit; 
+    e_v_d = vcmd_d_unit - vG_d_unit;
 
 else
     
-    v_occ_n = 0;
-    v_occ_e = 0;
-    v_occ_d = 0;
+    v_occ_n_unit = NaN;
+    v_occ_e_unit = NaN;
+    v_occ_d_unit = NaN;
 
     % velocity errors
-    vcmd_n = vP_n;
-    vcmd_e = vP_e;
-    vcmd_d = vP_d;
-    e_v_n = (vP_n - vG_n) * prio_r;
-    e_v_e = (vP_e - vG_e) * prio_r;
-    e_v_d = (vP_d - vG_d) * prio_r;
+    vcmd_n_unit = vP_n_unit;
+    vcmd_e_unit = vP_e_unit;
+    vcmd_d_unit = vP_d_unit;
+    e_v_n = (vP_n_unit - vG_n_unit) * prio_r;
+    e_v_e = (vP_e_unit - vG_e_unit) * prio_r;
+    e_v_d = (vP_d_unit - vG_d_unit) * prio_r;
 
 end
 
@@ -397,16 +407,16 @@ out(10) = u_T;
 out(11) = phi_ref;
 out(12) = theta_ref;
 
-aux = [h_terr, e_lat, e_lon, e_v_n, e_v_e, e_v_d, ...
-    sig_aoa, sig_h, prio_aoa, prio_h, prio_aoa_h, ...
-    Gamma_app, chi_app, Gamma_p, chi_p, ...
-    occ_detected, sig_r, jac_sig_r, delta_r, prio_r, ...
-    vP_n, vP_e, vP_d, ...
-    v_occ_n, v_occ_e, v_occ_d, ...
-    vcmd_n, vcmd_e, vcmd_d, ...
-    v_cos_gamma*cos(chi_p), ...
-    v_cos_gamma*sin(chi_p), ...
-    -vG_norm*sin(Gamma_p), ...
-    d_occ];
+aux = [h_terr, e_lat, e_lon, e_v_n, e_v_e, e_v_d, ...       % 1-6
+    sig_aoa, sig_h, prio_aoa, prio_h, prio_aoa_h, ...       % 7-11
+    Gamma_app, chi_app, Gamma_p, chi_p, ...                 % 12-15
+    occ_detected, sig_r, jac_sig_r, delta_r, prio_r, ...    % 16-25
+    vP_n_unit, vP_e_unit, vP_d_unit, ...                    % 26-28
+    v_occ_n_unit, v_occ_e_unit, v_occ_d_unit, ...           % 29-31
+    vcmd_n_unit, vcmd_e_unit, vcmd_d_unit, ...              % 32-34
+    cos(Gamma_p)*cos(chi_p), ...                            % 35
+    cos(Gamma_p)*sin(chi_p), ...                            % 36
+    -sin(Gamma_p), ...                                      % 37
+    d_occ];                                                 % 38
 
 end

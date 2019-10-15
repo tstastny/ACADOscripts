@@ -37,12 +37,12 @@ b_n = 0;
 b_e = 0;
 b_d = -50;
 Gamma_p = deg2rad(5);
-chi_p = deg2rad(0);
+chi_p = deg2rad(90);
 
 % guidance
 T_b_lat = 5;
-T_b_lon = 5;
-gamma_app_max = deg2rad(17)*2/pi;
+T_b_lon = 3;
+gamma_app_max = deg2rad(20)*2/pi;
 
 % control augmented attitude time constants and gains
 tau_phi = 0.5;
@@ -78,10 +78,17 @@ terrain_constructor;
 
 v_ref = 14;
 
+%% MORE PARAMS ------------------------------------------------------------
+
+tau_u = 0.5; % control reference time constant
+
 %% OPTIONS ----------------------------------------------------------------
 
 % horizon handling
 shift_states_controls = false;
+
+% output objective costs and jacobians
+output_objectives = true;
 
 % defines
 USE_EXP_SOFT_COST = 0;
@@ -93,7 +100,7 @@ defines = [USE_EXP_SOFT_COST;USE_OCC_GRAD_AS_GUIDANCE];
 % initial states
 x_init = [ ...
     -5, 100, -20, ... % r_n, r_e, r_d
-    14, deg2rad(0), deg2rad(-20), ... % v, gamma, xi
+    14, deg2rad(0), deg2rad(-90), ... % v, gamma, xi
     deg2rad(0), deg2rad(2), ... % phi, theta
     104 ... % n_p
     ];
@@ -111,9 +118,9 @@ zref = [0.5 0 deg2rad(3)];
 Q_scale = [1 1 1 1 1 1 1 1 1];
 R_scale = [0.1 deg2rad(1) deg2rad(1)];
 
-Q_output    = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e4]./Q_scale.^2;
-QN_output   = [0 0, 1e2 1e2 1e2, 5e2, 1e8 1e7 1e4]./Q_scale.^2;
-R_controls  = [1e1 1e0 1e1]./R_scale.^2;
+Q_output    = [0*1e0 0*1e0, 1e4 1e4 1e6, 5e2, 0*1e8 0*1e7 0*1e4]./Q_scale.^2;
+QN_output   = [0*1e0 0*1e0, 1e4 1e4 1e6, 5e2, 0*1e8 0*1e7 0*1e4]./Q_scale.^2;
+R_controls  = [1e1 1e1 1e3]./R_scale.^2;
 
 % weight dependent parameters
 log_sqrt_w_over_sig1_aoa = sqrt(Q_output(7)/sig_aoa_1);
@@ -136,29 +143,28 @@ onlinedatak = [ ...
     terr_local_origin_n, terr_local_origin_e, terr_dis, terrain_data ...
     ];
 
-input.x     = repmat(nmpc_ic.x, N+1,1);
-input.u     = repmat(nmpc_ic.u, N,1);
-input.y     = repmat([yref, zref], N,1);
-input.yN    = yref;
-input.od    = repmat(onlinedatak, N+1, 1);
-% input.od    = [onlinedatak; zeros(N, n_OD)];
-input.W     = repmat(diag([Q_output, R_controls]), [N 1]);
-R_slew = 100;
-zero2one = linspace(0,1,N);
-for i = 1:N
-    input.W((n_Y+n_Z)*(i-1)+n_Y+1:(n_Y+n_Z)*(i-1)+n_Y+n_Z,:) = ...
-        input.W((n_Y+n_Z)*(i-1)+n_Y+1:(n_Y+n_Z)*(i-1)+n_Y+n_Z,:) * ...
-        (1 + R_slew*(1 - zero2one(i))^2);
+% input struct
+input.x = repmat(nmpc_ic.x, N+1,1);
+input.u = repmat(nmpc_ic.u, N,1);
+input.y = repmat([yref, zref], N,1);
+input.yN = yref;
+input.od = repmat(onlinedatak, N+1, 1);
+% input.od = [onlinedatak; zeros(N, n_OD)];
+R_end = R_controls * 1e0;
+for i=0:N-1
+    ww = i/(N-1);
+    input.W(i*(n_Y+n_Z)+1:(i+1)*(n_Y+n_Z),1:(n_Y+n_Z)) = diag([Q_output, R_controls * (1-ww) + R_end * ww]);
 end
 % input.W     = diag([Q_output, R_controls]);
 input.WN    = diag(QN_output);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 30;
+Tf = 25;
 Ts = 0.01;
 time = T0:Ts:Tf;
 len_t = length(time);
+len_nmpc = floor(len_t*Ts/Ts_nmpc);
 
 % initial simout
 states = nmpc_ic.x;
@@ -191,7 +197,15 @@ rec.u_hor = zeros(N,len_t,n_U);
 rec.u = zeros(len_t,n_U);
 rec.yz = zeros(len_t,n_Y+n_Z);
 rec.aux = zeros(len_t,38);
+if output_objectives
+    rec.y = zeros(N,len_nmpc,n_Y+n_Z);
+    rec.dydx = zeros(N,len_nmpc,(n_Y+n_Z)*n_X);
+    rec.dydu = zeros(N,len_nmpc,(n_Y+n_Z)*n_U);
+    rec.yN = zeros(len_nmpc,n_Y);
+    rec.dyNdx = zeros(len_nmpc,n_Y*n_X);
+end
 
+k_nmpc = 0;
 % simulate
 for k = 1:len_t
     
@@ -206,9 +220,17 @@ for k = 1:len_t
         
         % START NMPC - - - - -
         st_nmpc = tic;
+        
+        % update states - - - - - - - - - - - - - - - - - - - - - - - - - -
 
          % shift (or dont) initial states and controls
         if k > 1
+            
+            % filter control horizon reference
+            %ctrl_hor = (output.u(:,:) - ctrl_hor)/tau_u*Ts_nmpc + ctrl_hor;
+            ctrl_hor = (repmat(output.u(1,:),N,1) - ctrl_hor)/tau_u*Ts_nmpc + ctrl_hor;
+            %ctrl_hor = (repmat(mean(output.u(:,:),1),N,1) - ctrl_hor)/tau_u*Ts_nmpc + ctrl_hor;
+            
             if shift_states_controls
                 % shift
                 v_end = output.x(end,4)*[...
@@ -220,6 +242,12 @@ for k = 1:len_t
                 input.u = [output.u(2:end,:); output.u(end,:)];
             else
                 % dont
+                v_end = output.x(end,4)*[...
+                    cos(output.x(end,5))*cos(output.x(end,6)), ...
+                    cos(output.x(end,5))*sin(output.x(end,6)), ...
+                    -sin(output.x(end,5))] + ...
+                    [w_n, w_e, w_d];
+                input.x = [output.x(2:end,1:3) output.x(1:end-1,4:end); [output.x(end,1:3)+v_end*Ts_nmpc output.x(end,4:end)] ];
                 input.x = output.x;
                 input.u = output.u;
             end
@@ -240,16 +268,39 @@ for k = 1:len_t
             terr_local_origin_n, terr_local_origin_e, terr_dis, terrain_data ...
             ];
         input.od = repmat(onlinedatak, N+1, 1);
-%         input.od(1,:) = onlinedatak;
+        %input.od(1,:) = onlinedatak;
+
+        % guidance - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        
+        % unit velocity setpoints
+        input.y(:,3:5) = get_unit_velocity_setpoint(input.x(1:N,1:6), onlinedatak(2:12));
+        input.yN(:,3:5) = get_unit_velocity_setpoint(input.x(N+1,1:6), onlinedatak(2:12));
+        
+        % control reference
         input.y(:,end-2:end) = ctrl_hor;
+        
+        % attitude reference
+        input.y(:,1:2) = ctrl_hor(:,2:3);
+        input.yN(1:2) = ctrl_hor(end,2:3);
+        
+        % array allocation timing
         tarray_k = toc(st_array_allo);
 
+        % control - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        
         % generate controls
         output = acado_nmpc_step(input);
-
+        
+        % set controls
         controls  = output.u(1,:);
-        ctrl_hor = output.u(:,:);
-
+        
+        % record - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        
+        % output objective costs / jacobians
+        if output_objectives
+            output2 = lsq_objective_mex(input);
+        end
+ 
         % record info
         INFO_MPC(nmpc_counter) = output.info;
         KKT_MPC(nmpc_counter) = output.info.kktValue;
@@ -274,11 +325,21 @@ for k = 1:len_t
     rec.x_hor(:,k,:) = output.x(:,:);
     rec.u_hor(:,k,:) = output.u(:,:);
     rec.u(k,:) = controls;
+    rec.u_ref(k,:) = ctrl_hor(1,:);%duplicate
+    rec.u_ref_hor(:,k,:) = ctrl_hor;
     [out,aux] = eval_obj([simout,controls,input.od(1,:)], len_local_idx_n, len_local_idx_e, defines);
     rec.yz(k,:) = out;
     rec.aux(k,:) = aux;
+    if output_objectives && nmpc_executed(k)
+        k_nmpc = k_nmpc+1;
+        rec.y(:,k_nmpc,:) = output2.y;
+        rec.dydx(:,k_nmpc,:) = output2.dydx;
+        rec.dydu(:,k_nmpc,:) = output2.dydu;
+        rec.yN(k_nmpc,:) = output2.yN;
+        rec.dyNdx(k_nmpc,:) = output2.dyNdx;
+    end
     trec(k) = toc(st_rec);
-    
+
     % tell time
     if time(k)==floor(time(k)/10)*10
         clc;
@@ -291,5 +352,25 @@ for k = 1:len_t
 end
 
 %% PLOTTING ---------------------------------------------------------------
+
+% start/end time
+t_st_plot = 0;
+t_ed_plot = time(end);
+isp = find(time<=t_st_plot, 1, 'last');
+iep = find(time<=t_ed_plot, 1, 'last');
+
+plot_opt.position = false;
+plot_opt.position2 = true;
+plot_opt.attitude = true;
+plot_opt.roll_horizon = true;
+plot_opt.pitch_horizon = false;
+plot_opt.motor = false;
+plot_opt.position_errors = false;
+plot_opt.directional_errors = false;
+plot_opt.velocity_tracking = false;
+plot_opt.wind_axis = false;
+plot_opt.radial_cost = false;
+plot_opt.objectives = false;
+plot_opt.timing = false;
 
 plot_sim
