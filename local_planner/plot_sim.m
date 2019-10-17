@@ -275,9 +275,15 @@ if (plot_opt.velocity_tracking)
 figure('color','w','name','Unit velocity tracking')
 
 cos_gamma = cos(rec.x(isp:iep,5)); 
-vG_n = cos_gamma.*cos(rec.x(isp:iep,6)) + w_n; 
-vG_e = cos_gamma.*sin(rec.x(isp:iep,6)) + w_e; 
-vG_d = -sin(rec.x(isp:iep,5)) + w_d;
+vG_n = rec.x(isp:iep,4).*cos_gamma.*cos(rec.x(isp:iep,6)) + w_n; 
+vG_e = rec.x(isp:iep,4).*cos_gamma.*sin(rec.x(isp:iep,6)) + w_e; 
+vG_d = rec.x(isp:iep,4).*-sin(rec.x(isp:iep,5)) + w_d;
+vG_norm = sqrt(vG_n.^2+vG_e.^2+vG_d.^2);
+one_over_vG_norm = 1./vG_norm;
+one_over_vG_norm(vG_norm<0.01) = 100;
+vG_n_unit = vG_n .* one_over_vG_norm;
+vG_e_unit = vG_e .* one_over_vG_norm;
+vG_d_unit = vG_d .* one_over_vG_norm;
 
 % VGN - - - - 
 hand_vel(1)=subplot(7,1,1:2); hold on; grid on; box on;
@@ -292,7 +298,7 @@ plot(time(isp:iep),rec.aux(isp:iep,29),'color',cmap(2,:),'linestyle','--');
 plot(time(isp:iep),rec.aux(isp:iep,32),'color',color_ref);
 
 % v
-plot(time(isp:iep),vG_n,'color',color_state);
+plot(time(isp:iep),vG_n_unit,'color',color_state);
 
 legend('v_P','v_{occ}','v_{cmd}','v_G');
 ylabel('$\hat{v}_{G_n}$','interpreter','latex');
@@ -310,7 +316,7 @@ plot(time(isp:iep),rec.aux(isp:iep,30),'color',cmap(2,:),'linestyle','--');
 plot(time(isp:iep),rec.aux(isp:iep,33),'color',color_ref);
 
 % v
-plot(time(isp:iep),vG_e,'color',color_state);
+plot(time(isp:iep),vG_e_unit,'color',color_state);
 
 legend('v_P','v_{occ}','v_{cmd}','v_G');
 ylabel('$\hat{v}_{G_e}$','interpreter','latex');
@@ -328,7 +334,7 @@ plot(time(isp:iep),rec.aux(isp:iep,31),'color',cmap(2,:),'linestyle','--');
 plot(time(isp:iep),rec.aux(isp:iep,34),'color',color_ref);
 
 % v
-plot(time(isp:iep),vG_d,'color',color_state);
+plot(time(isp:iep),vG_d_unit,'color',color_state);
 
 legend('v_P','v_{occ}','v_{cmd}','v_G');
 ylabel('$\hat{v}_{G_d}$','interpreter','latex');
@@ -344,11 +350,10 @@ xlabel('Time [s]');
 
 end
 
+if (plot_opt.wind_axis)
 %% ////////////////////////////////////////////////////////////////////////
 % WIND AXIS
 
-if (plot_opt.wind_axis)
-    
 figure('color','w','name','Wind axis');
 
 % airspeed
@@ -367,10 +372,9 @@ ylabel('\alpha [deg]')
 
 end
 
+if (plot_opt.radial_cost)
 %% ////////////////////////////////////////////////////////////////////////
 % RADIAL COST
-
-if (plot_opt.radial_cost)
 
 figure('color','w','name','Radial cost');
 
@@ -393,10 +397,9 @@ ylabel('Detect');
 
 end
 
+if (plot_opt.objectives)
 %% ////////////////////////////////////////////////////////////////////////
 % OBJECTIVE COSTS
-
-if (plot_opt.objectives)
 
 obj_cost = zeros(length(isp:iep), n_Y+n_Z);
 for ii = 1:n_Y
@@ -439,10 +442,9 @@ linkaxes(hand_obj,'x');
 
 end
 
+if (plot_opt.timing)
 %% ////////////////////////////////////////////////////////////////////////
 % TIMING
-
-if (plot_opt.timing)
 
 % figure('color','w','name','NMPC timing'); hold on; grid on; box on;
 % 

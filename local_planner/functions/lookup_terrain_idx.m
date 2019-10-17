@@ -1,4 +1,4 @@
-function [idx_q, dh] = lookup_terrain_idx( pos_n, pos_e, pos_n_origin, pos_e_origin, terr_dis)
+function [idx_q, dn, de] = lookup_terrain_idx( pos_n, pos_e, pos_n_origin, pos_e_origin, terr_dis)
         
 %     LEN_IDX_N = 141;
 %     LEN_IDX_E = 141;
@@ -24,8 +24,8 @@ function [idx_q, dh] = lookup_terrain_idx( pos_n, pos_e, pos_n_origin, pos_e_ori
     idx_e = floor(rel_e_bar);
     
     % interpolation weights
-    dh_n = rel_n_bar-idx_n;
-    dh_e = rel_e_bar-idx_e;
+    dn = rel_n_bar-idx_n;
+    de = rel_e_bar-idx_e;
     
     % cap ends
     if (idx_n < 0)
@@ -69,9 +69,5 @@ function [idx_q, dh] = lookup_terrain_idx( pos_n, pos_e, pos_n_origin, pos_e_ori
     idx_q(2) = q_n(2)*LEN_IDX_E + q_e(2);
     idx_q(3) = q_n(3)*LEN_IDX_E + q_e(3);
     idx_q(4) = q_n(4)*LEN_IDX_E + q_e(4);
-
-    % interpolation weights
-    dh(1) = dh_n;
-    dh(2) = dh_e;
 
 end

@@ -209,3 +209,6 @@ nmpc.exportCode( 'export_nmpc' );
 cd export_nmpc
 make_acado_solver('../acado_nmpc_step', 'lsq_objective.c')
 cd ..
+
+% compile output mex
+mex export_nmpc/lsq_objective_mex.c -outdir functions

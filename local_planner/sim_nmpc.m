@@ -37,7 +37,7 @@ b_n = 0;
 b_e = 0;
 b_d = -50;
 Gamma_p = deg2rad(5);
-chi_p = deg2rad(90);
+chi_p = deg2rad(0);
 
 % guidance
 T_b_lat = 5;
@@ -71,7 +71,7 @@ sig_r_1 = 0.001;
 % terrain lookup
 len_local_idx_n = 57;%29;
 len_local_idx_e = 57;%29;
-terr_dis = 5;
+terr_dis = 10;
 terrain_constructor;
 
 %% REFERENCES -------------------------------------------------------------
@@ -91,7 +91,7 @@ shift_states_controls = false;
 output_objectives = true;
 
 % defines
-USE_EXP_SOFT_COST = 0;
+USE_EXP_SOFT_COST = 1;
 USE_OCC_GRAD_AS_GUIDANCE = 0;
 defines = [USE_EXP_SOFT_COST;USE_OCC_GRAD_AS_GUIDANCE];
 
@@ -112,23 +112,50 @@ u_init = [0.5 0 deg2rad(3)]; % u_T, phi_ref, theta_ref
 % acado inputs
 nmpc_ic.x = x_init;
 nmpc_ic.u = u_init;
-yref = [0 0 0 0 0 v_ref 0 0 0];
+yref = [0 0 0 v_ref 0 0 0 0 0];
 zref = [0.5 0 deg2rad(3)];
 
 Q_scale = [1 1 1 1 1 1 1 1 1];
 R_scale = [0.1 deg2rad(1) deg2rad(1)];
 
-Q_output    = [0*1e0 0*1e0, 1e4 1e4 1e6, 5e2, 0*1e8 0*1e7 0*1e4]./Q_scale.^2;
-QN_output   = [0*1e0 0*1e0, 1e4 1e4 1e6, 5e2, 0*1e8 0*1e7 0*1e4]./Q_scale.^2;
+Q_output    = [1e4 1e4 1e6, 5e2 0*1e0 0*1e0, 1e8 1e7 1e7]./Q_scale.^2;
+QN_output   = [1e4 1e4 1e6, 5e2 0*1e0 0*1e0, 1e8 1e7 1e7]./Q_scale.^2;
 R_controls  = [1e1 1e1 1e3]./R_scale.^2;
 
 % weight dependent parameters
-log_sqrt_w_over_sig1_aoa = sqrt(Q_output(7)/sig_aoa_1);
-one_over_sqrt_w_aoa = 1/max(sqrt(Q_output(7)),0.00001);
-log_sqrt_w_over_sig1_h = sqrt(Q_output(8)/sig_h_1);
-one_over_sqrt_w_h = 1/max(sqrt(Q_output(8)),0.00001);
-log_sqrt_w_over_sig1_r = sqrt(Q_output(9)/sig_r_1);
-one_over_sqrt_w_r = 1/max(sqrt(Q_output(9)),0.00001);
+if sig_aoa_1 < 1e-5
+    sig_aoa_1 = 1e-5;
+end
+if Q_output(7) <= sig_aoa_1
+    % disable
+    log_sqrt_w_over_sig1_aoa = 0.0;
+    one_over_sqrt_w_aoa = -1.0;
+else
+    log_sqrt_w_over_sig1_aoa = log(sqrt(Q_output(7)/sig_aoa_1));
+    one_over_sqrt_w_aoa = 1/sqrt(Q_output(7));
+end
+if sig_h_1 < 1e-5
+    sig_h_1 = 1e-5;
+end
+if Q_output(8) < sig_h_1
+    % disable
+    log_sqrt_w_over_sig1_h = 0.0;
+    one_over_sqrt_w_h = -1.0;
+else
+    log_sqrt_w_over_sig1_h = log(sqrt(Q_output(8)/sig_h_1));
+    one_over_sqrt_w_h = 1/sqrt(Q_output(8));
+end
+if sig_r_1 < 1e-5
+    sig_r_1 = 1e-5;
+end
+if Q_output(9) < sig_r_1
+    % disable
+    log_sqrt_w_over_sig1_r = 0.0;
+    one_over_sqrt_w_r = -1.0;
+else
+    log_sqrt_w_over_sig1_r = log(sqrt(Q_output(9)/sig_r_1));
+    one_over_sqrt_w_r = 1/sqrt(Q_output(9));
+end
 
 % initial online data
 get_local_terrain;
@@ -160,7 +187,7 @@ input.WN    = diag(QN_output);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 25;
+Tf = 30;
 Ts = 0.01;
 time = T0:Ts:Tf;
 len_t = length(time);
@@ -273,15 +300,15 @@ for k = 1:len_t
         % guidance - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         
         % unit velocity setpoints
-        input.y(:,3:5) = get_unit_velocity_setpoint(input.x(1:N,1:6), onlinedatak(2:12));
-        input.yN(:,3:5) = get_unit_velocity_setpoint(input.x(N+1,1:6), onlinedatak(2:12));
+%         input.y(:,1:3) = get_unit_velocity_setpoint(input.x(1:N,1:6), onlinedatak(2:12));
+%         input.yN(:,1:3) = get_unit_velocity_setpoint(input.x(N+1,1:6), onlinedatak(2:12));
         
         % control reference
         input.y(:,end-2:end) = ctrl_hor;
         
         % attitude reference
-        input.y(:,1:2) = ctrl_hor(:,2:3);
-        input.yN(1:2) = ctrl_hor(end,2:3);
+        input.y(:,5:6) = ctrl_hor(:,2:3);
+        input.yN(5:6) = ctrl_hor(end,2:3);
         
         % array allocation timing
         tarray_k = toc(st_array_allo);
@@ -359,17 +386,17 @@ t_ed_plot = time(end);
 isp = find(time<=t_st_plot, 1, 'last');
 iep = find(time<=t_ed_plot, 1, 'last');
 
-plot_opt.position = false;
+plot_opt.position = true;
 plot_opt.position2 = true;
 plot_opt.attitude = true;
 plot_opt.roll_horizon = true;
-plot_opt.pitch_horizon = false;
-plot_opt.motor = false;
-plot_opt.position_errors = false;
+plot_opt.pitch_horizon = true;
+plot_opt.motor = true;
+plot_opt.position_errors = true;
 plot_opt.directional_errors = false;
-plot_opt.velocity_tracking = false;
-plot_opt.wind_axis = false;
-plot_opt.radial_cost = false;
+plot_opt.velocity_tracking = true;
+plot_opt.wind_axis = true;
+plot_opt.radial_cost = true;
 plot_opt.objectives = false;
 plot_opt.timing = false;
 
