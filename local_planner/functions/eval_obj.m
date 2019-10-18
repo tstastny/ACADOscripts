@@ -257,7 +257,7 @@ if USE_EXP_SOFT_COST % EXPONENTIAL COST */
     
     % radial objective / jacobian - - - - - - - - - - - - - - - - - - - */
     
-    if ~(one_over_sqrt_w_r<0.0)
+    if ~(one_over_sqrt_w_r<0.0) && occ_detected>0
         
         % objective */
         sig_r = exp(-(d_occ - r_offset)/delta_r*log_sqrt_w_over_sig1_r);
@@ -298,6 +298,8 @@ if USE_EXP_SOFT_COST % EXPONENTIAL COST */
         jac_sig_r(4) = 0.0;
         jac_sig_r(5) = 0.0;
         jac_sig_r(6) = 0.0;
+    else
+        d_occ = NaN; % for plotting
     end
     
     

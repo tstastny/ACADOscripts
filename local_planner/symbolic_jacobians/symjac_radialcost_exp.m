@@ -1,5 +1,5 @@
 % / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
-% symbolic jacobian for radial cost (cubic formulation)
+% symbolic jacobian for radial cost (exponential formulation)
 % / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
 
 clear; clc;
@@ -51,19 +51,25 @@ B_br = terr_dis * (p2_h - p3_h);
 C_br = terr_dis^2;
 D_br = -p1_h * terr_dis^2;
 
-% distance to triangulated plane (ul)
+% distance to triangulated plane (tl)
 r_tl_expr = -(A_tl*(r_e-p1_e) + B_tl*(r_n-p1_n) + C_tl*(-r_d-p1_h) + D_tl) * vG_expr / (A_tl*vG_e_expr + B_tl*vG_n_expr + C_tl*-vG_d_expr);
 % distance to triangulated plane (br)
 r_br_expr = -(A_br*(r_e-p1_e) + B_br*(r_n-p1_n) + C_br*(-r_d-p1_h) + D_br) * vG_expr / (A_br*vG_e_expr + B_br*vG_n_expr + C_br*-vG_d_expr);
 
-% radial cost (when buffer is violated)
+% radial cost
 delta_r_expr = delta_r0 + vG_sq_expr*k_r;
 sig_r_tl = exp(-(r_tl_expr - r_offset)/delta_r_expr*log_sqrt_w_over_sig1_r);
 sig_r_br = exp(-(r_br_expr - r_offset)/delta_r_expr*log_sqrt_w_over_sig1_r);
 
+sig_r_tl_lin = 1.0 - log_sqrt_w_over_sig1_r/delta_r_expr * (r_tl_expr - r_offset);
+sig_r_br_lin = 1.0 - log_sqrt_w_over_sig1_r/delta_r_expr * (r_br_expr - r_offset);
+
 % jacobian of radial cost
 jac_sig_r_tl_exp = jacobian(sig_r_tl, [r_n; r_e; r_d; v; gamma; xi]);
 jac_sig_r_br_exp = jacobian(sig_r_br, [r_n; r_e; r_d; v; gamma; xi]);
+
+jac_sig_r_tl_lin = jacobian(sig_r_tl_lin, [r_n; r_e; r_d; v; gamma; xi]);
+jac_sig_r_br_lin = jacobian(sig_r_br_lin, [r_n; r_e; r_d; v; gamma; xi]);
 
 %% substitute calculations we'll have already done
 sig_r = sym('sig_r','real');
@@ -96,8 +102,35 @@ vG_d = sym('vG_d','real');
 jac_sig_r_tl_exp = subs(jac_sig_r_tl_exp , vG_d_expr, vG_d);
 jac_sig_r_br_exp = subs(jac_sig_r_br_exp , vG_d_expr, vG_d);
 
+jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , sig_r_tl, sig_r);
+jac_sig_r_br_lin = subs(jac_sig_r_br_lin , sig_r_br, sig_r);
+jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , r_tl_expr, d_occ);
+jac_sig_r_br_lin = subs(jac_sig_r_br_lin , r_br_expr, d_occ);
+jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , delta_r_expr, delta_r);
+jac_sig_r_br_lin = subs(jac_sig_r_br_lin , delta_r_expr, delta_r);
+jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , vG_expr, vG);
+jac_sig_r_br_lin = subs(jac_sig_r_br_lin , vG_expr, vG);
+% jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , vG_sq_expr, vG_sq);
+% jac_sig_r_br_lin = subs(jac_sig_r_br_lin , vG_sq_expr, vG_sq);
+jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , vG^2, vG_sq);
+jac_sig_r_br_lin = subs(jac_sig_r_br_lin , vG^2, vG_sq);
+jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , vG_sq^(1/2), vG);
+jac_sig_r_br_lin = subs(jac_sig_r_br_lin , vG_sq^(1/2), vG);
+jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , vG_n_expr, vG_n);
+jac_sig_r_br_lin = subs(jac_sig_r_br_lin , vG_n_expr, vG_n);
+jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , vG_e_expr, vG_e);
+jac_sig_r_br_lin = subs(jac_sig_r_br_lin , vG_e_expr, vG_e);
+jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , vG_d_expr, vG_d);
+jac_sig_r_br_lin = subs(jac_sig_r_br_lin , vG_d_expr, vG_d);
+
+%% get input arguments (used variables)
+input_arg_tl = sym2cell(symvar(jac_sig_r_tl_exp));
+input_arg_br = sym2cell(symvar(jac_sig_r_br_exp));
+input_arg_tl_lin = sym2cell(symvar(jac_sig_r_tl_lin));
+input_arg_br_lin = sym2cell(symvar(jac_sig_r_br_lin));
+
+if 0
 %% export to m code
-if 1
 matlabFunction(jac_sig_r_tl_exp,'File','jac_sig_r_tl_exp.m', ...
     'Vars',{r_n, r_e, r_d, v, gamma, xi, w_e, w_n, w_d, ...
     terr_dis, p1_n, p1_e, p1_h, p2_n, p2_e, p2_h, p3_n, p3_e, p3_h, ...
@@ -108,16 +141,22 @@ matlabFunction(jac_sig_r_br_exp,'File','jac_sig_r_br_exp.m', ...
     terr_dis, p1_n, p1_e, p1_h, p2_n, p2_e, p2_h, p3_n, p3_e, p3_h, ...
     r_offset, delta_r0, k_r, log_sqrt_w_over_sig1_r, ...
     sig_r, d_occ, delta_r, vG_sq, vG, vG_n, vG_e, vG_d},'Outputs',{'out'});
+%%
+matlabFunction(jac_sig_r_tl_lin,'File','jac_sig_r_tl_lin.m','Vars',input_arg_tl_lin,'Outputs',{'out'});
+matlabFunction(jac_sig_r_br_lin,'File','jac_sig_r_br_lin.m','Vars',input_arg_br_lin,'Outputs',{'out'});
 end
 
+if 0
 %% export to c code
-if 1
 ccode(jac_sig_r_tl_exp,'file','jac_sig_r_tl_exp_ccode.c');
 ccode(jac_sig_r_br_exp,'file','jac_sig_r_br_exp_ccode.c');
+%%
+ccode(jac_sig_r_tl_lin,'file','jac_sig_r_tl_lin_ccode.c');
+ccode(jac_sig_r_br_lin,'file','jac_sig_r_br_lin_ccode.c');
 end
 
+if 0
 %% prep c code for mpc model functions
-if 1
 % br
 fid = fopen('jac_sig_r_br_exp_ccode.c');
 txt = textscan(fid,'%s','delimiter','\n'); 
@@ -166,6 +205,58 @@ for i = 1:length(txt)
     end
 end
 fid = fopen('jac_sig_r_tl_exp_ccode.c','w');
+for k = 1:length(txt)
+    fprintf(fid,[char(txt{k}),' \n']);
+end
+%%
+% br
+fid = fopen('jac_sig_r_br_lin_ccode.c');
+txt = textscan(fid,'%s','delimiter','\n'); 
+fclose(fid);
+txt = txt{1};
+for i = 1:length(txt)
+    
+    str1 = txt{i};
+    
+    if strcmp(str1(1),'t')
+        str1 = ['const double ',str1];
+        txt{i} = str1;
+        % t's 
+    elseif length(str1) > 5
+        % A0's
+        if strcmp(str1(1:6),'A0[0][')
+            str1 = ['jac[',str1(7:end)];
+            txt{i} = str1;
+        end
+    end
+end
+fid = fopen('jac_sig_r_br_lin_ccode.c','w');
+for k = 1:length(txt)
+    fprintf(fid,[char(txt{k}),' \n']);
+end
+fclose(fid);
+% tl
+fid = fopen('jac_sig_r_tl_lin_ccode.c');
+txt = textscan(fid,'%s','delimiter','\n'); 
+fclose(fid);
+txt = txt{1};
+for i = 1:length(txt)
+    
+    str1 = txt{i};
+    
+    if strcmp(str1(1),'t')
+        str1 = ['const double ',str1];
+        txt{i} = str1;
+        % t's 
+    elseif length(str1) > 5
+        % A0's
+        if strcmp(str1(1:6),'A0[0][')
+            str1 = ['jac[',str1(7:end)];
+            txt{i} = str1;
+        end
+    end
+end
+fid = fopen('jac_sig_r_tl_lin_ccode.c','w');
 for k = 1:length(txt)
     fprintf(fid,[char(txt{k}),' \n']);
 end

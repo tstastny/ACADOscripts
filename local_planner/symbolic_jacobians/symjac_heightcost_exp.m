@@ -31,9 +31,11 @@ h_terr = [(1-de_expr) de_expr] * [h12_expr; h34_expr];
 
 % cost
 sig_h_expr = exp(-(-r_d - h_terr - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
+sig_h_lin_expr = 1.0 + -log_sqrt_w_over_sig1_h/delta_h * (-r_d - h_terr - h_offset);
 
 % jacobian
 jac_sig_h_exp = jacobian(sig_h_expr, [r_n; r_e; r_d; xi]);
+jac_sig_h_lin = jacobian(sig_h_lin_expr, [r_n; r_e; r_d; xi]);
 
 %% substitute calculations we'll have already done
 sig_h = sym('sig_h','real');
@@ -47,21 +49,32 @@ jac_sig_h_exp = subs(jac_sig_h_exp , dn_expr, dn);
 de = sym('de','real');
 jac_sig_h_exp = subs(jac_sig_h_exp , de_expr, de);
 
+jac_sig_h_lin = subs(jac_sig_h_lin , sig_h_expr, sig_h);
+jac_sig_h_lin = subs(jac_sig_h_lin , h12_expr, h12);
+jac_sig_h_lin = subs(jac_sig_h_lin , h34_expr, h34);
+jac_sig_h_lin = subs(jac_sig_h_lin , dn_expr, dn);
+jac_sig_h_lin = subs(jac_sig_h_lin , de_expr, de);
+
 %% get input arguments (used variables)
 input_arg = sym2cell(symvar(jac_sig_h_exp));
+input_arg_lin = sym2cell(symvar(jac_sig_h_lin));
 
+if 0
 %% export to m code
-if 1
 matlabFunction(jac_sig_h_exp,'File','jac_sig_h_exp.m','Vars',input_arg,'Outputs',{'out'});
+%%
+matlabFunction(jac_sig_h_lin,'File','jac_sig_h_lin.m','Vars',input_arg_lin,'Outputs',{'out'});
 end
 
+if 0
 %% export to c code
-if 1
 ccode(jac_sig_h_exp,'file','jac_sig_h_exp_ccode.c');
+%%
+ccode(jac_sig_h_lin,'file','jac_sig_h_lin_ccode.c');
 end
 
+if 0
 %% prep c code for mpc model functions
-if 1
 fid = fopen('jac_sig_h_exp_ccode.c');
 txt = textscan(fid,'%s','delimiter','\n'); 
 fclose(fid);
@@ -83,6 +96,32 @@ for i = 1:length(txt)
     end
 end
 fid = fopen('jac_sig_h_exp_ccode.c','w');
+for k = 1:length(txt)
+    fprintf(fid,[char(txt{k}),' \n']);
+end
+fclose(fid);
+%%
+fid = fopen('jac_sig_h_lin_ccode.c');
+txt = textscan(fid,'%s','delimiter','\n'); 
+fclose(fid);
+txt = txt{1};
+for i = 1:length(txt)
+    
+    str1 = txt{i};
+    
+    if strcmp(str1(1),'t')
+        str1 = ['const double ',str1];
+        txt{i} = str1;
+        % t's 
+    elseif length(str1) > 5
+        % A0's
+        if strcmp(str1(1:6),'A0[0][')
+            str1 = ['jac[',str1(7:end)];
+            txt{i} = str1;
+        end
+    end
+end
+fid = fopen('jac_sig_h_lin_ccode.c','w');
 for k = 1:length(txt)
     fprintf(fid,[char(txt{k}),' \n']);
 end

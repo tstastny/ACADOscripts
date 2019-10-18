@@ -300,8 +300,8 @@ for k = 1:len_t
         % guidance - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         
         % unit velocity setpoints
-%         input.y(:,1:3) = get_unit_velocity_setpoint(input.x(1:N,1:6), onlinedatak(2:12));
-%         input.yN(:,1:3) = get_unit_velocity_setpoint(input.x(N+1,1:6), onlinedatak(2:12));
+        %input.y(:,1:3) = get_unit_velocity_setpoint(input.x(1:N,1:6), onlinedatak(2:12));
+        %input.yN(:,1:3) = get_unit_velocity_setpoint(input.x(N+1,1:6), onlinedatak(2:12));
         
         % control reference
         input.y(:,end-2:end) = ctrl_hor;

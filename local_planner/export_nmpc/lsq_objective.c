@@ -13,6 +13,7 @@
 
 #define USE_EXP_SOFT_COST 1         /* soft constraints are (1): exponential, (0): cubic */
 #define USE_OCC_GRAD_AS_GUIDANCE 0  /* augment velocity guidance with negative gradient of the radial cost */
+#define USE_LINEAR_EXP_ASYMPTOTE 1  /* use linear asymptote as input arg of exponential cost goes to negative inf */
 
 /* math functions / / / / / / / / / / / / / / / / / / / / / / / / / / / /*/
 int constrain_int(int x, int xmin, int xmax) {
@@ -199,6 +200,34 @@ void jac_sig_aoa_m_cubic(double *jac,
     jac[1] = -t5; 
 }
 
+/* height terrain jacobian (linear) */
+void jac_sig_h_lin(double *jac,
+        const double de, const double delta_h, const double delta_y,
+        const double  h1, const double h12, const double h2,
+        const double h3, const double h34, const double h4,
+        const double log_sqrt_w_over_sig1_h, const double sgn_e,
+        const double sgn_n, const double terr_dis, const double xi) {
+
+    /* w.r.t.:
+     * r_n
+     * r_e
+     * r_d
+     * xi
+     */
+    
+    const double t2 = 1.0/terr_dis; 
+    const double t3 = 1.0/delta_h; 
+    const double t4 = de-1.0; 
+    const double t5 = cos(xi); 
+    const double t6 = sin(xi);
+    const double t7 = delta_y*sgn_n*t2*t5;
+    const double t8 = delta_y*sgn_e*t2*t6;
+    jac[0] = -log_sqrt_w_over_sig1_h*t3*(de*(h3*t2-h4*t2)-t4*(h1*t2-h2*t2)); 
+    jac[1] = -log_sqrt_w_over_sig1_h*t3*(h12*t2-h34*t2); 
+    jac[2] = log_sqrt_w_over_sig1_h*t3; 
+    jac[3] = -log_sqrt_w_over_sig1_h*t3*(t7*(de*(h3-h4)-t4*(h1-h2))+t8*(-h12+h34)); 
+}
+
 /* height terrain jacobian (exponential) */
 void jac_sig_h_exp(double *jac,
         const double de, const double delta_h, const double delta_y,
@@ -253,6 +282,66 @@ void jac_sig_h_cubic(double *jac,
     jac[1] = t5*t8*(h12*t2-h34*t2)*-3.0; 
     jac[2] = t5*t8*3.0; 
     jac[3] = t5*t8*(de*(delta_y*h3*sgn_n*t2*t9-delta_y*h4*sgn_n*t2*t9)-t3*(delta_y*h1*sgn_n*t2*t9-delta_y*h2*sgn_n*t2*t9)-delta_y*h12*sgn_e*t2*t10+delta_y*h34*sgn_e*t2*t10)*-3.0; 
+}
+
+/* radial terrain (bottom-right) jacobian (linear) */
+void jac_sig_r_br_lin(double *jac,
+        const double d_occ, const double delta_r, const double gamma,
+        const double k_r, const double log_sqrt_w_over_sig1_r,
+        const double p1_e, const double p1_h, const double p1_n,
+        const double p2_h, const double p3_h, const double r_d,
+        const double r_e, const double r_n, const double r_offset,
+        const double terr_dis, const double v, const double vG,
+        const double vG_d, const double vG_e, const double vG_n,
+        const double xi) {
+    
+    /* w.r.t.:
+     * r_n
+     * r_e
+     * r_d
+     * v
+     * gamma
+     * xi
+     */
+    
+    const double t2 = p2_h-p3_h; 
+    const double t3 = 1.0/delta_r; 
+    const double t4 = p1_h-p2_h; 
+    const double t5 = terr_dis*terr_dis; 
+    const double t6 = t4*terr_dis*vG_e; 
+    const double t7 = t2*terr_dis*vG_n; 
+    const double t10 = t5*vG_d; 
+    const double t8 = t6+t7-t10; 
+    const double t9 = 1.0/t8; 
+    const double t11 = cos(gamma); 
+    const double t12 = sin(gamma); 
+    const double t13 = cos(xi); 
+    const double t14 = sin(xi); 
+    const double t15 = t11*t13*vG_n*2.0; 
+    const double t16 = t11*t14*vG_e*2.0; 
+    const double t17 = t15+t16-t12*vG_d*2.0; 
+    const double t18 = 1.0/vG; 
+    const double t19 = p1_h+r_d; 
+    const double t20 = t5*t19; 
+    const double t21 = p1_h*t5; 
+    const double t22 = p1_e-r_e; 
+    const double t23 = t4*t22*terr_dis; 
+    const double t24 = p1_n-r_n; 
+    const double t25 = t2*t24*terr_dis; 
+    const double t26 = t20+t21+t23+t25; 
+    const double t27 = 1.0/(delta_r*delta_r); 
+    const double t28 = d_occ-r_offset; 
+    const double t29 = t11*v*vG_d*2.0; 
+    const double t30 = t12*t13*v*vG_n*2.0; 
+    const double t31 = t12*t14*v*vG_e*2.0; 
+    const double t32 = t29+t30+t31; 
+    const double t33 = t11*t13*v*vG_e*2.0; 
+    jac[0] = log_sqrt_w_over_sig1_r*t2*t3*t9*terr_dis*vG; 
+    jac[1] = log_sqrt_w_over_sig1_r*t3*t4*t9*terr_dis*vG; 
+    jac[2] = -log_sqrt_w_over_sig1_r*t3*t5*t9*vG; 
+    jac[3] = log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(t5*t12+t2*t11*t13*terr_dis+t4*t11*t14*terr_dis)-t9*t17*t18*t26*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t17*t27*t28; 
+    jac[4] = -log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(-t5*t11*v+t2*t12*t13*terr_dis*v+t4*t12*t14*terr_dis*v)-t9*t18*t26*t32*(1.0/2.0))-k_r*log_sqrt_w_over_sig1_r*t27*t28*t32; 
+    jac[5] = -log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(t2*t11*t14*terr_dis*v-t4*t11*t13*terr_dis*v)+t9*t18*t26*(t33-t11*t14*v*vG_n*2.0)*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t27*t28*(t33-t11*t14*v*vG_n*2.0);
 }
 
 /* radial terrain (bottom-right) jacobian (cubic) */
@@ -385,6 +474,66 @@ void jac_sig_r_br_exp(double *jac,
     jac[3] = sig_r*(log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(t5*t12+t2*t11*t13*terr_dis+t4*t11*t14*terr_dis)-t9*t17*t18*t26*0.5)+k_r*log_sqrt_w_over_sig1_r*t17*t27*t28); 
     jac[4] = -sig_r*(log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(-t5*t11*v+t2*t12*t13*terr_dis*v+t4*t12*t14*terr_dis*v)-t9*t18*t26*t32*0.5)+k_r*log_sqrt_w_over_sig1_r*t27*t28*t32); 
     jac[5] = -sig_r*(log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(t2*t11*t14*terr_dis*v-t4*t11*t13*terr_dis*v)+t9*t18*t26*t34*0.5)-k_r*log_sqrt_w_over_sig1_r*t27*t28*t34); 
+}
+
+/* radial terrain (top-left) jacobian (linear) */
+void jac_sig_r_tl_lin(double *jac,
+        const double d_occ, const double delta_r, const double gamma,
+        const double k_r, const double log_sqrt_w_over_sig1_r,
+        const double p1_e, const double p1_h, const double p1_n,
+        const double p2_h, const double p3_h, const double r_d,
+        const double r_e, const double r_n, const double r_offset,
+        const double terr_dis, const double v, const double vG,
+        const double vG_d, const double vG_e, const double vG_n,
+        const double xi) {
+    
+    /* w.r.t.:
+     * r_n
+     * r_e
+     * r_d
+     * v
+     * gamma
+     * xi
+     */
+    
+    const double t2 = p1_h-p2_h; 
+    const double t3 = 1.0/delta_r; 
+    const double t4 = p2_h-p3_h; 
+    const double t5 = terr_dis*terr_dis; 
+    const double t6 = t4*terr_dis*vG_e; 
+    const double t7 = t2*terr_dis*vG_n; 
+    const double t10 = t5*vG_d; 
+    const double t8 = t6+t7-t10; 
+    const double t9 = 1.0/t8; 
+    const double t11 = cos(gamma); 
+    const double t12 = sin(gamma); 
+    const double t13 = cos(xi); 
+    const double t14 = sin(xi); 
+    const double t15 = t11*t13*vG_n*2.0; 
+    const double t16 = t11*t14*vG_e*2.0; 
+    const double t17 = t15+t16-t12*vG_d*2.0; 
+    const double t18 = 1.0/vG; 
+    const double t19 = p1_h+r_d; 
+    const double t20 = t5*t19; 
+    const double t21 = p1_h*t5; 
+    const double t22 = p1_e-r_e; 
+    const double t23 = t4*t22*terr_dis; 
+    const double t24 = p1_n-r_n; 
+    const double t25 = t2*t24*terr_dis; 
+    const double t26 = t20+t21+t23+t25; 
+    const double t27 = 1.0/(delta_r*delta_r); 
+    const double t28 = d_occ-r_offset; 
+    const double t29 = t11*v*vG_d*2.0; 
+    const double t30 = t12*t13*v*vG_n*2.0; 
+    const double t31 = t12*t14*v*vG_e*2.0; 
+    const double t32 = t29+t30+t31; 
+    const double t33 = t11*t13*v*vG_e*2.0; 
+    jac[0] = log_sqrt_w_over_sig1_r*t2*t3*t9*terr_dis*vG; 
+    jac[1] = log_sqrt_w_over_sig1_r*t3*t4*t9*terr_dis*vG; 
+    jac[2] = -log_sqrt_w_over_sig1_r*t3*t5*t9*vG; 
+    jac[3] = log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(t5*t12+t2*t11*t13*terr_dis+t4*t11*t14*terr_dis)-t9*t17*t18*t26*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t17*t27*t28; 
+    jac[4] = -log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(-t5*t11*v+t2*t12*t13*terr_dis*v+t4*t12*t14*terr_dis*v)-t9*t18*t26*t32*(1.0/2.0))-k_r*log_sqrt_w_over_sig1_r*t27*t28*t32; 
+    jac[5] = -log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(t2*t11*t14*terr_dis*v-t4*t11*t13*terr_dis*v)+t9*t18*t26*(t33-t11*t14*v*vG_n*2.0)*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t27*t28*(t33-t11*t14*v*vG_n*2.0); 
 }
 
 /* radial terrain (top-left) jacobian (cubic) */
@@ -1314,19 +1463,35 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
     
     if (!(one_over_sqrt_w_aoa<0.0)) {
     
-        /* positive bound */
-        const double sig_aoa_p = exp((aoa - aoa_p)/delta_aoa*log_sqrt_w_over_sig1_aoa);
+        /* upper bound */
+        const double sig_aoa_p = (aoa - aoa_p < 0.0)
+            ? exp((aoa - aoa_p)/delta_aoa*log_sqrt_w_over_sig1_aoa)
+            : 1.0 + log_sqrt_w_over_sig1_aoa/delta_aoa * (aoa - aoa_p);
 
-        /* negative bound */
-        const double sig_aoa_m = exp(-(aoa - aoa_m)/delta_aoa*log_sqrt_w_over_sig1_aoa);
+        /* lower bound */
+        const double sig_aoa_m = (aoa - aoa_m)
+            ? exp(-(aoa - aoa_m)/delta_aoa*log_sqrt_w_over_sig1_aoa)
+            : 1.0 - log_sqrt_w_over_sig1_aoa/delta_aoa * (aoa - aoa_m);
 
         /* combined */
         sig_aoa = sig_aoa_p + sig_aoa_m;
 
         /* jacobian */
-
-        jac_sig_aoa_exp(jac_sig_aoa, delta_aoa, log_sqrt_w_over_sig1_aoa,
-            sig_aoa_m, sig_aoa_p);
+        if ((aoa - aoa_p > 0.0) && USE_LINEAR_EXP_ASYMPTOTE) {
+            /* upper linear jacobian */
+            jac_sig_aoa[0] = -log_sqrt_w_over_sig1_aoa/delta_aoa; /* gamma */
+            jac_sig_aoa[1] = log_sqrt_w_over_sig1_aoa/delta_aoa; /* theta */
+        }
+        else if ((aoa - aoa_m < 0) && USE_LINEAR_EXP_ASYMPTOTE) {
+            /* lower linear jacobian */
+            jac_sig_aoa[0] = log_sqrt_w_over_sig1_aoa/delta_aoa; /* gamma */
+            jac_sig_aoa[1] = -log_sqrt_w_over_sig1_aoa/delta_aoa; /* theta */
+        }
+        else {
+            /* exponential jacobian */
+            jac_sig_aoa_exp(jac_sig_aoa, delta_aoa, log_sqrt_w_over_sig1_aoa,
+                sig_aoa_m, sig_aoa_p);
+        }
 
         /* prioritization */
         prio_aoa = 1.0; /*1.0 - ((sig_aoa*one_over_sqrt_w_aoa > 1.0) ? 1.0 : sig_aoa*one_over_sqrt_w_aoa);*/
@@ -1348,13 +1513,26 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
         double h34 = (1-dn)*in[IDX_TERR_DATA+idx_q[2]] + dn*in[IDX_TERR_DATA+idx_q[3]];
         double h_terr = (1-de)*h12 + de*h34;
         /* objective / jacobian */
-        sig_h = exp(-(h - h_terr - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
-        jac_sig_h_exp(jac_sig_h,
-            de, delta_h, delta_y,
-            in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]], in[IDX_TERR_DATA+idx_q[2]],
-            h34, in[IDX_TERR_DATA+idx_q[3]], log_sqrt_w_over_sig1_h,
-            sgn_e, sgn_n, sig_h,
-            terr_dis, xi);
+        if ((h - h_terr - h_offset < 0.0) && USE_LINEAR_EXP_ASYMPTOTE) {
+            /* linear */
+            sig_h = 1.0 + -log_sqrt_w_over_sig1_h/delta_h * (h - h_terr - h_offset);
+            jac_sig_h_lin(jac_sig_h,
+                de, delta_h, delta_y,
+                in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]],
+                in[IDX_TERR_DATA+idx_q[2]], h34, in[IDX_TERR_DATA+idx_q[3]],
+                log_sqrt_w_over_sig1_h, sgn_e,
+                sgn_n, terr_dis, xi);
+        }
+        else {
+            /* exponential */
+            sig_h = exp(-(h - h_terr - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
+            jac_sig_h_exp(jac_sig_h,
+                de, delta_h, delta_y,
+                in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]],
+                in[IDX_TERR_DATA+idx_q[2]], h34, in[IDX_TERR_DATA+idx_q[3]],
+                log_sqrt_w_over_sig1_h, sgn_e, sgn_n, sig_h,
+                terr_dis, xi);
+        }
 
         /* lookup 2.5d grid (LEFT side) */
         sgn_n = 1.0;
@@ -1365,13 +1543,26 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
         h34 = (1-dn)*in[IDX_TERR_DATA+idx_q[2]] + dn*in[IDX_TERR_DATA+idx_q[3]];
         h_terr = (1-de)*h12 + de*h34;
         /* objective / jacobian */
-        sig_h_temp = exp(-(h - h_terr - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
-        jac_sig_h_exp(jac_sig_h_temp,
-            de, delta_h, delta_y,
-            in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]], in[IDX_TERR_DATA+idx_q[2]],
-            h34, in[IDX_TERR_DATA+idx_q[3]], log_sqrt_w_over_sig1_h,
-            sgn_e, sgn_n, sig_h_temp,
-            terr_dis, xi);
+        if ((h - h_terr - h_offset < 0.0) && USE_LINEAR_EXP_ASYMPTOTE) {
+            /* linear */
+            sig_h_temp = 1.0 + -log_sqrt_w_over_sig1_h/delta_h * (h - h_terr - h_offset);
+            jac_sig_h_lin(jac_sig_h_temp,
+                de, delta_h, delta_y,
+                in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]],
+                in[IDX_TERR_DATA+idx_q[2]], h34, in[IDX_TERR_DATA+idx_q[3]],
+                log_sqrt_w_over_sig1_h, sgn_e,
+                sgn_n, terr_dis, xi);
+        }
+        else {
+            /* exponential */
+            sig_h_temp = exp(-(h - h_terr - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
+            jac_sig_h_exp(jac_sig_h_temp,
+                de, delta_h, delta_y,
+                in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]], in[IDX_TERR_DATA+idx_q[2]],
+                h34, in[IDX_TERR_DATA+idx_q[3]], log_sqrt_w_over_sig1_h,
+                sgn_e, sgn_n, sig_h_temp,
+                terr_dis, xi);
+        }
         sig_h += sig_h_temp;
         jac_sig_h[0] += jac_sig_h_temp[0];
         jac_sig_h[1] += jac_sig_h_temp[1];
@@ -1387,13 +1578,26 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
         h34 = (1-dn)*in[IDX_TERR_DATA+idx_q[2]] + dn*in[IDX_TERR_DATA+idx_q[3]];
         h_terr = (1-de)*h12 + de*h34;
         /* objective / jacobian */
-        sig_h_temp = exp(-(h - h_terr - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
-        jac_sig_h_exp(jac_sig_h_temp,
-            de, delta_h, delta_y,
-            in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]], in[IDX_TERR_DATA+idx_q[2]],
-            h34, in[IDX_TERR_DATA+idx_q[3]], log_sqrt_w_over_sig1_h,
-            sgn_e, sgn_n, sig_h_temp,
-            terr_dis, xi);
+        if ((h - h_terr - h_offset < 0.0) && USE_LINEAR_EXP_ASYMPTOTE) {
+            /* linear */
+            sig_h_temp = 1.0 + -log_sqrt_w_over_sig1_h/delta_h * (h - h_terr - h_offset);
+            jac_sig_h_lin(jac_sig_h_temp,
+                de, delta_h, delta_y,
+                in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]],
+                in[IDX_TERR_DATA+idx_q[2]], h34, in[IDX_TERR_DATA+idx_q[3]],
+                log_sqrt_w_over_sig1_h, sgn_e,
+                sgn_n, terr_dis, xi);
+        }
+        else {
+            /* exponential */
+            sig_h_temp = exp(-(h - h_terr - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
+            jac_sig_h_exp(jac_sig_h_temp,
+                de, delta_h, delta_y,
+                in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]], in[IDX_TERR_DATA+idx_q[2]],
+                h34, in[IDX_TERR_DATA+idx_q[3]], log_sqrt_w_over_sig1_h,
+                sgn_e, sgn_n, sig_h_temp,
+                terr_dis, xi);
+        }
         sig_h += sig_h_temp;
         jac_sig_h[0] += jac_sig_h_temp[0];
         jac_sig_h[1] += jac_sig_h_temp[1];
@@ -1406,48 +1610,75 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
     
     /* radial objective / jacobian - - - - - - - - - - - - - - - - - - - */
     
-    if (!(one_over_sqrt_w_r<0.0)) {
+    if (!(one_over_sqrt_w_r<0.0) && (occ_detected>0)) {
         
-        /* objective */
-        sig_r = exp(-(d_occ - r_offset)/delta_r*log_sqrt_w_over_sig1_r);
-
-        /* prioritization */
-        prio_r = 1.0 - ((sig_r*one_over_sqrt_w_r > 1.0) ? 1.0 : sig_r*one_over_sqrt_w_r);
-
-        /* jacobian */
-        if (occ_detected==2) {
-            jac_sig_r_tl_exp(jac_sig_r,
-                r_n, r_e, r_d,
-                v, gamma, xi,
-                w_e, w_n, w_d,
-                terr_dis,
-                p1[0], p1[1], p1[2],
-                p2[0], p2[1], p2[2],
-                p3[0], p3[1], p3[2],
-                r_offset, delta_r0, k_r,
-                log_sqrt_w_over_sig1_r, sig_r,
-                d_occ, delta_r,
-                vG_sq, vG_norm,
-                vG_n, vG_e, vG_d);
+        /* objective / jacobian */
+        if ((d_occ - r_offset < 0.0) && USE_LINEAR_EXP_ASYMPTOTE) {
+            /* linear */
+            sig_r = 1.0 + -log_sqrt_w_over_sig1_r/delta_r * (d_occ - r_offset);
+            if (occ_detected==2) {
+                jac_sig_r_tl_lin(jac_sig_r,
+                    d_occ, delta_r, gamma,
+                    k_r, log_sqrt_w_over_sig1_r,
+                    p1[0], p1[2], p1[1],
+                    p2[2], p3[2], r_d,
+                    r_e, r_n, r_offset,
+                    terr_dis, v, vG_norm,
+                    vG_d, vG_e, vG_n,
+                    xi);
+            }
+            else if (occ_detected==1) {
+                jac_sig_r_br_lin(jac_sig_r,
+                    d_occ, delta_r, gamma,
+                    k_r, log_sqrt_w_over_sig1_r,
+                    p1[0], p1[2], p1[1],
+                    p2[2], p3[2], r_d,
+                    r_e, r_n, r_offset,
+                    terr_dis, v, vG_norm,
+                    vG_d, vG_e, vG_n,
+                    xi);
+            }
         }
-        else if (occ_detected==1) {
-            jac_sig_r_br_exp(jac_sig_r,
-                r_n, r_e, r_d,
-                v, gamma, xi,
-                w_e, w_n, w_d,
-                terr_dis,
-                p1[0], p1[1], p1[2],
-                p2[0], p2[1], p2[2],
-                p3[0], p3[1], p3[2],
-                r_offset, delta_r0, k_r,
-                log_sqrt_w_over_sig1_r, sig_r,
-                d_occ, delta_r,
-                vG_sq, vG_norm,
-                vG_n, vG_e, vG_d);
+        else {
+            /* exponential */
+            sig_r = exp(-(d_occ - r_offset)/delta_r*log_sqrt_w_over_sig1_r);
+            if (occ_detected==2) {
+                jac_sig_r_tl_exp(jac_sig_r,
+                    r_n, r_e, r_d,
+                    v, gamma, xi,
+                    w_e, w_n, w_d,
+                    terr_dis,
+                    p1[0], p1[1], p1[2],
+                    p2[0], p2[1], p2[2],
+                    p3[0], p3[1], p3[2],
+                    r_offset, delta_r0, k_r,
+                    log_sqrt_w_over_sig1_r, sig_r,
+                    d_occ, delta_r,
+                    vG_sq, vG_norm,
+                    vG_n, vG_e, vG_d);
+            }
+            else if (occ_detected==1) {
+                jac_sig_r_br_exp(jac_sig_r,
+                    r_n, r_e, r_d,
+                    v, gamma, xi,
+                    w_e, w_n, w_d,
+                    terr_dis,
+                    p1[0], p1[1], p1[2],
+                    p2[0], p2[1], p2[2],
+                    p3[0], p3[1], p3[2],
+                    r_offset, delta_r0, k_r,
+                    log_sqrt_w_over_sig1_r, sig_r,
+                    d_occ, delta_r,
+                    vG_sq, vG_norm,
+                    vG_n, vG_e, vG_d);
+            }
         }
         jac_sig_r[3] = 0.0;
         jac_sig_r[4] = 0.0;
         jac_sig_r[5] = 0.0;
+
+        /* prioritization */
+        prio_r = 1.0 - ((sig_r*one_over_sqrt_w_r > 1.0) ? 1.0 : sig_r*one_over_sqrt_w_r);
     }
     
 #else /* CUBIC COST */
