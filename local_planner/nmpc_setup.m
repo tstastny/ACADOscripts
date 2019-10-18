@@ -30,10 +30,13 @@ Control theta_ref;          % pitch angle reference [rad]
 
 % ONLINE DATA - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+% environment
+OnlineData rho;             % air density [kg/m^3]
+
 % disturbances
-OnlineData w_n;
-OnlineData w_e;
-OnlineData w_d;
+OnlineData w_n;             % northing wind [m/s]
+OnlineData w_e;             % easting wind [m/s]
+OnlineData w_d;             % down wind [m/s]
 
 % path reference
 OnlineData b_n;
@@ -45,6 +48,7 @@ OnlineData chi_p;
 % guidance
 OnlineData T_b_lat;
 OnlineData T_b_lon;
+OnlineData gamma_app_max;
 
 % control augmented attitude time constants and gains
 OnlineData tau_phi;
@@ -52,13 +56,28 @@ OnlineData tau_theta;
 OnlineData k_phi;
 OnlineData k_theta;
 
-% soft constraints
+% angle of attack soft constraint
 OnlineData delta_aoa;
 OnlineData aoa_m;
 OnlineData aoa_p;
+OnlineData log_sqrt_w_over_sig1_aoa;
+OnlineData one_over_sqrt_w_aoa;
 
-% terrain
+% height soft constraint 
+OnlineData h_offset;
 OnlineData delta_h;
+OnlineData delta_y;
+OnlineData log_sqrt_w_over_sig1_h;
+OnlineData one_over_sqrt_w_h;
+
+% radial soft constraint
+OnlineData r_offset;
+OnlineData delta_r0;
+OnlineData k_r;
+OnlineData log_sqrt_w_over_sig1_r;
+OnlineData one_over_sqrt_w_r;
+
+% terrain lookup
 OnlineData terr_local_origin_n;
 OnlineData terr_local_origin_e;
 OnlineData terr_dis;
@@ -69,7 +88,6 @@ OnlineData terrain_data(LEN_TERR_DATA);
 
 % environmental parameters
 g = 9.81;       % acceleration of gravity [m/s2]
-rho = 1.15;     % air density [kg/m^3]
 
 % model parameters
 
@@ -136,7 +154,7 @@ n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
 n_Y = 9;                    % outputs
 n_Z = 3;                    % objectives
-n_OD = 21+LEN_TERR_DATA;    % online data
+n_OD = 34+LEN_TERR_DATA;    % online data
 
 acadoSet('problemname', 'nmpc');
 
@@ -191,3 +209,6 @@ nmpc.exportCode( 'export_nmpc' );
 cd export_nmpc
 make_acado_solver('../acado_nmpc_step', 'lsq_objective.c')
 cd ..
+
+% compile output mex
+mex export_nmpc/lsq_objective_mex.c -outdir functions
