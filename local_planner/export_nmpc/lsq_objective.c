@@ -847,10 +847,39 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
     double h_entr = h0;
 
     /* for loop init */
-    int x_check, y_check, x_check1, y_check1, idx_corner1, idx_corner2, idx_corner3, idx_corner4, ret;
+    int ret;
     double t, h_exit, h_check;
     bool take_vert_step, check1, check2, check3, check4;
+    
+    /* check that start position is not already under the terrain */
+    
+    /* bound corner coordinates */
+    int x_check = constrain_int(x, 0, LEN_IDX_E_1);
+    int y_check = constrain_int(y, 0, LEN_IDX_N_1);
+    int x_check1 = constrain_int(x_check+1, 0, LEN_IDX_E_1);
+    int y_check1 = constrain_int(y_check+1, 0, LEN_IDX_N_1);
+    /* convert to row-major indices */
+    int idx_corner1 = y_check*LEN_IDX_E + x_check;
+    int idx_corner2 = y_check1*LEN_IDX_E + x_check;
+    int idx_corner3 = y_check1*LEN_IDX_E + x_check1;
+    int idx_corner4 = y_check*LEN_IDX_E + x_check1;
+    
+    const double x0_unit = x0 - x;
+    const double y0_unit = y0 - y;
+    if (y0_unit > x0_unit) {
+        /* check bottom-right triangle */
+        if (x0_unit*(terr_map[idx_corner4]-terr_map[idx_corner1]) + y0_unit*(terr_map[idx_corner3] - terr_map[idx_corner4]) > h0) {
+            return occ_detected;
+        }
+    }
+    else {
+        /* check top-left triangle */
+        if (x0_unit*(terr_map[idx_corner3]-terr_map[idx_corner2]) + y0_unit*(terr_map[idx_corner2] - terr_map[idx_corner1]) > h0) {
+            return occ_detected;
+        }
+    }
 
+    /* cast the ray */
     int i;
     for (i = 0; i < n; i=i+1) {
 
