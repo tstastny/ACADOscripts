@@ -1702,7 +1702,7 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
                     vG_n, vG_e, vG_d);
             }
         }
-        jac_sig_r[3] = 0.0;
+        /*jac_sig_r[3] = 0.0;*/
         jac_sig_r[4] = 0.0;
         jac_sig_r[5] = 0.0;
 
@@ -1852,7 +1852,7 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
         	vG_sq, vG_norm,
         	vG_n, vG_e, vG_d);
     }
-    jac_sig_r[3] = 0.0;
+    /*jac_sig_r[3] = 0.0;*/
     jac_sig_r[4] = 0.0;
     jac_sig_r[5] = 0.0;
     

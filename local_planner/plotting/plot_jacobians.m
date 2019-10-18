@@ -1,6 +1,6 @@
 
 iset = 9; % choose objectives (dy/)
-jset = 1:3; % choose states (/dx)
+jset = 4:6; % choose states (/dx)
 
 len_tt = size(rec.dydx,2);
 
