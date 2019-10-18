@@ -1695,9 +1695,9 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
                     vG_n, xi);
             }
         }
-        /*jac_sig_r[3] = 0.0;*/
-        jac_sig_r[4] = 0.0;
-        jac_sig_r[5] = 0.0;
+        jac_sig_r[3] = 0.0;
+        /*jac_sig_r[4] = 0.0;
+        jac_sig_r[5] = 0.0;*/
 
         /* prioritization */
         prio_r = 1.0 - ((sig_r*one_over_sqrt_w_r > 1.0) ? 1.0 : sig_r*one_over_sqrt_w_r);
