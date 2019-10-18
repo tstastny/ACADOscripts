@@ -72,7 +72,6 @@ sig_r_1 = 0.001;
 len_local_idx_n = 57;%29;
 len_local_idx_e = 57;%29;
 terr_dis = 10;
-terrain_constructor;
 
 %% REFERENCES -------------------------------------------------------------
 
@@ -83,6 +82,12 @@ v_ref = 14;
 tau_u = 0.5; % control reference time constant
 
 %% OPTIONS ----------------------------------------------------------------
+
+% terrain noise
+terr_noise = 3; % magnitude of noise
+add_terrain_noise_to_global_map = false;
+add_terrain_noise_to_local_map = true;
+terrain_noise_random_seed = 0; % choose fixed random seed, set 0 to shuffle.
 
 % horizon handling
 shift_states_controls = false;
@@ -158,6 +163,7 @@ else
 end
 
 % initial online data
+terrain_constructor;
 get_local_terrain;
 onlinedatak = [ ...
     rho, w_n, w_e, w_d, ...

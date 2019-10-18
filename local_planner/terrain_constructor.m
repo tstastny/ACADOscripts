@@ -14,6 +14,18 @@ ee = terr_origin_e:terr_dis:5000;
 len_global_idx_n = length(nn);
 len_global_idx_e = length(ee);
 
+% noise
+if (terrain_noise_random_seed > 0)
+    rng(terrain_noise_random_seed);
+else
+    rng('shuffle');
+end
+if (add_terrain_noise_to_global_map)
+    terr_noise_matrix = (rand(len_global_idx_n, len_global_idx_e)*2-1)*terr_noise;
+else
+    terr_noise_matrix = 0;
+end
+
 % terrain
 % hh_sine = 100*sin(pi*((nn')/2000)).^2 + 0*ee;
 % hh_hill = 180*exp(-((ee - 100)/300).^2-((nn - 750)'/300).^2);
@@ -21,8 +33,8 @@ len_global_idx_e = length(ee);
 hh_wall = zeros(len_global_idx_n, len_global_idx_e);
 hh_wall(nn > 300, :) = 200;
 
-% terrain_data0 = max(hh_sine,hh_hill)+(rand(len_global_idx_n, len_global_idx_e)*2-1)*3;
-terrain_data0 = hh_wall+(rand(len_global_idx_n, len_global_idx_e)*2-1)*3;
+% terrain_data0 = max(hh_sine,hh_hill)+terr_noise_matrix;
+terrain_data0 = hh_wall+terr_noise_matrix;
 
 % for plotting
 center_terr_idx = [(len_global_idx_n-1)/2; (len_global_idx_e-1)/2]+1;
