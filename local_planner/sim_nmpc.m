@@ -37,7 +37,7 @@ b_n = 0;
 b_e = 0;
 b_d = -50;
 Gamma_p = deg2rad(5);
-chi_p = deg2rad(0);
+chi_p = deg2rad(-10);
 
 % guidance
 T_b_lat = 5;
@@ -65,7 +65,7 @@ sig_h_1 = 0.001;
 % radial soft constraint
 r_offset = 0;
 delta_r0 = 10;
-k_r = 3/tand(35)/9.81;
+k_r = 2/tand(35)/9.81;
 sig_r_1 = 0.001;
 
 % terrain lookup
@@ -229,7 +229,7 @@ rec.x_hor = zeros(N+1,len_t,n_X);
 rec.u_hor = zeros(N,len_t,n_U);
 rec.u = zeros(len_t,n_U);
 rec.yz = zeros(len_t,n_Y+n_Z);
-rec.aux = zeros(len_t,38);
+rec.aux = zeros(len_t,39);
 if output_objectives
     rec.y = zeros(N,len_nmpc,n_Y+n_Z);
     rec.dydx = zeros(N,len_nmpc,(n_Y+n_Z)*n_X);

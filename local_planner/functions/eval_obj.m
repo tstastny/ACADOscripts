@@ -115,8 +115,11 @@ v_ray = [vG_e_unit; vG_n_unit; -vG_d_unit]; % in ENU
 % radial buffer zone
 delta_r = vG_sq * k_r + delta_r0;
 
+% adjusted radial offset
+r_offset_1 = vG_sq * k_r + r_offset;
+
 % ray length
-d_ray = delta_r + r_offset + terr_dis;
+d_ray = delta_r + r_offset_1 + terr_dis;
 
 % ray start ENU
 r0 = [r_e; r_n; -r_d];
@@ -260,7 +263,7 @@ if USE_EXP_SOFT_COST % EXPONENTIAL COST */
     if ~(one_over_sqrt_w_r<0.0) && occ_detected>0
         
         % objective */
-        sig_r = exp(-(d_occ - r_offset)/delta_r*log_sqrt_w_over_sig1_r);
+        sig_r = exp(-(d_occ - r_offset_1)/delta_r*log_sqrt_w_over_sig1_r);
 
         % prioritization */
         prio_r = 1.0 - min(sig_r*one_over_sqrt_w_r, 1.0);
@@ -548,6 +551,6 @@ aux = [h_terr, e_lat, e_lon, e_v_n, e_v_e, e_v_d, ...       % 1-6
     cos(Gamma_p)*cos(chi_p), ...                            % 35
     cos(Gamma_p)*sin(chi_p), ...                            % 36
     -sin(Gamma_p), ...                                      % 37
-    d_occ];                                                 % 38
+    d_occ,r_offset_1];                                      % 38-39
 
 end

@@ -285,25 +285,24 @@ void jac_sig_h_cubic(double *jac,
 }
 
 /* radial terrain (bottom-right) jacobian (linear) */
-void jac_sig_r_br_lin(double *jac,
+void jac_sig_r_br_lin(double *jac, 
         const double d_occ, const double delta_r, const double gamma,
         const double k_r, const double log_sqrt_w_over_sig1_r,
         const double p1_e, const double p1_h, const double p1_n,
         const double p2_h, const double p3_h, const double r_d,
-        const double r_e, const double r_n, const double r_offset,
+        const double r_e, const double r_n, const double r_offset_1,
         const double terr_dis, const double v, const double vG,
-        const double vG_d, const double vG_e, const double vG_n,
-        const double xi) {
-    
-    /* w.r.t.:
-     * r_n
-     * r_e
-     * r_d
-     * v
-     * gamma
-     * xi
-     */
-    
+        const double vG_d, const double vG_e, const double vG_n, const double xi) {
+ 
+    /* w.r.t.: 
+    * r_n 
+    * r_e 
+    * r_d 
+    * v 
+    * gamma 
+    * xi 
+    */
+
     const double t2 = p2_h-p3_h; 
     const double t3 = 1.0/delta_r; 
     const double t4 = p1_h-p2_h; 
@@ -319,29 +318,32 @@ void jac_sig_r_br_lin(double *jac,
     const double t14 = sin(xi); 
     const double t15 = t11*t13*vG_n*2.0; 
     const double t16 = t11*t14*vG_e*2.0; 
-    const double t17 = t15+t16-t12*vG_d*2.0; 
-    const double t18 = 1.0/vG; 
-    const double t19 = p1_h+r_d; 
-    const double t20 = t5*t19; 
-    const double t21 = p1_h*t5; 
-    const double t22 = p1_e-r_e; 
-    const double t23 = t4*t22*terr_dis; 
-    const double t24 = p1_n-r_n; 
-    const double t25 = t2*t24*terr_dis; 
-    const double t26 = t20+t21+t23+t25; 
-    const double t27 = 1.0/(delta_r*delta_r); 
-    const double t28 = d_occ-r_offset; 
-    const double t29 = t11*v*vG_d*2.0; 
-    const double t30 = t12*t13*v*vG_n*2.0; 
-    const double t31 = t12*t14*v*vG_e*2.0; 
-    const double t32 = t29+t30+t31; 
-    const double t33 = t11*t13*v*vG_e*2.0; 
+    const double t18 = t12*vG_d*2.0; 
+    const double t17 = t15+t16-t18; 
+    const double t19 = 1.0/vG; 
+    const double t20 = t11*v*vG_d*2.0; 
+    const double t21 = t12*t13*v*vG_n*2.0; 
+    const double t22 = t12*t14*v*vG_e*2.0; 
+    const double t23 = t20+t21+t22; 
+    const double t24 = p1_h+r_d; 
+    const double t25 = t5*t24; 
+    const double t26 = p1_h*t5; 
+    const double t27 = p1_e-r_e; 
+    const double t28 = t4*t27*terr_dis; 
+    const double t29 = p1_n-r_n; 
+    const double t30 = t2*t29*terr_dis; 
+    const double t31 = t25+t26+t28+t30; 
+    const double t32 = 1.0/(delta_r*delta_r); 
+    const double t33 = d_occ-r_offset_1; 
+    const double t34 = t11*t13*v*vG_e*2.0; 
+    const double t36 = t11*t14*v*vG_n*2.0; 
+    const double t35 = t34-t36; 
     jac[0] = log_sqrt_w_over_sig1_r*t2*t3*t9*terr_dis*vG; 
     jac[1] = log_sqrt_w_over_sig1_r*t3*t4*t9*terr_dis*vG; 
     jac[2] = -log_sqrt_w_over_sig1_r*t3*t5*t9*vG; 
-    jac[3] = log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(t5*t12+t2*t11*t13*terr_dis+t4*t11*t14*terr_dis)-t9*t17*t18*t26*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t17*t27*t28; 
-    jac[4] = -log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(-t5*t11*v+t2*t12*t13*terr_dis*v+t4*t12*t14*terr_dis*v)-t9*t18*t26*t32*(1.0/2.0))-k_r*log_sqrt_w_over_sig1_r*t27*t28*t32; 
-    jac[5] = -log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(t2*t11*t14*terr_dis*v-t4*t11*t13*terr_dis*v)+t9*t18*t26*(t33-t11*t14*v*vG_n*2.0)*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t27*t28*(t33-t11*t14*v*vG_n*2.0);
+    jac[3] = log_sqrt_w_over_sig1_r*t3*(k_r*t17+d_occ*t9*(t5*t12+t2*t11*t13*terr_dis+t4*t11*t14*terr_dis)-t9*t17*t19*t31*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t17*t32*t33; 
+    jac[4] = -log_sqrt_w_over_sig1_r*t3*(k_r*t23+d_occ*t9*(-t5*t11*v+t2*t12*t13*terr_dis*v+t4*t12*t14*terr_dis*v)-t9*t19*t23*t31*(1.0/2.0))-k_r*log_sqrt_w_over_sig1_r*t23*t32*t33; 
+    jac[5] = -log_sqrt_w_over_sig1_r*t3*(-k_r*t35+d_occ*t9*(t2*t11*t14*terr_dis*v-t4*t11*t13*terr_dis*v)+t9*t19*t31*t35*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t32*t33*(t34-t36); 
 }
 
 /* radial terrain (bottom-right) jacobian (cubic) */
@@ -412,19 +414,15 @@ void jac_sig_r_br_cubic(double *jac,
 }
 
 /* radial terrain (bottom-right) jacobian (exponential) */
-void jac_sig_r_br_exp(double *jac,
-        const double r_n, const double r_e, const double r_d,
-        const double v, const double gamma, const double xi,
-        const double w_e, const double w_n, const double w_d,
-        const double terr_dis,
-        const double p1_n, const double p1_e, const double p1_h,
-        const double p2_n, const double p2_e, const double p2_h,
-        const double p3_n, const double p3_e, const double p3_h,
-        const double r_offset, const double delta_r0, const double k_r,
-        const double log_sqrt_w_over_sig1_r, const double sig_r,
-        const double d_occ, const double delta_r,
-        const double vG_sq, const double vG,
-        const double vG_n, const double vG_e, const double vG_d) {
+void jac_sig_r_br_exp(double *jac, 
+        const double d_occ, const double delta_r, const double gamma,
+        const double k_r, const double log_sqrt_w_over_sig1_r,
+        const double p1_e, const double p1_h, const double p1_n,
+        const double p2_h, const double p3_h, const double r_d,
+        const double r_e, const double r_n, const double r_offset_1,
+        const double sig_r, const double terr_dis, const double v,
+        const double vG, const double vG_d, const double vG_e,
+        const double vG_n, const double xi) {
     
     /* w.r.t.:
      * r_n
@@ -434,7 +432,7 @@ void jac_sig_r_br_exp(double *jac,
      * gamma
      * xi
      */
-        
+    
     const double t2 = p2_h-p3_h; 
     const double t3 = 1.0/delta_r; 
     const double t4 = p1_h-p2_h; 
@@ -450,52 +448,53 @@ void jac_sig_r_br_exp(double *jac,
     const double t14 = sin(xi); 
     const double t15 = t11*t13*vG_n*2.0; 
     const double t16 = t11*t14*vG_e*2.0; 
-    const double t17 = t15+t16-t12*vG_d*2.0; 
-    const double t18 = 1.0/vG; 
-    const double t19 = p1_h+r_d; 
-    const double t20 = t5*t19; 
-    const double t21 = p1_h*t5; 
-    const double t22 = p1_e-r_e; 
-    const double t23 = t4*t22*terr_dis; 
-    const double t24 = p1_n-r_n; 
-    const double t25 = t2*t24*terr_dis; 
-    const double t26 = t20+t21+t23+t25; 
-    const double t27 = 1.0/(delta_r*delta_r); 
-    const double t28 = d_occ-r_offset; 
-    const double t29 = t11*v*vG_d*2.0; 
-    const double t30 = t12*t13*v*vG_n*2.0; 
-    const double t31 = t12*t14*v*vG_e*2.0; 
-    const double t32 = t29+t30+t31; 
-    const double t33 = t11*t13*v*vG_e*2.0; 
-    const double t34 = t33-t11*t14*v*vG_n*2.0; 
+    const double t18 = t12*vG_d*2.0; 
+    const double t17 = t15+t16-t18; 
+    const double t19 = 1.0/vG; 
+    const double t20 = t11*v*vG_d*2.0; 
+    const double t21 = t12*t13*v*vG_n*2.0; 
+    const double t22 = t12*t14*v*vG_e*2.0; 
+    const double t23 = t20+t21+t22; 
+    const double t24 = p1_h+r_d; 
+    const double t25 = t5*t24; 
+    const double t26 = p1_h*t5; 
+    const double t27 = p1_e-r_e; 
+    const double t28 = t4*t27*terr_dis; 
+    const double t29 = p1_n-r_n; 
+    const double t30 = t2*t29*terr_dis; 
+    const double t31 = t25+t26+t28+t30; 
+    const double t32 = 1.0/(delta_r*delta_r); 
+    const double t33 = d_occ-r_offset_1; 
+    const double t34 = t11*t13*v*vG_e*2.0; 
+    const double t36 = t11*t14*v*vG_n*2.0; 
+    const double t35 = t34-t36; 
     jac[0] = log_sqrt_w_over_sig1_r*sig_r*t2*t3*t9*terr_dis*vG; 
     jac[1] = log_sqrt_w_over_sig1_r*sig_r*t3*t4*t9*terr_dis*vG; 
     jac[2] = -log_sqrt_w_over_sig1_r*sig_r*t3*t5*t9*vG; 
-    jac[3] = sig_r*(log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(t5*t12+t2*t11*t13*terr_dis+t4*t11*t14*terr_dis)-t9*t17*t18*t26*0.5)+k_r*log_sqrt_w_over_sig1_r*t17*t27*t28); 
-    jac[4] = -sig_r*(log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(-t5*t11*v+t2*t12*t13*terr_dis*v+t4*t12*t14*terr_dis*v)-t9*t18*t26*t32*0.5)+k_r*log_sqrt_w_over_sig1_r*t27*t28*t32); 
-    jac[5] = -sig_r*(log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(t2*t11*t14*terr_dis*v-t4*t11*t13*terr_dis*v)+t9*t18*t26*t34*0.5)-k_r*log_sqrt_w_over_sig1_r*t27*t28*t34); 
+    jac[3] = sig_r*(log_sqrt_w_over_sig1_r*t3*(k_r*t17+d_occ*t9*(t5*t12+t2*t11*t13*terr_dis+t4*t11*t14*terr_dis)-t9*t17*t19*t31*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t17*t32*t33); 
+    jac[4] = -sig_r*(log_sqrt_w_over_sig1_r*t3*(k_r*t23+d_occ*t9*(-t5*t11*v+t2*t12*t13*terr_dis*v+t4*t12*t14*terr_dis*v)-t9*t19*t23*t31*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t23*t32*t33); 
+    jac[5] = -sig_r*(log_sqrt_w_over_sig1_r*t3*(-k_r*t35+d_occ*t9*(t2*t11*t14*terr_dis*v-t4*t11*t13*terr_dis*v)+t9*t19*t31*t35*(1.0/2.0))-k_r*log_sqrt_w_over_sig1_r*t32*t33*t35); 
 }
 
 /* radial terrain (top-left) jacobian (linear) */
-void jac_sig_r_tl_lin(double *jac,
+void jac_sig_r_tl_lin(double *jac, 
         const double d_occ, const double delta_r, const double gamma,
         const double k_r, const double log_sqrt_w_over_sig1_r,
         const double p1_e, const double p1_h, const double p1_n,
         const double p2_h, const double p3_h, const double r_d,
-        const double r_e, const double r_n, const double r_offset,
+        const double r_e, const double r_n, const double r_offset_1,
         const double terr_dis, const double v, const double vG,
-        const double vG_d, const double vG_e, const double vG_n,
-        const double xi) {
-    
-    /* w.r.t.:
-     * r_n
-     * r_e
-     * r_d
-     * v
-     * gamma
-     * xi
-     */
-    
+        const double vG_d, const double vG_e, const double vG_n, const double xi) {
+
+    /* w.r.t.: 
+    * r_n 
+    * r_e 
+    * r_d 
+    * v 
+    * gamma 
+    * xi 
+    */
+
     const double t2 = p1_h-p2_h; 
     const double t3 = 1.0/delta_r; 
     const double t4 = p2_h-p3_h; 
@@ -511,29 +510,32 @@ void jac_sig_r_tl_lin(double *jac,
     const double t14 = sin(xi); 
     const double t15 = t11*t13*vG_n*2.0; 
     const double t16 = t11*t14*vG_e*2.0; 
-    const double t17 = t15+t16-t12*vG_d*2.0; 
-    const double t18 = 1.0/vG; 
-    const double t19 = p1_h+r_d; 
-    const double t20 = t5*t19; 
-    const double t21 = p1_h*t5; 
-    const double t22 = p1_e-r_e; 
-    const double t23 = t4*t22*terr_dis; 
-    const double t24 = p1_n-r_n; 
-    const double t25 = t2*t24*terr_dis; 
-    const double t26 = t20+t21+t23+t25; 
-    const double t27 = 1.0/(delta_r*delta_r); 
-    const double t28 = d_occ-r_offset; 
-    const double t29 = t11*v*vG_d*2.0; 
-    const double t30 = t12*t13*v*vG_n*2.0; 
-    const double t31 = t12*t14*v*vG_e*2.0; 
-    const double t32 = t29+t30+t31; 
-    const double t33 = t11*t13*v*vG_e*2.0; 
+    const double t18 = t12*vG_d*2.0; 
+    const double t17 = t15+t16-t18; 
+    const double t19 = 1.0/vG; 
+    const double t20 = t11*v*vG_d*2.0; 
+    const double t21 = t12*t13*v*vG_n*2.0; 
+    const double t22 = t12*t14*v*vG_e*2.0; 
+    const double t23 = t20+t21+t22; 
+    const double t24 = p1_h+r_d; 
+    const double t25 = t5*t24; 
+    const double t26 = p1_h*t5; 
+    const double t27 = p1_e-r_e; 
+    const double t28 = t4*t27*terr_dis; 
+    const double t29 = p1_n-r_n; 
+    const double t30 = t2*t29*terr_dis; 
+    const double t31 = t25+t26+t28+t30; 
+    const double t32 = 1.0/(delta_r*delta_r); 
+    const double t33 = d_occ-r_offset_1; 
+    const double t34 = t11*t13*v*vG_e*2.0; 
+    const double t36 = t11*t14*v*vG_n*2.0; 
+    const double t35 = t34-t36; 
     jac[0] = log_sqrt_w_over_sig1_r*t2*t3*t9*terr_dis*vG; 
     jac[1] = log_sqrt_w_over_sig1_r*t3*t4*t9*terr_dis*vG; 
     jac[2] = -log_sqrt_w_over_sig1_r*t3*t5*t9*vG; 
-    jac[3] = log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(t5*t12+t2*t11*t13*terr_dis+t4*t11*t14*terr_dis)-t9*t17*t18*t26*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t17*t27*t28; 
-    jac[4] = -log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(-t5*t11*v+t2*t12*t13*terr_dis*v+t4*t12*t14*terr_dis*v)-t9*t18*t26*t32*(1.0/2.0))-k_r*log_sqrt_w_over_sig1_r*t27*t28*t32; 
-    jac[5] = -log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(t2*t11*t14*terr_dis*v-t4*t11*t13*terr_dis*v)+t9*t18*t26*(t33-t11*t14*v*vG_n*2.0)*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t27*t28*(t33-t11*t14*v*vG_n*2.0); 
+    jac[3] = log_sqrt_w_over_sig1_r*t3*(k_r*t17+d_occ*t9*(t5*t12+t2*t11*t13*terr_dis+t4*t11*t14*terr_dis)-t9*t17*t19*t31*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t17*t32*t33; 
+    jac[4] = -log_sqrt_w_over_sig1_r*t3*(k_r*t23+d_occ*t9*(-t5*t11*v+t2*t12*t13*terr_dis*v+t4*t12*t14*terr_dis*v)-t9*t19*t23*t31*(1.0/2.0))-k_r*log_sqrt_w_over_sig1_r*t23*t32*t33; 
+    jac[5] = -log_sqrt_w_over_sig1_r*t3*(-k_r*t35+d_occ*t9*(t2*t11*t14*terr_dis*v-t4*t11*t13*terr_dis*v)+t9*t19*t31*t35*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t32*t33*(t34-t36); 
 }
 
 /* radial terrain (top-left) jacobian (cubic) */
@@ -604,29 +606,25 @@ void jac_sig_r_tl_cubic(double *jac,
 }
 
 /* radial terrain (top-left) jacobian (exponential) */
-void jac_sig_r_tl_exp(double *jac,
-        const double r_n, const double r_e, const double r_d,
-        const double v, const double gamma, const double xi,
-        const double w_e, const double w_n, const double w_d,
-        const double terr_dis,
-        const double p1_n, const double p1_e, const double p1_h,
-        const double p2_n, const double p2_e, const double p2_h,
-        const double p3_n, const double p3_e, const double p3_h,
-        const double r_offset, const double delta_r0, const double k_r,
-        const double log_sqrt_w_over_sig1_r, const double sig_r,
-        const double d_occ, const double delta_r,
-        const double vG_sq, const double vG,
-        const double vG_n, const double vG_e, const double vG_d) {
-    
-    /* w.r.t.:
-     * r_n
-     * r_e
-     * r_d
-     * v
-     * gamma
-     * xi
-     */
-        
+void jac_sig_r_tl_exp(double *jac, 
+        const double d_occ, const double delta_r, const double gamma,
+        const double k_r, const double log_sqrt_w_over_sig1_r,
+        const double p1_e, const double p1_h, const double p1_n,
+        const double p2_h, const double p3_h, const double r_d,
+        const double r_e, const double r_n, const double r_offset_1,
+        const double sig_r, const double terr_dis, const double v,
+        const double vG, const double vG_d, const double vG_e,
+        const double vG_n, const double xi) {
+
+    /* w.r.t.: 
+    * r_n 
+    * r_e 
+    * r_d 
+    * v 
+    * gamma 
+    * xi 
+    */
+
     const double t2 = p1_h-p2_h; 
     const double t3 = 1.0/delta_r; 
     const double t4 = p2_h-p3_h; 
@@ -642,30 +640,32 @@ void jac_sig_r_tl_exp(double *jac,
     const double t14 = sin(xi); 
     const double t15 = t11*t13*vG_n*2.0; 
     const double t16 = t11*t14*vG_e*2.0; 
-    const double t17 = t15+t16-t12*vG_d*2.0; 
-    const double t18 = 1.0/vG; 
-    const double t19 = p1_h+r_d; 
-    const double t20 = t5*t19; 
-    const double t21 = p1_h*t5; 
-    const double t22 = p1_e-r_e; 
-    const double t23 = t4*t22*terr_dis; 
-    const double t24 = p1_n-r_n; 
-    const double t25 = t2*t24*terr_dis; 
-    const double t26 = t20+t21+t23+t25; 
-    const double t27 = 1.0/(delta_r*delta_r); 
-    const double t28 = d_occ-r_offset; 
-    const double t29 = t11*v*vG_d*2.0; 
-    const double t30 = t12*t13*v*vG_n*2.0; 
-    const double t31 = t12*t14*v*vG_e*2.0; 
-    const double t32 = t29+t30+t31; 
-    const double t33 = t11*t13*v*vG_e*2.0; 
-    const double t34 = t33-t11*t14*v*vG_n*2.0; 
+    const double t18 = t12*vG_d*2.0; 
+    const double t17 = t15+t16-t18; 
+    const double t19 = 1.0/vG; 
+    const double t20 = t11*v*vG_d*2.0; 
+    const double t21 = t12*t13*v*vG_n*2.0; 
+    const double t22 = t12*t14*v*vG_e*2.0; 
+    const double t23 = t20+t21+t22; 
+    const double t24 = p1_h+r_d; 
+    const double t25 = t5*t24; 
+    const double t26 = p1_h*t5; 
+    const double t27 = p1_e-r_e; 
+    const double t28 = t4*t27*terr_dis; 
+    const double t29 = p1_n-r_n; 
+    const double t30 = t2*t29*terr_dis; 
+    const double t31 = t25+t26+t28+t30; 
+    const double t32 = 1.0/(delta_r*delta_r); 
+    const double t33 = d_occ-r_offset_1; 
+    const double t34 = t11*t13*v*vG_e*2.0; 
+    const double t36 = t11*t14*v*vG_n*2.0; 
+    const double t35 = t34-t36; 
     jac[0] = log_sqrt_w_over_sig1_r*sig_r*t2*t3*t9*terr_dis*vG; 
     jac[1] = log_sqrt_w_over_sig1_r*sig_r*t3*t4*t9*terr_dis*vG; 
     jac[2] = -log_sqrt_w_over_sig1_r*sig_r*t3*t5*t9*vG; 
-    jac[3] = sig_r*(log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(t5*t12+t2*t11*t13*terr_dis+t4*t11*t14*terr_dis)-t9*t17*t18*t26*0.5)+k_r*log_sqrt_w_over_sig1_r*t17*t27*t28); 
-    jac[4] = -sig_r*(log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(-t5*t11*v+t2*t12*t13*terr_dis*v+t4*t12*t14*terr_dis*v)-t9*t18*t26*t32*0.5)+k_r*log_sqrt_w_over_sig1_r*t27*t28*t32); 
-    jac[5] = -sig_r*(log_sqrt_w_over_sig1_r*t3*(d_occ*t9*(t2*t11*t14*terr_dis*v-t4*t11*t13*terr_dis*v)+t9*t18*t26*t34*0.5)-k_r*log_sqrt_w_over_sig1_r*t27*t28*t34); 
+    jac[3] = sig_r*(log_sqrt_w_over_sig1_r*t3*(k_r*t17+d_occ*t9*(t5*t12+t2*t11*t13*terr_dis+t4*t11*t14*terr_dis)-t9*t17*t19*t31*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t17*t32*t33); 
+    jac[4] = -sig_r*(log_sqrt_w_over_sig1_r*t3*(k_r*t23+d_occ*t9*(-t5*t11*v+t2*t12*t13*terr_dis*v+t4*t12*t14*terr_dis*v)-t9*t19*t23*t31*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t23*t32*t33); 
+    jac[5] = -sig_r*(log_sqrt_w_over_sig1_r*t3*(-k_r*t35+d_occ*t9*(t2*t11*t14*terr_dis*v-t4*t11*t13*terr_dis*v)+t9*t19*t31*t35*(1.0/2.0))-k_r*log_sqrt_w_over_sig1_r*t32*t33*t35); 
 }
 
 /* check ray-triangle intersection */
@@ -1443,8 +1443,11 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
     /* radial buffer zone */
     const double delta_r = vG_sq * k_r + delta_r0;
     
+    /* adjusted radial offset */
+    const double r_offset_1 = r_offset + vG_sq * k_r;
+    
     /* ray length */
-    const double d_ray = delta_r + r_offset + terr_dis;
+    const double d_ray = delta_r + r_offset_1 + terr_dis;
     
     /* ray start ENU */
     const double r0[3] = {r_e, r_n, -r_d};
@@ -1642,19 +1645,18 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
     if (!(one_over_sqrt_w_r<0.0) && (occ_detected>0)) {
         
         /* objective / jacobian */
-        if ((d_occ - r_offset < 0.0) && USE_LINEAR_EXP_ASYMPTOTE) {
+        if ((d_occ - r_offset_1 < 0.0) && USE_LINEAR_EXP_ASYMPTOTE) {
             /* linear */
-            sig_r = 1.0 + -log_sqrt_w_over_sig1_r/delta_r * (d_occ - r_offset);
+            sig_r = 1.0 + -log_sqrt_w_over_sig1_r/delta_r * (d_occ - r_offset_1);
             if (occ_detected==2) {
                 jac_sig_r_tl_lin(jac_sig_r,
                     d_occ, delta_r, gamma,
                     k_r, log_sqrt_w_over_sig1_r,
                     p1[0], p1[2], p1[1],
                     p2[2], p3[2], r_d,
-                    r_e, r_n, r_offset,
+                    r_e, r_n, r_offset_1,
                     terr_dis, v, vG_norm,
-                    vG_d, vG_e, vG_n,
-                    xi);
+                    vG_d, vG_e, vG_n, xi);
             }
             else if (occ_detected==1) {
                 jac_sig_r_br_lin(jac_sig_r,
@@ -1662,44 +1664,35 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
                     k_r, log_sqrt_w_over_sig1_r,
                     p1[0], p1[2], p1[1],
                     p2[2], p3[2], r_d,
-                    r_e, r_n, r_offset,
+                    r_e, r_n, r_offset_1,
                     terr_dis, v, vG_norm,
-                    vG_d, vG_e, vG_n,
-                    xi);
+                    vG_d, vG_e, vG_n, xi);
             }
         }
         else {
             /* exponential */
-            sig_r = exp(-(d_occ - r_offset)/delta_r*log_sqrt_w_over_sig1_r);
+            sig_r = exp(-(d_occ - r_offset_1)/delta_r*log_sqrt_w_over_sig1_r);
             if (occ_detected==2) {
                 jac_sig_r_tl_exp(jac_sig_r,
-                    r_n, r_e, r_d,
-                    v, gamma, xi,
-                    w_e, w_n, w_d,
-                    terr_dis,
-                    p1[0], p1[1], p1[2],
-                    p2[0], p2[1], p2[2],
-                    p3[0], p3[1], p3[2],
-                    r_offset, delta_r0, k_r,
-                    log_sqrt_w_over_sig1_r, sig_r,
-                    d_occ, delta_r,
-                    vG_sq, vG_norm,
-                    vG_n, vG_e, vG_d);
+                    d_occ, delta_r, gamma,
+                    k_r, log_sqrt_w_over_sig1_r,
+                    p1[0], p1[2], p1[1],
+                    p2[2], p3[2], r_d,
+                    r_e, r_n, r_offset_1,
+                    sig_r, terr_dis, v,
+                    vG_norm, vG_d, vG_e,
+                    vG_n, xi);
             }
             else if (occ_detected==1) {
                 jac_sig_r_br_exp(jac_sig_r,
-                    r_n, r_e, r_d,
-                    v, gamma, xi,
-                    w_e, w_n, w_d,
-                    terr_dis,
-                    p1[0], p1[1], p1[2],
-                    p2[0], p2[1], p2[2],
-                    p3[0], p3[1], p3[2],
-                    r_offset, delta_r0, k_r,
-                    log_sqrt_w_over_sig1_r, sig_r,
-                    d_occ, delta_r,
-                    vG_sq, vG_norm,
-                    vG_n, vG_e, vG_d);
+                    d_occ, delta_r, gamma,
+                    k_r, log_sqrt_w_over_sig1_r,
+                    p1[0], p1[2], p1[1],
+                    p2[2], p3[2], r_d,
+                    r_e, r_n, r_offset_1,
+                    sig_r, terr_dis, v,
+                    vG_norm, vG_d, vG_e,
+                    vG_n, xi);
             }
         }
         /*jac_sig_r[3] = 0.0;*/

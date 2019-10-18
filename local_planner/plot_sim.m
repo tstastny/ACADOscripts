@@ -380,10 +380,11 @@ figure('color','w','name','Radial cost');
 
 % r
 hand_r(1) = subplot(5,1,1:2); hold on; grid on; box on;
-plot(time([isp iep]),[r_offset r_offset],'color',color_ref,'linestyle','--');
-plot(time(isp:iep),rec.aux(isp:iep,24),'color',color_ref,'linestyle',':');
+plot(time([isp iep]),[r_offset r_offset],'color',color_ref);
+plot(time(isp:iep),rec.aux(isp:iep,39),'color',color_ref,'linestyle','--');
+plot(time(isp:iep),rec.aux(isp:iep,39)+rec.aux(isp:iep,24),'color',color_ref,'linestyle',':');
 plot(time(isp:iep),rec.aux(isp:iep,38).*double(rec.aux(isp:iep,16)>0),'color',color_state);
-legend('r_{off}','\Delta_r','d_{occ}');
+legend('r_{{off}_1}','r_{{off}_1}+\Delta_r','d_{occ}');
 ylabel('r [m]');
 
 % radial cost
