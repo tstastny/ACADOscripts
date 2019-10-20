@@ -65,7 +65,7 @@ sig_h_1 = 0.001;
 % radial soft constraint
 r_offset = 0;
 delta_r0 = 10;
-k_r = 2/tand(35)/9.81;
+k_r = 1/tand(35)/9.81;
 sig_r_1 = 0.001;
 
 % terrain lookup
@@ -193,7 +193,7 @@ input.WN    = diag(QN_output);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 30;
+Tf = 40;
 Ts = 0.01;
 time = T0:Ts:Tf;
 len_t = length(time);
