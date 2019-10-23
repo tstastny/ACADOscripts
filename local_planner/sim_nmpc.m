@@ -43,7 +43,7 @@ b_n = 0;
 b_e = 0;
 b_d = -50;
 Gamma_p = deg2rad(5);
-chi_p = deg2rad(-10);
+chi_p = deg2rad(0);
 
 % guidance
 T_b_lat = 5;
@@ -72,7 +72,7 @@ sig_r_1 = 0.001;
 % terrain lookup
 len_local_idx_n = 57;%29;
 len_local_idx_e = 57;%29;
-terr_dis = 10;
+terr_dis = 5;
 
 %% REFERENCES -------------------------------------------------------------
 
@@ -221,6 +221,8 @@ if output_objectives
     rec.dydu = zeros(N,len_nmpc,(n_Y+n_Z)*n_U);
     rec.yN = zeros(len_nmpc,n_Y);
     rec.dyNdx = zeros(len_nmpc,n_Y*n_X);
+    rec.priorities = zeros(N+1,len_nmpc,3);
+    rec.aux = zeros(N+1,len_nmpc,5);
 end
 
 k_nmpc = 0;
@@ -376,6 +378,8 @@ for k = 1:len_t
         rec.dydu(:,k_nmpc,:) = output2.dydu;
         rec.yN(k_nmpc,:) = output2.yN;
         rec.dyNdx(k_nmpc,:) = output2.dyNdx;
+        rec.priorities(:,k_nmpc,:) = preeval_output.priorities;
+        rec.aux(:,k_nmpc,:) = preeval_output.aux;
     end
     trec(k) = toc(st_rec);
 
@@ -406,11 +410,10 @@ plot_opt.attitude = true;
 plot_opt.roll_horizon = true;
 plot_opt.pitch_horizon = true;
 plot_opt.motor = true;
-plot_opt.position_errors = false;
-plot_opt.directional_errors = false;
-plot_opt.velocity_tracking = false;
+plot_opt.position_errors = true;
+plot_opt.velocity_tracking = true;
 plot_opt.wind_axis = false;
-plot_opt.radial_cost = false;
+plot_opt.radial_cost = true;
 plot_opt.objectives = true;
 plot_opt.timing = false;
 

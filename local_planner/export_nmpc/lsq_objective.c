@@ -1541,7 +1541,7 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
 /* GUIDANCE / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /*/
 
 /* calculate ground velocity reference */
-void calculate_velocity_reference(double *v_ref,
+void calculate_velocity_reference(double *v_ref, double *e_lat, double *e_lon,
         const double *states,
         const double *path_reference,
         const double *guidance_params,
@@ -1594,14 +1594,14 @@ void calculate_velocity_reference(double *v_ref,
     const double p_d = b_d - p_lat*tan(Gamma_p);
         
     /* position error */
-    const double e_lat = (r_n-b_n)*tP_e_bar - (r_e-b_e)*tP_n_bar;
-    const double e_lon = p_d - r_d;
+    *e_lat = (r_n-b_n)*tP_e_bar - (r_e-b_e)*tP_n_bar;
+    *e_lon = p_d - r_d;
     
     /* lateral-directional error boundary */
     const double e_b_lat = T_b_lat * sqrt(vG_n*vG_n + vG_e*vG_e);
     
     /* course approach angle */
-    const double chi_app = atan(M_PI_2*e_lat/e_b_lat);
+    const double chi_app = atan(M_PI_2*(*e_lat)/e_b_lat);
     
     /* longitudinal error boundary */
     double e_b_lon;
@@ -1613,7 +1613,7 @@ void calculate_velocity_reference(double *v_ref,
     }
     
     /* flight path approach angle */
-    const double Gamma_app = -gamma_app_max * atan(M_PI_2*e_lon/e_b_lon);
+    const double Gamma_app = -gamma_app_max * atan(M_PI_2*(*e_lon)/e_b_lon);
     
     /* normalized ground velocity setpoint */
     const double cos_gamma = cos(Gamma_p + Gamma_app);
@@ -1715,7 +1715,7 @@ void calculate_aoa_objective(double *sig_aoa, double *jac_sig_aoa, double *prio_
 }
 
 /* calculate soft height objective */
-void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h,
+void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h, double *h_terr,
         const double *states, const double *terr_params, const double *terr_map)
 {
     /* DEFINE INPUTS - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1781,12 +1781,13 @@ void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h
         /* bi-linear interpolation */
         double h12 = (1-dn)*terr_map[idx_q[0]] + dn*terr_map[idx_q[1]];
         double h34 = (1-dn)*terr_map[idx_q[2]] + dn*terr_map[idx_q[3]];
-        double h_terr = (1-de)*h12 + de*h34;
+        double h_terr_temp = (1-de)*h12 + de*h34;
+        *h_terr = h_terr_temp;
         
         /* objective / jacobian */
-        if (h - h_terr - h_offset < 0.0) {
+        if (h - h_terr_temp - h_offset < 0.0) {
             /* linear */
-            *sig_h = 1.0 + -log_sqrt_w_over_sig1_h/delta_h * (h - h_terr - h_offset);
+            *sig_h = 1.0 + -log_sqrt_w_over_sig1_h/delta_h * (h - h_terr_temp - h_offset);
             
             jac_sig_h_lin(jac_sig_h,
                 de, delta_h, delta_y,
@@ -1797,7 +1798,7 @@ void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h
         }
         else {
             /* exponential */
-            *sig_h = exp(-(h - h_terr - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
+            *sig_h = exp(-(h - h_terr_temp - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
             
             jac_sig_h_exp(jac_sig_h,
                 de, delta_h, delta_y,
@@ -1815,12 +1816,12 @@ void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h
         /* bi-linear interpolation */
         h12 = (1-dn)*terr_map[idx_q[0]] + dn*terr_map[idx_q[1]];
         h34 = (1-dn)*terr_map[idx_q[2]] + dn*terr_map[idx_q[3]];
-        h_terr = (1-de)*h12 + de*h34;
+        h_terr_temp = (1-de)*h12 + de*h34;
         
         /* objective / jacobian */
-        if (h - h_terr - h_offset < 0.0) {
+        if (h - h_terr_temp - h_offset < 0.0) {
             /* linear */
-            sig_h_temp = 1.0 + -log_sqrt_w_over_sig1_h/delta_h * (h - h_terr - h_offset);
+            sig_h_temp = 1.0 + -log_sqrt_w_over_sig1_h/delta_h * (h - h_terr_temp - h_offset);
             
             jac_sig_h_lin(jac_sig_h_temp,
                 de, delta_h, delta_y,
@@ -1831,7 +1832,7 @@ void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h
         }
         else {
             /* exponential */
-            sig_h_temp = exp(-(h - h_terr - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
+            sig_h_temp = exp(-(h - h_terr_temp - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
             
             jac_sig_h_exp(jac_sig_h_temp,
                 de, delta_h, delta_y,
@@ -1854,12 +1855,12 @@ void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h
         /* bi-linear interpolation */
         h12 = (1-dn)*terr_map[idx_q[0]] + dn*terr_map[idx_q[1]];
         h34 = (1-dn)*terr_map[idx_q[2]] + dn*terr_map[idx_q[3]];
-        h_terr = (1-de)*h12 + de*h34;
+        h_terr_temp = (1-de)*h12 + de*h34;
         
         /* objective / jacobian */
-        if (h - h_terr - h_offset < 0.0) {
+        if (h - h_terr_temp - h_offset < 0.0) {
             /* linear */
-            sig_h_temp = 1.0 + -log_sqrt_w_over_sig1_h/delta_h * (h - h_terr - h_offset);
+            sig_h_temp = 1.0 + -log_sqrt_w_over_sig1_h/delta_h * (h - h_terr_temp - h_offset);
             
             jac_sig_h_lin(jac_sig_h_temp,
                 de, delta_h, delta_y,
@@ -1870,7 +1871,7 @@ void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h
         }
         else {
             /* exponential */
-            sig_h_temp = exp(-(h - h_terr - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
+            sig_h_temp = exp(-(h - h_terr_temp - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
             
             jac_sig_h_exp(jac_sig_h_temp,
                 de, delta_h, delta_y,
@@ -1891,7 +1892,7 @@ void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h
 }
 
 /* calculate soft radial objective */
-void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *prio_r,
+void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *prio_r, double *r_occ, int *occ_detected,
         const double *states, const double *speed_states,
         const double *terr_params, const double *terr_map)
 {
@@ -1952,7 +1953,6 @@ void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *prio_r
     /* cast ray along ground speed vector to check for occlusions */
     
     /* init */
-    double d_occ;
     double p_occ[3];
     double p1[3];
     double p2[3];
@@ -1979,7 +1979,7 @@ void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *prio_r
     const double r1[3] = {r0[0] + v_ray[0] * d_ray, r0[1] + v_ray[1] * d_ray, r0[2] + v_ray[2] * d_ray};
     
     /* cast the ray */
-    int occ_detected = castray(&d_occ, p_occ, p1, p2, p3, r0, r1, v_ray,
+    *occ_detected = castray(r_occ, p_occ, p1, p2, p3, r0, r1, v_ray,
         terr_local_origin_n, terr_local_origin_e, terr_dis, terr_map);
     
     /* shift occlusion origin */
@@ -1992,15 +1992,15 @@ void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *prio_r
     p_occ[0] = p_occ[0] + terr_local_origin_e;
     p_occ[1] = p_occ[1] + terr_local_origin_n;
     
-    if (!(one_over_sqrt_w_r<0.0) && (occ_detected>0)) {
+    if (!(one_over_sqrt_w_r<0.0) && (*occ_detected>0)) {
         
         /* objective / jacobian */
-        if (d_occ - r_offset_1 < 0.0) {
+        if (*r_occ - r_offset_1 < 0.0) {
             /* linear */
-            *sig_r = 1.0 + -log_sqrt_w_over_sig1_r/delta_r * (d_occ - r_offset_1);
-            if (occ_detected==2) {
+            *sig_r = 1.0 + -log_sqrt_w_over_sig1_r/delta_r * (*r_occ - r_offset_1);
+            if (*occ_detected==2) {
                 jac_sig_r_tl_lin(jac_sig_r,
-                    d_occ, delta_r, gamma,
+                    *r_occ, delta_r, gamma,
                     k_r, log_sqrt_w_over_sig1_r,
                     p1[0], p1[2], p1[1],
                     p2[2], p3[2], r_d,
@@ -2008,9 +2008,9 @@ void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *prio_r
                     terr_dis, v, vG_norm,
                     vG_d, vG_e, vG_n, xi);
             }
-            else if (occ_detected==1) {
+            else if (*occ_detected==1) {
                 jac_sig_r_br_lin(jac_sig_r,
-                    d_occ, delta_r, gamma,
+                    *r_occ, delta_r, gamma,
                     k_r, log_sqrt_w_over_sig1_r,
                     p1[0], p1[2], p1[1],
                     p2[2], p3[2], r_d,
@@ -2021,10 +2021,10 @@ void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *prio_r
         }
         else {
             /* exponential */
-            *sig_r = exp(-(d_occ - r_offset_1)/delta_r*log_sqrt_w_over_sig1_r);
-            if (occ_detected==2) {
+            *sig_r = exp(-(*r_occ - r_offset_1)/delta_r*log_sqrt_w_over_sig1_r);
+            if (*occ_detected==2) {
                 jac_sig_r_tl_exp(jac_sig_r,
-                    d_occ, delta_r, gamma,
+                    *r_occ, delta_r, gamma,
                     k_r, log_sqrt_w_over_sig1_r,
                     p1[0], p1[2], p1[1],
                     p2[2], p3[2], r_d,
@@ -2033,9 +2033,9 @@ void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *prio_r
                     vG_norm, vG_d, vG_e,
                     vG_n, xi);
             }
-            else if (occ_detected==1) {
+            else if (*occ_detected==1) {
                 jac_sig_r_br_exp(jac_sig_r,
-                    d_occ, delta_r, gamma,
+                    *r_occ, delta_r, gamma,
                     k_r, log_sqrt_w_over_sig1_r,
                     p1[0], p1[2], p1[1],
                     p2[2], p3[2], r_d,

@@ -8,7 +8,16 @@
 #include "lsq_objective.c"
 
 /* Define number of outputs */
-#define NOO 4
+#define NOO 5
+#define N_AUX 5
+
+enum aux {
+    AUX_H_TERR = 0,
+    AUX_R_OCC,
+    AUX_E_LAT,
+    AUX_E_LON,
+    AUX_OCC_DETECT
+};
 
 /** Instance of the user data structure. */
 ACADOvariables acadoVariables;
@@ -129,6 +138,7 @@ void mexFunction(	int nlhs,
 	outNames[ 1 ] = "yN";
     outNames[ 2 ] = "od";
     outNames[ 3 ] = "priorities";
+    outNames[ 4 ] = "aux";
     
 	if (nrhs != 1)
 		mexErrMsgTxt(
@@ -169,7 +179,8 @@ void mexFunction(	int nlhs,
     double jac_sig_r[6];
     double prio_r;
     double priorities[(ACADO_N+1)*3];
-    
+    double aux_output[(ACADO_N+1)*N_AUX];
+            
     /* evaluate external objectives */
     
     int runObj;
@@ -185,7 +196,8 @@ void mexFunction(	int nlhs,
         priorities[runObj * 3 + 0] = prio_aoa;
                 
         /* soft height constraint */
-        calculate_height_objective(&sig_h, jac_sig_h, &prio_h, acadoVariables.x + (runObj * ACADO_NX), terr_params, terr_map);
+        double h_terr;
+        calculate_height_objective(&sig_h, jac_sig_h, &prio_h, &h_terr, acadoVariables.x + (runObj * ACADO_NX), terr_params, terr_map);
                 
         acadoVariables.od[runObj * ACADO_NOD + 11] = sig_h;
         acadoVariables.od[runObj * ACADO_NOD + 12] = jac_sig_h[0];
@@ -194,6 +206,8 @@ void mexFunction(	int nlhs,
         acadoVariables.od[runObj * ACADO_NOD + 15] = jac_sig_h[3];
                 
         priorities[runObj * 3 + 1] = prio_h;
+        
+        aux_output[runObj * N_AUX + AUX_H_TERR] = h_terr;
                 
         /* calculate speed states */
         const double v = acadoVariables.x[runObj * ACADO_NX + 3];
@@ -206,7 +220,9 @@ void mexFunction(	int nlhs,
         calculate_speed_states(speed_states, v, gamma, xi, w_n, w_e, w_d);
                 
         /* soft radial constraint */
-        calculate_radial_objective(&sig_r, jac_sig_r, &prio_r, acadoVariables.x + (runObj * ACADO_NX), speed_states, terr_params, terr_map);
+        double r_occ;
+        int occ_detected;
+        calculate_radial_objective(&sig_r, jac_sig_r, &prio_r, &r_occ, &occ_detected, acadoVariables.x + (runObj * ACADO_NX), speed_states, terr_params, terr_map);
                     
         acadoVariables.od[runObj * ACADO_NOD + 16] = sig_r;
         acadoVariables.od[runObj * ACADO_NOD + 17] = jac_sig_r[0];
@@ -217,10 +233,14 @@ void mexFunction(	int nlhs,
         acadoVariables.od[runObj * ACADO_NOD + 22] = jac_sig_r[5];
                 
         priorities[runObj * 3 + 2] = prio_r;
+        
+        aux_output[runObj * N_AUX + AUX_R_OCC] = r_occ;
+        aux_output[runObj * N_AUX + AUX_OCC_DETECT] = occ_detected;
                 
         /* velocity reference */
         double v_ref[3];
-        calculate_velocity_reference(v_ref, acadoVariables.x + (runObj * ACADO_NX), path_reference, guidance_params,
+        double e_lat, e_lon;
+        calculate_velocity_reference(v_ref, &e_lat, &e_lon, acadoVariables.x + (runObj * ACADO_NX), path_reference, guidance_params,
             speed_states, jac_sig_r, prio_r);
                 
         if (runObj < ACADO_N) {
@@ -233,6 +253,9 @@ void mexFunction(	int nlhs,
             acadoVariables.yN[1] = v_ref[1];
             acadoVariables.yN[2] = v_ref[2];
         }
+        
+        aux_output[runObj * N_AUX + AUX_E_LAT] = e_lat;
+        aux_output[runObj * N_AUX + AUX_E_LON] = e_lon;
     }
    
     /* Prepare return argument */
@@ -243,4 +266,5 @@ void mexFunction(	int nlhs,
     setArray(plhs[ 0 ], 0, "yN", acadoVariables.yN, 1, ACADO_NYN);
     setArray(plhs[ 0 ], 0, "od", acadoVariables.od, ACADO_N + 1, ACADO_NOD);
     setArray(plhs[ 0 ], 0, "priorities", priorities, ACADO_N + 1, 3);
+    setArray(plhs[ 0 ], 0, "aux", aux_output, ACADO_N + 1, N_AUX);
 }
