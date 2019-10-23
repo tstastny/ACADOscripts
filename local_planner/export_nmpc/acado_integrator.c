@@ -62,8 +62,8 @@ out[2] = ((((real_t)(0.0000000000000000e+00)-xd[3])*a[4])+od[3]);
 out[3] = ((((((((((((real_t)(-4.7364285714285703e-01)*a[5])/xd[8])*xd[3])+(real_t)(1.1521000000000001e-01))*(real_t)(6.1465600000000023e-03))*a[6])*a[7])*od[0])-((((((((((real_t)(0.0000000000000000e+00)-xd[4])+xd[7])*(real_t)(3.4738000000000002e-01))+((real_t)(2.5991999999999998e-01)*a[8]))+(real_t)(6.0314000000000000e-02))*(real_t)(4.1799999999999998e-01))*(real_t)(5.0000000000000000e-01))*a[9])*od[0]))*(real_t)(3.2010243277848910e-01))-((real_t)(9.8100000000000005e+00)*a[10]));
 out[4] = ((((((((((((((real_t)(-4.7364285714285703e-01)*a[11])/xd[8])*xd[3])+(real_t)(1.1521000000000001e-01))*(real_t)(6.1465600000000023e-03))*a[12])*od[0])*a[13])+(((((((((real_t)(0.0000000000000000e+00)-xd[4])+xd[7])*(real_t)(2.8500999999999999e+00))+(real_t)(5.2154999999999996e-01))*(real_t)(4.1799999999999998e-01))*(real_t)(5.0000000000000000e-01))*a[14])*od[0]))*a[15])-((real_t)(3.0646440000000002e+01)*a[16]))*(real_t)(3.2010243277848910e-01))/xd[3]);
 out[5] = ((((((((((((((real_t)(-4.7364285714285703e-01)*a[17])/xd[8])*xd[3])+(real_t)(1.1521000000000001e-01))*(real_t)(6.1465600000000023e-03))*a[18])*od[0])*a[19])+(((((((((real_t)(0.0000000000000000e+00)-xd[4])+xd[7])*(real_t)(2.8500999999999999e+00))+(real_t)(5.2154999999999996e-01))*(real_t)(4.1799999999999998e-01))*(real_t)(5.0000000000000000e-01))*a[20])*od[0]))/(real_t)(3.1240000000000001e+00))/a[21])*a[22])/xd[3]);
-out[6] = (((od[14]*u[1])-xd[6])/od[12]);
-out[7] = (((od[15]*u[2])-xd[7])/od[13]);
+out[6] = (((od[6]*u[1])-xd[6])/od[4]);
+out[7] = (((od[7]*u[2])-xd[7])/od[5]);
 out[8] = ((((((((real_t)(0.0000000000000000e+00)-((real_t)(-1.0000000000000000e+01)+(a[23]*xd[3])))/(real_t)(1.5000000000000000e+01))+(real_t)(1.0000000000000000e+00))*(((real_t)(1.2276762909764899e+02)*u[0])+(real_t)(4.0899037569017665e+01)))+((((real_t)(-1.0000000000000000e+01)+(a[24]*xd[3]))*((real_t)(1.0269363533329036e+02)+((real_t)(6.0973031333376298e+01)*u[0])))/(real_t)(1.5000000000000000e+01)))-xd[8])/(real_t)(2.0000000000000001e-01));
 }
 
@@ -143,10 +143,10 @@ a[61] = (a[50]*a[50]);
 a[62] = (cos(xd[6]));
 a[63] = (a[57]*a[57]);
 a[64] = ((real_t)(2.0000000000000000e+00)*xd[8]);
-a[65] = ((real_t)(1.0000000000000000e+00)/od[12]);
-a[66] = ((real_t)(1.0000000000000000e+00)/od[12]);
-a[67] = ((real_t)(1.0000000000000000e+00)/od[13]);
-a[68] = ((real_t)(1.0000000000000000e+00)/od[13]);
+a[65] = ((real_t)(1.0000000000000000e+00)/od[4]);
+a[66] = ((real_t)(1.0000000000000000e+00)/od[4]);
+a[67] = ((real_t)(1.0000000000000000e+00)/od[5]);
+a[68] = ((real_t)(1.0000000000000000e+00)/od[5]);
 a[69] = (cos((((real_t)(-3.4906585039886591e-02)-xd[4])+xd[7])));
 a[70] = ((real_t)(1.0000000000000000e+00)/(real_t)(1.5000000000000000e+01));
 a[71] = (cos((((real_t)(-3.4906585039886591e-02)-xd[4])+xd[7])));
@@ -242,7 +242,7 @@ out[78] = (((real_t)(0.0000000000000000e+00)-(real_t)(1.0000000000000000e+00))*a
 out[79] = (real_t)(0.0000000000000000e+00);
 out[80] = (real_t)(0.0000000000000000e+00);
 out[81] = (real_t)(0.0000000000000000e+00);
-out[82] = (od[14]*a[66]);
+out[82] = (od[6]*a[66]);
 out[83] = (real_t)(0.0000000000000000e+00);
 out[84] = (real_t)(0.0000000000000000e+00);
 out[85] = (real_t)(0.0000000000000000e+00);
@@ -255,7 +255,7 @@ out[91] = (((real_t)(0.0000000000000000e+00)-(real_t)(1.0000000000000000e+00))*a
 out[92] = (real_t)(0.0000000000000000e+00);
 out[93] = (real_t)(0.0000000000000000e+00);
 out[94] = (real_t)(0.0000000000000000e+00);
-out[95] = (od[15]*a[68]);
+out[95] = (od[7]*a[68]);
 out[96] = (real_t)(0.0000000000000000e+00);
 out[97] = (real_t)(0.0000000000000000e+00);
 out[98] = (real_t)(0.0000000000000000e+00);
@@ -737,7 +737,6 @@ int error;
 int i;
 int j;
 int k;
-int lRun8;
 int run;
 int run1;
 int tmp_index1;
@@ -746,9 +745,32 @@ int tmp_index2;
 real_t det;
 
 acadoWorkspace.rk_ttt = 0.0000000000000000e+00;
-for (lRun8 = 0; lRun8 < 3286; ++lRun8)
-acadoWorkspace.rk_xxx[lRun8 + 9] = rk_eta[lRun8 + 117];
-
+acadoWorkspace.rk_xxx[9] = rk_eta[117];
+acadoWorkspace.rk_xxx[10] = rk_eta[118];
+acadoWorkspace.rk_xxx[11] = rk_eta[119];
+acadoWorkspace.rk_xxx[12] = rk_eta[120];
+acadoWorkspace.rk_xxx[13] = rk_eta[121];
+acadoWorkspace.rk_xxx[14] = rk_eta[122];
+acadoWorkspace.rk_xxx[15] = rk_eta[123];
+acadoWorkspace.rk_xxx[16] = rk_eta[124];
+acadoWorkspace.rk_xxx[17] = rk_eta[125];
+acadoWorkspace.rk_xxx[18] = rk_eta[126];
+acadoWorkspace.rk_xxx[19] = rk_eta[127];
+acadoWorkspace.rk_xxx[20] = rk_eta[128];
+acadoWorkspace.rk_xxx[21] = rk_eta[129];
+acadoWorkspace.rk_xxx[22] = rk_eta[130];
+acadoWorkspace.rk_xxx[23] = rk_eta[131];
+acadoWorkspace.rk_xxx[24] = rk_eta[132];
+acadoWorkspace.rk_xxx[25] = rk_eta[133];
+acadoWorkspace.rk_xxx[26] = rk_eta[134];
+acadoWorkspace.rk_xxx[27] = rk_eta[135];
+acadoWorkspace.rk_xxx[28] = rk_eta[136];
+acadoWorkspace.rk_xxx[29] = rk_eta[137];
+acadoWorkspace.rk_xxx[30] = rk_eta[138];
+acadoWorkspace.rk_xxx[31] = rk_eta[139];
+acadoWorkspace.rk_xxx[32] = rk_eta[140];
+acadoWorkspace.rk_xxx[33] = rk_eta[141];
+acadoWorkspace.rk_xxx[34] = rk_eta[142];
 
 for (run = 0; run < 1; ++run)
 {

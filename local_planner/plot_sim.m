@@ -403,38 +403,66 @@ if (plot_opt.objectives)
 %% ////////////////////////////////////////////////////////////////////////
 % OBJECTIVE COSTS
 
-obj_cost = zeros(length(isp:iep), n_Y+n_Z);
+obj_cost = zeros(length(isp_nmpc:iep_nmpc), n_Y+n_Z);
 for ii = 1:n_Y
-    obj_cost(:,ii) = (yref(ii)*ones(length(time(isp:iep)),1)-rec.yz(isp:iep,ii)).^2*Q_output(ii);
+    obj_cost(:,ii) = rec.W(isp_nmpc:iep_nmpc,ii) .* ...
+        (rec.yref(1,isp_nmpc:iep_nmpc,ii)' - rec.y(1,isp_nmpc:iep_nmpc,ii)').^2;
 end
 
 for ii = 1:n_Z
-    obj_cost(:,n_Y+ii) = (rec.u_ref(:,ii)-rec.yz(isp:iep,n_Y+ii)).^2*R_controls(ii);
+    obj_cost(:,n_Y+ii) = rec.W(isp_nmpc:iep_nmpc,n_Y+ii) .* ...
+        (rec.yref(1,isp_nmpc:iep_nmpc,n_Y+ii)' - rec.y(1,isp_nmpc:iep_nmpc,n_Y+ii)').^2;
 end
 
-figure('color','w','name','Objective Costs')
-
-hand_obj(1)=subplot(2,1,1); hold on; grid on; box on;
-
-leg_str_ = cell(1,n_Y);
+leg_str_ = cell(1,n_Y+n_Z);
 for ii = 1:n_Y
-    plot(time(isp:iep),obj_cost(:,ii));
     leg_str_{ii} = ['y',int2str(ii)];
 end
+for ii = 1:n_Z
+    leg_str_{n_Y+ii} = ['z',int2str(ii)];
+end
 
-legend(hand_obj(1), leg_str_);
+figure('color','w','name','Objective Costs');
+
+hand_obj(1)=subplot(2,2,1); hold on; grid on; box on;
+
+for ii=1:3
+    plot(rec.time_nmpc(isp_nmpc:iep_nmpc),obj_cost(:,ii));
+end
+
+legend(hand_obj(1), leg_str_{1:3});
 ylabel('J(x)');
 ylim([0 max(obj_cost(:))]);
 
-hand_obj(2)=subplot(2,1,2); hold on; grid on; box on;
+hand_obj(2)=subplot(2,2,2); hold on; grid on; box on;
 
-leg_str_ = cell(1,n_Z);
-for ii = 1:n_Z
-    plot(time(isp:iep),obj_cost(:,n_Y+ii));
-    leg_str_{ii} = ['z',int2str(ii)];
+for ii=4:6
+    plot(rec.time_nmpc(isp_nmpc:iep_nmpc),obj_cost(:,ii));
 end
 
-legend(hand_obj(2), leg_str_);
+legend(hand_obj(2), leg_str_{4:6});
+ylabel('J(x)');
+ylim([0 max(obj_cost(:))]);
+
+hand_obj(3)=subplot(2,2,3); hold on; grid on; box on;
+
+for ii=7:9
+    plot(rec.time_nmpc(isp_nmpc:iep_nmpc),obj_cost(:,ii));
+end
+
+legend(hand_obj(3), leg_str_{7:9});
+ylabel('J(x)');
+ylim([0 max(obj_cost(:))]);
+
+xlabel('time [s]');
+
+hand_obj(4)=subplot(2,2,4); hold on; grid on; box on;
+
+for ii=10:12
+    plot(rec.time_nmpc(isp_nmpc:iep_nmpc),obj_cost(:,ii));
+end
+
+legend(hand_obj(4), leg_str_{10:12});
 ylabel('J(u)');
 ylim([0 max(obj_cost(:))]);
 

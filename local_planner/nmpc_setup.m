@@ -38,51 +38,23 @@ OnlineData w_n;             % northing wind [m/s]
 OnlineData w_e;             % easting wind [m/s]
 OnlineData w_d;             % down wind [m/s]
 
-% path reference
-OnlineData b_n;
-OnlineData b_e;
-OnlineData b_d;
-OnlineData Gamma_p;
-OnlineData chi_p;
-
-% guidance
-OnlineData T_b_lat;
-OnlineData T_b_lon;
-OnlineData gamma_app_max;
-
 % control augmented attitude time constants and gains
 OnlineData tau_phi;
 OnlineData tau_theta;
 OnlineData k_phi;
 OnlineData k_theta;
 
-% angle of attack soft constraint
-OnlineData delta_aoa;
-OnlineData aoa_m;
-OnlineData aoa_p;
-OnlineData log_sqrt_w_over_sig1_aoa;
-OnlineData one_over_sqrt_w_aoa;
+% soft aoa objective
+OnlineData sig_aoa;
+OnlineData jac_sig_aoa(2);
 
-% height soft constraint 
-OnlineData h_offset;
-OnlineData delta_h;
-OnlineData delta_y;
-OnlineData log_sqrt_w_over_sig1_h;
-OnlineData one_over_sqrt_w_h;
+% soft height objective
+OnlineData sig_h;
+OnlineData jac_sig_h(4);
 
-% radial soft constraint
-OnlineData r_offset;
-OnlineData delta_r0;
-OnlineData k_r;
-OnlineData log_sqrt_w_over_sig1_r;
-OnlineData one_over_sqrt_w_r;
-
-% terrain lookup
-OnlineData terr_local_origin_n;
-OnlineData terr_local_origin_e;
-OnlineData terr_dis;
-LEN_TERR_DATA = 3249;%19881;
-OnlineData terrain_data(LEN_TERR_DATA);
+% soft radial objective
+OnlineData sig_r;
+OnlineData jac_sig_r(6);
 
 % MODEL -------------------------------------------------------------------
 
@@ -154,7 +126,7 @@ n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
 n_Y = 9;                    % outputs
 n_Z = 3;                    % objectives
-n_OD = 34+LEN_TERR_DATA;    % online data
+n_OD = 23;                  % online data
 
 acadoSet('problemname', 'nmpc');
 
@@ -212,3 +184,6 @@ cd ..
 
 % compile output mex
 mex export_nmpc/lsq_objective_mex.c -outdir functions
+
+% compile external objective evaluation mex
+mex export_nmpc/external_objective_mex.c -outdir functions

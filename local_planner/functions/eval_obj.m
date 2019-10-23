@@ -1,3 +1,6 @@
+% / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
+% / / / DEPRECATED / / / DEPRECATED / / / DEPRECATED / / / DEPRECATED / / /
+% / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
 function [out,aux] = eval_obj(in, len_idx_n, len_idx_e, defines)
 
 USE_EXP_SOFT_COST = defines(1);

@@ -35,45 +35,11 @@ rho = onlinedata(1-nX-nU+12-idx_shift);
 w_n = onlinedata(1-nX-nU+13-idx_shift);
 w_e = onlinedata(1-nX-nU+14-idx_shift);
 w_d = onlinedata(1-nX-nU+15-idx_shift);
-% path reference
-% b_n = onlinedata(1-nX-nU+16-idx_shift);
-% b_e = onlinedata(1-nX-nU+17-idx_shift);
-% b_d = onlinedata(1-nX-nU+18-idx_shift);
-% Gamma_p = onlinedata(1-nX-nU+19-idx_shift);
-% chi_p = onlinedata(1-nX-nU+20-idx_shift);
-% guidance
-% T_b_lat = onlinedata(1-nX-nU+21-idx_shift);
-% T_b_lon = onlinedata(1-nX-nU+22-idx_shift);
-% gamma_app_max = onlinedata(1-nX-nU+23-idx_shift);
 % control augmented attitude time constants and gains
-tau_phi = onlinedata(1-nX-nU+24-idx_shift);
-tau_theta = onlinedata(1-nX-nU+25-idx_shift);
-k_phi = onlinedata(1-nX-nU+26-idx_shift);
-k_theta = onlinedata(1-nX-nU+27-idx_shift);
-% angle of attack soft constraint
-% delta_aoa = onlinedata(1-nX-nU+28-idx_shift);
-% aoa_m = onlinedata(1-nX-nU+29-idx_shift);
-% aoa_p = onlinedata(1-nX-nU+30-idx_shift);
-% log_sqrt_w_over_sig1_aoa = onlinedata(1-nX-nU+31-idx_shift);
-% one_over_sqrt_w_aoa = onlinedata(1-nX-nU+32-idx_shift);
-% height soft constraint 
-% h_offset = onlinedata(1-nX-nU+33-idx_shift);
-% delta_h = onlinedata(1-nX-nU+34-idx_shift);
-% delta_y = onlinedata(1-nX-nU+35-idx_shift);
-% log_sqrt_w_over_sig1_h = onlinedata(1-nX-nU+36-idx_shift);
-% one_over_sqrt_w_h = onlinedata(1-nX-nU+37-idx_shift);
-% radial soft constraint
-% r_offset = onlinedata(1-nX-nU+38-idx_shift);
-% delta_r0 = onlinedata(1-nX-nU+39-idx_shift);
-% k_r = onlinedata(1-nX-nU+40-idx_shift);
-% log_sqrt_w_over_sig1_r = onlinedata(1-nX-nU+41-idx_shift);
-% one_over_sqrt_w_r = onlinedata(1-nX-nU+42-idx_shift);
-% terrain lookup
-% terr_local_origin_n = onlinedata(1-nX-nU+43-idx_shift);
-% terr_local_origin_e = onlinedata(1-nX-nU+44-idx_shift);
-% terr_dis = onlinedata(1-nX-nU+45-idx_shift);
-% %terrain_data = onlinedata(1-nX-nU+46-idx_shift);
-% IDX_TERR_DATA = 1+46-idx_shift;
+tau_phi = onlinedata(1-nX-nU+16-idx_shift);
+tau_theta = onlinedata(1-nX-nU+17-idx_shift);
+k_phi = onlinedata(1-nX-nU+18-idx_shift);
+k_theta = onlinedata(1-nX-nU+19-idx_shift);
 
 % MODEL -------------------------------------------------------------------
 
