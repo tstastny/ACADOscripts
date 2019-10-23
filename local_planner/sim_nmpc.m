@@ -81,6 +81,7 @@ v_ref = 14;
 %% MORE PARAMS ------------------------------------------------------------
 
 tau_u = 0.5; % control reference time constant
+tau_terr = 0.5; % filter jacobians for terrain objectives
 
 %% OPTIONS ----------------------------------------------------------------
 
@@ -290,7 +291,8 @@ for k = 1:len_t
         preeval_output = external_objective_mex(preeval_input);
         input.y = preeval_output.y;
         input.yN = preeval_output.yN;
-        input.od = preeval_output.od;
+        input.od(:,[9:12, 17]) = preeval_output.od(:,[9:12, 17]);
+        input.od(:,[13:16, 18:23]) = (preeval_output.od(:,[13:16, 18:23]) - input.od(:,[13:16, 18:23])) / tau_terr * Ts_nmpc + input.od(:,[13:16, 18:23]);
         
         % update priorities
         prio_aoa = preeval_output.priorities(:,1);
