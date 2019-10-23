@@ -224,17 +224,17 @@ figure('color','w','name','Position errors')
 
 hand_pos_err(1)=subplot(2,1,1); hold on; grid on; box on;
 
-plot(time(isp:iep),rec.aux(isp:iep,2));
-plot(time(isp:iep),rec.aux(isp:iep,3));
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,3));
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,4));
 
 legend('e_{lat}','e_{lon}')
 ylabel('e [m]')
 
 hand_pos_err(2)=subplot(2,1,2); hold on; grid on; box on;
 
-plot(time(isp:iep),rec.aux(isp:iep,1),'color',color_ref);
-plot(time(isp:iep),rec.aux(isp:iep,1)+h_offset,'color',color_ref,'linestyle','--');
-plot(time(isp:iep),rec.aux(isp:iep,1)+h_offset+delta_h,'color',color_ref,'linestyle',':');
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,1),'color',color_ref);
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,1)+h_offset,'color',color_ref,'linestyle','--');
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,1)+h_offset+delta_h,'color',color_ref,'linestyle',':');
 plot(time(isp:iep),-rec.x(isp:iep,3),'color',color_state);
 
 legend('h_{terr}','h_{terr,off}','h_{terr}+h_{terr,off}+\Delta_h','h')
@@ -243,28 +243,6 @@ ylabel('Height [m]')
 xlabel('time [s]')
 
 linkaxes(hand_pos_err,'x');
-
-end
-
-if (plot_opt.directional_errors)
-%% ////////////////////////////////////////////////////////////////////////
-% DIRECTIONAL ERRORS
-
-figure('color','w','name','Directional errors')
-
-hand_dir_err(1)=subplot(2,1,1); hold on; grid on; box on;
-
-plot(time(isp:iep),rec.aux(isp:iep,4));
-plot(time(isp:iep),rec.aux(isp:iep,5));
-
-legend('e_{v_n}','e_{v_e}')
-ylabel('e_v [m/s]')
-
-hand_dir_err(2)=subplot(2,1,2); hold on; grid on; box on;
-
-plot(time(isp:iep),rec.aux(isp:iep,6));
-
-ylabel('e_{v_d} [m/s]')
 
 end
 
@@ -288,63 +266,37 @@ vG_d_unit = vG_d .* one_over_vG_norm;
 % VGN - - - - 
 hand_vel(1)=subplot(7,1,1:2); hold on; grid on; box on;
 
-% vP
-plot(time(isp:iep),rec.aux(isp:iep,35),'color',color_ref,'linestyle','-.');
-
-% v_occ
-plot(time(isp:iep),rec.aux(isp:iep,29),'color',cmap(2,:),'linestyle','--');
-
-% vP * sig_r + v_occ (1 - sig_r)
-plot(time(isp:iep),rec.aux(isp:iep,32),'color',color_ref);
-
-% v
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.yref(1,isp_nmpc:iep_nmpc,1),'color',color_ref);
 plot(time(isp:iep),vG_n_unit,'color',color_state);
 
-legend('v_P','v_{occ}','v_{cmd}','v_G');
 ylabel('$\hat{v}_{G_n}$','interpreter','latex');
 
 % VGE - - - - 
 hand_vel(2)=subplot(7,1,3:4); hold on; grid on; box on;
 
-% vP
-plot(time(isp:iep),rec.aux(isp:iep,36),'color',color_ref,'linestyle','-.');
-
-% v_occ
-plot(time(isp:iep),rec.aux(isp:iep,30),'color',cmap(2,:),'linestyle','--');
-
-% vP * sig_r + v_occ (1 - sig_r)
-plot(time(isp:iep),rec.aux(isp:iep,33),'color',color_ref);
-
-% v
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.yref(1,isp_nmpc:iep_nmpc,2),'color',color_ref);
 plot(time(isp:iep),vG_e_unit,'color',color_state);
 
-legend('v_P','v_{occ}','v_{cmd}','v_G');
 ylabel('$\hat{v}_{G_e}$','interpreter','latex');
 
 % VGD - - - - 
 hand_vel(3)=subplot(7,1,5:6); hold on; grid on; box on;
 
-% vP
-plot(time(isp:iep),rec.aux(isp:iep,37),'color',color_ref,'linestyle','-.');
-
-% v_occ
-plot(time(isp:iep),rec.aux(isp:iep,31),'color',cmap(2,:),'linestyle','--');
-
-% vP * sig_r + v_occ (1 - sig_r)
-plot(time(isp:iep),rec.aux(isp:iep,34),'color',color_ref);
-
-% v
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.yref(1,isp_nmpc:iep_nmpc,3),'color',color_ref);
 plot(time(isp:iep),vG_d_unit,'color',color_state);
 
-legend('v_P','v_{occ}','v_{cmd}','v_G');
 ylabel('$\hat{v}_{G_d}$','interpreter','latex');
 
 % PRIO - - - - 
 hand_vel(4)=subplot(7,1,7); hold on; grid on; box on;
 
-plot(time(isp:iep),rec.aux(isp:iep,25));
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc), rec.priorities(1,isp_nmpc:iep_nmpc,2));
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc), rec.priorities(1,isp_nmpc:iep_nmpc,3));
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc), rec.priorities(1,isp_nmpc:iep_nmpc,2) .* ...
+    rec.priorities(1,isp_nmpc:iep_nmpc,3));
 
-ylabel('{prio}_r');
+ylabel('prio');
+legend('{prio}_h','{prio}_r','{prio}_h*{prio}_r');
 
 xlabel('Time [s]');
 
@@ -376,25 +328,30 @@ if (plot_opt.radial_cost)
 %% ////////////////////////////////////////////////////////////////////////
 % RADIAL COST
 
+cos_gamma = cos(rec.x(isp:iep,5)); 
+vG_n = rec.x(isp:iep,4).*cos_gamma.*cos(rec.x(isp:iep,6)) + w_n; 
+vG_e = rec.x(isp:iep,4).*cos_gamma.*sin(rec.x(isp:iep,6)) + w_e; 
+vG_d = rec.x(isp:iep,4).*-sin(rec.x(isp:iep,5)) + w_d;
+vG_sq = vG_n.^2+vG_e.^2+vG_d.^2;
+Rmin = vG_sq*k_r;
+
+k_int = round(Ts_nmpc/Ts);
+idx_k = isp:k_int:iep;
+
 figure('color','w','name','Radial cost');
 
 % r
-hand_r(1) = subplot(5,1,1:2); hold on; grid on; box on;
+hand_r(1) = subplot(4,1,1:3); hold on; grid on; box on;
 plot(time([isp iep]),[r_offset r_offset],'color',color_ref);
-plot(time(isp:iep),rec.aux(isp:iep,39),'color',color_ref,'linestyle','--');
-plot(time(isp:iep),rec.aux(isp:iep,39)+rec.aux(isp:iep,24),'color',color_ref,'linestyle',':');
-plot(time(isp:iep),rec.aux(isp:iep,38).*double(rec.aux(isp:iep,16)>0),'color',color_state);
-legend('r_{{off}_1}','r_{{off}_1}+\Delta_r','d_{occ}');
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc), Rmin(idx_k) + r_offset,'color',color_ref,'linestyle','--');
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc), Rmin(idx_k) + r_offset + Rmin(idx_k) + delta_r0,'color',color_ref,'linestyle',':');
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc), rec.aux(1,isp_nmpc:iep_nmpc,2).*double(rec.aux(1,isp_nmpc:iep_nmpc,5)>0),'color',color_state);
+legend('r_{{offset}}','r_{{offset}_1}','r_{{offset}_1}+\Delta_r','r_{occ}');
 ylabel('r [m]');
 
-% radial cost
-hand_r(2) = subplot(5,1,3:4); hold on; grid on; box on;
-plot(time(isp:iep),rec.aux(isp:iep,17),'color',color_ref);
-ylabel('\sigma_r');
-
 % detection
-hand_r(3) = subplot(5,1,5); hold on; grid on; box on;
-plot(time(isp:iep),rec.aux(isp:iep,16),'color',color_state);
+hand_r(2) = subplot(4,1,4); hold on; grid on; box on;
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,5),'color',color_state);
 ylabel('Detect');
 
 end
@@ -403,38 +360,66 @@ if (plot_opt.objectives)
 %% ////////////////////////////////////////////////////////////////////////
 % OBJECTIVE COSTS
 
-obj_cost = zeros(length(isp:iep), n_Y+n_Z);
+obj_cost = zeros(length(isp_nmpc:iep_nmpc), n_Y+n_Z);
 for ii = 1:n_Y
-    obj_cost(:,ii) = (yref(ii)*ones(length(time(isp:iep)),1)-rec.yz(isp:iep,ii)).^2*Q_output(ii);
+    obj_cost(:,ii) = rec.W(isp_nmpc:iep_nmpc,ii) .* ...
+        (rec.yref(1,isp_nmpc:iep_nmpc,ii)' - rec.y(1,isp_nmpc:iep_nmpc,ii)').^2;
 end
 
 for ii = 1:n_Z
-    obj_cost(:,n_Y+ii) = (rec.u_ref(:,ii)-rec.yz(isp:iep,n_Y+ii)).^2*R_controls(ii);
+    obj_cost(:,n_Y+ii) = rec.W(isp_nmpc:iep_nmpc,n_Y+ii) .* ...
+        (rec.yref(1,isp_nmpc:iep_nmpc,n_Y+ii)' - rec.y(1,isp_nmpc:iep_nmpc,n_Y+ii)').^2;
 end
 
-figure('color','w','name','Objective Costs')
-
-hand_obj(1)=subplot(2,1,1); hold on; grid on; box on;
-
-leg_str_ = cell(1,n_Y);
+leg_str_ = cell(1,n_Y+n_Z);
 for ii = 1:n_Y
-    plot(time(isp:iep),obj_cost(:,ii));
     leg_str_{ii} = ['y',int2str(ii)];
 end
+for ii = 1:n_Z
+    leg_str_{n_Y+ii} = ['z',int2str(ii)];
+end
 
-legend(hand_obj(1), leg_str_);
+figure('color','w','name','Objective Costs');
+
+hand_obj(1)=subplot(2,2,1); hold on; grid on; box on;
+
+for ii=1:3
+    plot(rec.time_nmpc(isp_nmpc:iep_nmpc),obj_cost(:,ii));
+end
+
+legend(hand_obj(1), leg_str_{1:3});
 ylabel('J(x)');
 ylim([0 max(obj_cost(:))]);
 
-hand_obj(2)=subplot(2,1,2); hold on; grid on; box on;
+hand_obj(2)=subplot(2,2,2); hold on; grid on; box on;
 
-leg_str_ = cell(1,n_Z);
-for ii = 1:n_Z
-    plot(time(isp:iep),obj_cost(:,n_Y+ii));
-    leg_str_{ii} = ['z',int2str(ii)];
+for ii=4:6
+    plot(rec.time_nmpc(isp_nmpc:iep_nmpc),obj_cost(:,ii));
 end
 
-legend(hand_obj(2), leg_str_);
+legend(hand_obj(2), leg_str_{4:6});
+ylabel('J(x)');
+ylim([0 max(obj_cost(:))]);
+
+hand_obj(3)=subplot(2,2,3); hold on; grid on; box on;
+
+for ii=7:9
+    plot(rec.time_nmpc(isp_nmpc:iep_nmpc),obj_cost(:,ii));
+end
+
+legend(hand_obj(3), leg_str_{7:9});
+ylabel('J(x)');
+ylim([0 max(obj_cost(:))]);
+
+xlabel('time [s]');
+
+hand_obj(4)=subplot(2,2,4); hold on; grid on; box on;
+
+for ii=10:12
+    plot(rec.time_nmpc(isp_nmpc:iep_nmpc),obj_cost(:,ii));
+end
+
+legend(hand_obj(4), leg_str_{10:12});
 ylabel('J(u)');
 ylim([0 max(obj_cost(:))]);
 

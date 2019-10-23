@@ -11,10 +11,6 @@
 #define LEN_IDX_N_1 56
 #define LEN_IDX_E_1 56
 
-#define USE_EXP_SOFT_COST 1         /* soft constraints are (1): exponential, (0): cubic */
-#define USE_OCC_GRAD_AS_GUIDANCE 0  /* augment velocity guidance with negative gradient of the radial cost */
-#define USE_LINEAR_EXP_ASYMPTOTE 1  /* use linear asymptote as input arg of exponential cost goes to negative inf */
-
 /* math functions / / / / / / / / / / / / / / / / / / / / / / / / / / / /*/
 int constrain_int(int x, int xmin, int xmax) {
     return (x < xmin) ? xmin : ((x > xmax) ? xmax : x);
@@ -104,51 +100,55 @@ void lookup_terrain_idx(const double pos_n, const double pos_e, const double pos
 /* unit ground speed jacobian */
 void jac_vg_unit(double *jac_vn, double *jac_ve, double *jac_vd,
         const double gamma, const double one_over_vG_norm, const double v,
-        const double vG_d, const double vG_e, const double vG_n,
-        const double v_d, const double v_e, const double v_n, const double xi) {
+        const double vG_d, const double vG_d_unit, const double vG_e,
+        const double vG_e_unit, const double vG_n, const double vG_n_unit,
+        const double v_d, const double v_e, const double v_n, const double xi)
+{
     
     /* v_n, w.r.t.:
      * v
      * gamma
      * xi
+     *
      * v_e, w.r.t.:
      * v
      * gamma
      * xi
+     *
      * v_d, w.r.t.:
      * v
      * gamma
      * xi
      */
     
-    const double t2 = one_over_vG_norm*one_over_vG_norm; 
-    const double t3 = cos(gamma); 
-    const double t4 = cos(xi); 
+    const double t2 = cos(gamma); 
+    const double t3 = cos(xi); 
+    const double t4 = one_over_vG_norm*one_over_vG_norm; 
     const double t5 = sin(gamma); 
     const double t6 = sin(xi); 
-    const double t7 = t3*t4*vG_n*2.0; 
-    const double t8 = t3*t6*vG_e*2.0; 
+    const double t7 = t2*t3*vG_n*2.0; 
+    const double t8 = t2*t6*vG_e*2.0; 
     const double t16 = t5*vG_d*2.0; 
     const double t9 = t7+t8-t16; 
-    const double t10 = t3*v*vG_d*2.0; 
-    const double t11 = t4*t5*v*vG_n*2.0; 
+    const double t10 = t2*v*vG_d*2.0; 
+    const double t11 = t3*t5*v*vG_n*2.0; 
     const double t12 = t5*t6*v*vG_e*2.0; 
     const double t13 = t10+t11+t12; 
     const double t14 = vG_n*v_e*2.0; 
     const double t17 = vG_e*v_n*2.0; 
     const double t15 = t14-t17;
     
-    jac_vn[0] = -one_over_vG_norm*t3*t4+one_over_vG_norm*t2*t9*vG_n*0.5; 
-    jac_vn[1] = one_over_vG_norm*t4*t5*v-one_over_vG_norm*t2*t13*vG_n*0.5; 
-    jac_vn[2] = one_over_vG_norm*v_e-one_over_vG_norm*t2*t15*vG_n*0.5;
+    jac_vn[0] = one_over_vG_norm*t2*t3-t4*t9*vG_n_unit*0.5; 
+    jac_vn[1] = one_over_vG_norm*t3*v_d+t4*t13*vG_n_unit*0.5; 
+    jac_vn[2] = -one_over_vG_norm*v_e+t4*t15*vG_n_unit*0.5;
     
-    jac_ve[0] = -one_over_vG_norm*t3*t6+one_over_vG_norm*t2*t9*vG_e*0.5; 
-    jac_ve[1] = one_over_vG_norm*t5*t6*v-one_over_vG_norm*t2*t13*vG_e*0.5; 
-    jac_ve[2] = -one_over_vG_norm*v_n-one_over_vG_norm*t2*t15*vG_e*0.5; 
+    jac_ve[0] = one_over_vG_norm*t2*t6-t4*t9*vG_e_unit*0.5; 
+    jac_ve[1] = one_over_vG_norm*t6*v_d+t4*t13*vG_e_unit*0.5; 
+    jac_ve[2] = one_over_vG_norm*v_n+t4*t15*vG_e_unit*0.5;
     
-    jac_vd[0] = one_over_vG_norm*t5+one_over_vG_norm*t2*t9*vG_d*0.5; 
-    jac_vd[1] = one_over_vG_norm*t3*v-one_over_vG_norm*t2*t13*vG_d*0.5; 
-    jac_vd[2] = one_over_vG_norm*t2*t15*vG_d*-0.5; 
+    jac_vd[0] = -one_over_vG_norm*t5-t4*t9*vG_d_unit*0.5; 
+    jac_vd[1] = -one_over_vG_norm*t2*v+t4*t13*vG_d_unit*0.5; 
+    jac_vd[2] = t4*t15*vG_d_unit*0.5;
 }
 
 /* soft angle of attack jacobian (exponential) */
@@ -165,39 +165,6 @@ void jac_sig_aoa_exp(double *jac,
     const double t3 = log_sqrt_w_over_sig1_aoa*sig_aoa_m*t2; 
     jac[0] = t3-log_sqrt_w_over_sig1_aoa*sig_aoa_p*t2; 
     jac[1] = -t3+log_sqrt_w_over_sig1_aoa*sig_aoa_p*t2; 
-}
-
-/* soft angle of attack (upper bound) jacobian (cubic) */
-void jac_sig_aoa_p_cubic(double *jac,
-        const double aoa, const double aoa_p, const double delta_aoa) {
-        
-    /* w.r.t.:
-     * gamma
-     * theta
-     */
-    
-    const double t2 = aoa-aoa_p+delta_aoa; 
-    const double t3 = 1.0/(delta_aoa*delta_aoa*delta_aoa); 
-    const double t4 = t2*t2; 
-    jac[0] = t3*t4*-3.0; 
-    jac[1] = t3*t4*3.0; 
-}
-
-/* soft angle of attack (lower bound) jacobian (cubic) */
-void jac_sig_aoa_m_cubic(double *jac,
-        const double aoa, const double aoa_m, const double delta_aoa) {
-        
-    /* w.r.t.:
-     * gamma
-     * theta
-     */
-    
-    const double t2 = -aoa+aoa_m+delta_aoa; 
-    const double t3 = 1.0/(delta_aoa*delta_aoa*delta_aoa); 
-    const double t4 = t2*t2; 
-    const double t5 = t3*t4*3.0; 
-    jac[0] = t5; 
-    jac[1] = -t5; 
 }
 
 /* height terrain jacobian (linear) */
@@ -252,36 +219,6 @@ void jac_sig_h_exp(double *jac,
     jac[1] = -log_sqrt_w_over_sig1_h*sig_h*t3*(h12*t2-h34*t2); 
     jac[2] = log_sqrt_w_over_sig1_h*sig_h*t3; 
     jac[3] = -log_sqrt_w_over_sig1_h*sig_h*t3*(de*(delta_y*h3*sgn_n*t2*t5-delta_y*h4*sgn_n*t2*t5)-t4*(delta_y*h1*sgn_n*t2*t5-delta_y*h2*sgn_n*t2*t5)-delta_y*h12*sgn_e*t2*t6+delta_y*h34*sgn_e*t2*t6);
-}
-
-/* height terrain jacobian (cubic) */
-void jac_sig_h_cubic(double *jac,
-        const double de, const double delta_h, const double delta_y,
-        const double h1, const double h12, const double h2, const double h3,
-        const double h34, const double h4, const double h_offset,
-        const double r_d, const double sgn_e, const double sgn_n,
-        const double terr_dis, const double xi) {
-    
-    /* w.r.t.:
-     * r_n
-     * r_e
-     * r_d
-     * xi
-     */
-    
-    const double t2 = 1.0/terr_dis; 
-    const double t3 = de-1.0; 
-    const double t6 = de*h34; 
-    const double t7 = h12*t3; 
-    const double t4 = delta_h+h_offset+r_d+t6-t7; 
-    const double t5 = 1.0/(delta_h*delta_h*delta_h); 
-    const double t8 = t4*t4; 
-    const double t9 = cos(xi); 
-    const double t10 = sin(xi); 
-    jac[0] = t5*t8*(de*(h3*t2-h4*t2)-t3*(h1*t2-h2*t2))*-3.0; 
-    jac[1] = t5*t8*(h12*t2-h34*t2)*-3.0; 
-    jac[2] = t5*t8*3.0; 
-    jac[3] = t5*t8*(de*(delta_y*h3*sgn_n*t2*t9-delta_y*h4*sgn_n*t2*t9)-t3*(delta_y*h1*sgn_n*t2*t9-delta_y*h2*sgn_n*t2*t9)-delta_y*h12*sgn_e*t2*t10+delta_y*h34*sgn_e*t2*t10)*-3.0; 
 }
 
 /* radial terrain (bottom-right) jacobian (linear) */
@@ -344,73 +281,6 @@ void jac_sig_r_br_lin(double *jac,
     jac[3] = log_sqrt_w_over_sig1_r*t3*(k_r*t17+d_occ*t9*(t5*t12+t2*t11*t13*terr_dis+t4*t11*t14*terr_dis)-t9*t17*t19*t31*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t17*t32*t33; 
     jac[4] = -log_sqrt_w_over_sig1_r*t3*(k_r*t23+d_occ*t9*(-t5*t11*v+t2*t12*t13*terr_dis*v+t4*t12*t14*terr_dis*v)-t9*t19*t23*t31*(1.0/2.0))-k_r*log_sqrt_w_over_sig1_r*t23*t32*t33; 
     jac[5] = -log_sqrt_w_over_sig1_r*t3*(-k_r*t35+d_occ*t9*(t2*t11*t14*terr_dis*v-t4*t11*t13*terr_dis*v)+t9*t19*t31*t35*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t32*t33*(t34-t36); 
-}
-
-/* radial terrain (bottom-right) jacobian (cubic) */
-void jac_sig_r_br_cubic(double *jac,
-        const double r_n, const double r_e, const double r_d,
-        const double v, const double gamma, const double xi,
-        const double w_e, const double w_n, const double w_d,
-        const double terr_dis,
-        const double p1_n, const double p1_e, const double p1_h,
-        const double p2_n, const double p2_e, const double p2_h,
-        const double p3_n, const double p3_e, const double p3_h,
-        const double r_offset, const double delta_r0, const double k_r,
-        const double sig_r, const double d_occ, const double delta_r,
-        const double vG_sq, const double vG,
-        const double vG_n, const double vG_e, const double vG_d) {
-    
-    /* w.r.t.:
-     * r_n
-     * r_e
-     * r_d
-     * v
-     * gamma
-     * xi
-     */
-    
-    const double t2 = p2_h-p3_h; 
-    const double t3 = -d_occ+delta_r+r_offset; 
-    const double t4 = 1.0/(delta_r*delta_r*delta_r); 
-    const double t5 = p1_h-p2_h; 
-    const double t6 = terr_dis*terr_dis; 
-    const double t7 = t5*terr_dis*vG_e; 
-    const double t8 = t2*terr_dis*vG_n; 
-    const double t12 = t6*vG_d; 
-    const double t9 = t7+t8-t12; 
-    const double t10 = 1.0/t9; 
-    const double t11 = t3*t3; 
-    const double t13 = cos(gamma); 
-    const double t14 = sin(gamma); 
-    const double t15 = cos(xi); 
-    const double t16 = sin(xi); 
-    const double t17 = t13*t15*vG_n*2.0; 
-    const double t18 = t13*t16*vG_e*2.0; 
-    const double t20 = t14*vG_d*2.0; 
-    const double t19 = t17+t18-t20; 
-    const double t21 = 1.0/vG; 
-    const double t22 = t13*v*vG_d*2.0; 
-    const double t23 = t14*t15*v*vG_n*2.0; 
-    const double t24 = t14*t16*v*vG_e*2.0; 
-    const double t25 = t22+t23+t24; 
-    const double t26 = p1_h+r_d; 
-    const double t27 = t6*t26; 
-    const double t28 = p1_h*t6; 
-    const double t29 = p1_e-r_e; 
-    const double t30 = t5*t29*terr_dis; 
-    const double t31 = p1_n-r_n; 
-    const double t32 = t2*t31*terr_dis; 
-    const double t33 = t27+t28+t30+t32; 
-    const double t34 = 1.0/delta_r; 
-    const double t35 = t13*t15*v*vG_e*2.0; 
-    const double t37 = t13*t16*v*vG_n*2.0; 
-    const double t36 = t35-t37; 
-    jac[0] = t2*t4*t10*t11*terr_dis*vG*3.0; 
-    jac[1] = t4*t5*t10*t11*terr_dis*vG*3.0; 
-    jac[2] = t4*t6*t10*t11*vG*-3.0; 
-    jac[3] = t4*t11*(k_r*t19+d_occ*t10*(t6*t14+t2*t13*t15*terr_dis+t5*t13*t16*terr_dis)-t10*t19*t21*t33*0.5)*3.0-k_r*sig_r*t19*t34*3.0; 
-    jac[4] = t4*t11*(k_r*t25+d_occ*t10*(-t6*t13*v+t2*t14*t15*terr_dis*v+t5*t14*t16*terr_dis*v)-t10*t21*t25*t33*0.5)*-3.0+k_r*sig_r*t25*t34*3.0; 
-    jac[5] = t4*t11*(-k_r*t36+d_occ*t10*(t2*t13*t16*terr_dis*v-t5*t13*t15*terr_dis*v)+t10*t21*t33*t36*0.5)*-3.0-k_r*sig_r*t34*t36*3.0; 
 }
 
 /* radial terrain (bottom-right) jacobian (exponential) */
@@ -536,73 +406,6 @@ void jac_sig_r_tl_lin(double *jac,
     jac[3] = log_sqrt_w_over_sig1_r*t3*(k_r*t17+d_occ*t9*(t5*t12+t2*t11*t13*terr_dis+t4*t11*t14*terr_dis)-t9*t17*t19*t31*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t17*t32*t33; 
     jac[4] = -log_sqrt_w_over_sig1_r*t3*(k_r*t23+d_occ*t9*(-t5*t11*v+t2*t12*t13*terr_dis*v+t4*t12*t14*terr_dis*v)-t9*t19*t23*t31*(1.0/2.0))-k_r*log_sqrt_w_over_sig1_r*t23*t32*t33; 
     jac[5] = -log_sqrt_w_over_sig1_r*t3*(-k_r*t35+d_occ*t9*(t2*t11*t14*terr_dis*v-t4*t11*t13*terr_dis*v)+t9*t19*t31*t35*(1.0/2.0))+k_r*log_sqrt_w_over_sig1_r*t32*t33*(t34-t36); 
-}
-
-/* radial terrain (top-left) jacobian (cubic) */
-void jac_sig_r_tl_cubic(double *jac,
-        const double r_n, const double r_e, const double r_d,
-        const double v, const double gamma, const double xi,
-        const double w_e, const double w_n, const double w_d,
-        const double terr_dis,
-        const double p1_n, const double p1_e, const double p1_h,
-        const double p2_n, const double p2_e, const double p2_h,
-        const double p3_n, const double p3_e, const double p3_h,
-        const double r_offset, const double delta_r0, const double k_r,
-        const double sig_r, const double d_occ, const double delta_r,
-        const double vG_sq, const double vG,
-        const double vG_n, const double vG_e, const double vG_d) {
-    
-    /* w.r.t.:
-     * r_n
-     * r_e
-     * r_d
-     * v
-     * gamma
-     * xi
-     */
-        
-    const double t2 = p1_h-p2_h; 
-    const double t3 = -d_occ+delta_r+r_offset; 
-    const double t4 = 1.0/(delta_r*delta_r*delta_r); 
-    const double t5 = p2_h-p3_h; 
-    const double t6 = terr_dis*terr_dis; 
-    const double t7 = t5*terr_dis*vG_e; 
-    const double t8 = t2*terr_dis*vG_n; 
-    const double t12 = t6*vG_d; 
-    const double t9 = t7+t8-t12; 
-    const double t10 = 1.0/t9; 
-    const double t11 = t3*t3; 
-    const double t13 = cos(gamma); 
-    const double t14 = sin(gamma); 
-    const double t15 = cos(xi); 
-    const double t16 = sin(xi); 
-    const double t17 = t13*t15*vG_n*2.0; 
-    const double t18 = t13*t16*vG_e*2.0; 
-    const double t20 = t14*vG_d*2.0; 
-    const double t19 = t17+t18-t20; 
-    const double t21 = 1.0/vG; 
-    const double t22 = t13*v*vG_d*2.0; 
-    const double t23 = t14*t15*v*vG_n*2.0; 
-    const double t24 = t14*t16*v*vG_e*2.0; 
-    const double t25 = t22+t23+t24; 
-    const double t26 = p1_h+r_d; 
-    const double t27 = t6*t26; 
-    const double t28 = p1_h*t6; 
-    const double t29 = p1_e-r_e; 
-    const double t30 = t5*t29*terr_dis; 
-    const double t31 = p1_n-r_n; 
-    const double t32 = t2*t31*terr_dis; 
-    const double t33 = t27+t28+t30+t32; 
-    const double t34 = 1.0/delta_r; 
-    const double t35 = t13*t15*v*vG_e*2.0; 
-    const double t37 = t13*t16*v*vG_n*2.0; 
-    const double t36 = t35-t37; 
-    jac[0] = t2*t4*t10*t11*terr_dis*vG*3.0; 
-    jac[1] = t4*t5*t10*t11*terr_dis*vG*3.0; 
-    jac[2] = t4*t6*t10*t11*vG*-3.0; 
-    jac[3] = t4*t11*(k_r*t19+d_occ*t10*(t6*t14+t2*t13*t15*terr_dis+t5*t13*t16*terr_dis)-t10*t19*t21*t33*0.5)*3.0-k_r*sig_r*t19*t34*3.0; 
-    jac[4] = t4*t11*(k_r*t25+d_occ*t10*(-t6*t13*v+t2*t14*t15*terr_dis*v+t5*t14*t16*terr_dis*v)-t10*t21*t25*t33*0.5)*-3.0+k_r*sig_r*t25*t34*3.0; 
-    jac[5] = t4*t11*(-k_r*t36+d_occ*t10*(t2*t13*t16*terr_dis*v-t5*t13*t15*terr_dis*v)+t10*t21*t33*t36*0.5)*-3.0-k_r*sig_r*t34*t36*3.0; 
 }
 
 /* radial terrain (top-left) jacobian (exponential) */
@@ -1321,6 +1124,34 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
     }
     return occ_detected;
 }
+
+/* calculate speed states */
+void calculate_speed_states(double *speed_states,
+        const double v, const double gamma, const double xi,
+        const double w_n, const double w_e, const double w_d)
+{
+    const double v_cos_gamma = v*cos(gamma);
+    const double cos_xi = cos(xi);
+    const double sin_xi = sin(xi);
+    
+    /* airspeed */
+    speed_states[0] = v_cos_gamma*cos_xi;       /* v_n */
+    speed_states[1] = v_cos_gamma*sin_xi;       /* v_e */
+    speed_states[2] = -v*sin(gamma);            /* v_d */
+    
+    /* ground speed */
+    speed_states[3] = speed_states[0] + w_n;    /* vG_n */
+    speed_states[4] = speed_states[1] + w_e;    /* vG_e */
+    speed_states[5] = speed_states[2] + w_d;    /* vG_d */
+    speed_states[6] = speed_states[3]*speed_states[3] + speed_states[4]*speed_states[4] + speed_states[5]*speed_states[5]; /* vG_sq */
+    speed_states[7] = sqrt(speed_states[6]);    /* vG_norm */
+    
+    /* unit ground speed */
+    speed_states[8] = (speed_states[7] < 0.01) ? 100.0 : 1.0 / speed_states[7];
+    speed_states[9] = speed_states[3] * speed_states[8];    /* vG_n_unit */
+    speed_states[10] = speed_states[4] * speed_states[8];	/* vG_e_unit */
+    speed_states[11] = speed_states[5] * speed_states[8];   /* vG_d_unit */
+}
 /* / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / */
 
 /* evaluation functions / / / / / / / / / / / / / / / / / / / / / / / / /*/
@@ -1358,581 +1189,66 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
     const double w_e = in[14-idx_shift];
     const double w_d = in[15-idx_shift];
     
-    /* path reference */
-    const double b_n = in[16-idx_shift];
-    const double b_e = in[17-idx_shift];
-    const double b_d = in[18-idx_shift];
-    const double Gamma_p = in[19-idx_shift];
-    const double chi_p = in[20-idx_shift];
-    
-    /* guidance */
-    const double T_b_lat = in[21-idx_shift];
-    const double T_b_lon = in[22-idx_shift];
-    const double gamma_app_max = in[23-idx_shift];
-
     /* control augmented attitude time constants and gains */
-    /*const double tau_phi = in[24-idx_shift];
-	const double tau_theta = in[25-idx_shift];
-	const double k_phi = in[26-idx_shift];
-	const double k_theta = in[27-idx_shift];*/
-
-    /* angle of attack soft constraint */
-    const double delta_aoa = in[28-idx_shift];
-    const double aoa_m = in[29-idx_shift];
-    const double aoa_p = in[30-idx_shift];
-    const double log_sqrt_w_over_sig1_aoa = in[31-idx_shift];
-    const double one_over_sqrt_w_aoa = in[32-idx_shift];
-
-    /* height soft constraint  */
-    const double h_offset = in[33-idx_shift];
-    const double delta_h = in[34-idx_shift];
-    const double delta_y = in[35-idx_shift];
-    const double log_sqrt_w_over_sig1_h = in[36-idx_shift];
-    const double one_over_sqrt_w_h = in[37-idx_shift];
-
-    /* radial soft constraint */
-    const double r_offset = in[38-idx_shift];
-    const double delta_r0 = in[39-idx_shift];
-    const double k_r = in[40-idx_shift];
-    const double log_sqrt_w_over_sig1_r = in[41-idx_shift];
-    const double one_over_sqrt_w_r = in[42-idx_shift];
-
-    /* terrain lookup */
-    const double terr_local_origin_n = in[43-idx_shift];
-    const double terr_local_origin_e = in[44-idx_shift];
-    const double terr_dis = in[45-idx_shift];
-    /*const double terrain_data = in[46-idx_shift];*/
-    int IDX_TERR_DATA = 46-idx_shift;
+    /*const double tau_phi = in[16-idx_shift];
+    const double tau_theta = in[17-idx_shift];
+    const double k_phi = in[18-idx_shift];
+    const double k_theta = in[19-idx_shift];*/
+    
+    /* soft aoa */
+    const double sig_aoa = in[20-idx_shift];
+    double jac_sig_aoa[2];
+    jac_sig_aoa[0] = in[21-idx_shift];
+    jac_sig_aoa[1] = in[22-idx_shift];
+    
+    /* soft height */
+    const double sig_h = in[23-idx_shift];
+    double jac_sig_h[4];
+    jac_sig_h[0] = in[24-idx_shift];
+    jac_sig_h[1] = in[25-idx_shift];
+    jac_sig_h[2] = in[26-idx_shift];
+    jac_sig_h[3] = in[27-idx_shift];
+    
+    /* soft radial */
+    const double sig_r = in[28-idx_shift];
+    double jac_sig_r[6];
+    jac_sig_r[0] = in[29-idx_shift];
+    jac_sig_r[1] = in[30-idx_shift];
+    jac_sig_r[2] = in[31-idx_shift];
+    jac_sig_r[3] = in[32-idx_shift];
+    jac_sig_r[4] = in[33-idx_shift];
+    jac_sig_r[5] = in[34-idx_shift];
     
     
     /* INTERMEDIATE CALCULATIONS - - - - - - - - - - - - - - - - - - - - */
-    
-    /* ground speed */
-    double v_cos_gamma = v*cos(gamma);
-    const double cos_xi = cos(xi);
-    const double sin_xi = sin(xi);
-    const double v_n = v_cos_gamma*cos_xi;
-    const double v_e = v_cos_gamma*sin_xi;
-    const double v_d = -v*sin(gamma);
-    const double vG_n = v_n + w_n;
-    const double vG_e = v_e + w_e;
-    const double vG_d = v_d + w_d;
-    const double vG_sq = vG_n*vG_n + vG_e*vG_e + vG_d*vG_d;
-    const double vG_norm = sqrt(vG_sq);
-    
-    /* unit ground speed */
-    const double one_over_vG_norm = (vG_norm < 0.01) ? 100.0 : 1.0 / vG_norm;
-    const double vG_n_unit = vG_n * one_over_vG_norm;
-    const double vG_e_unit = vG_e * one_over_vG_norm;
-    const double vG_d_unit = vG_d * one_over_vG_norm;
 
-    /* TERRAIN - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    
-    /* cast ray along ground speed vector to check for occlusions */
-    
-    /* init */
-    double d_occ;
-    double p_occ[3];
-    double p1[3];
-    double p2[3];
-    double p3[3];
-    
-    /* unit ray vector */
-    double v_ray[3] = {vG_e_unit, vG_n_unit, -vG_d_unit}; /* in ENU */
-    
-    /* radial buffer zone */
-    const double delta_r = vG_sq * k_r + delta_r0;
-    
-    /* adjusted radial offset */
-    const double r_offset_1 = r_offset + vG_sq * k_r;
-    
-    /* ray length */
-    const double d_ray = delta_r + r_offset_1 + terr_dis;
-    
-    /* ray start ENU */
-    const double r0[3] = {r_e, r_n, -r_d};
-    /* ray end ENU */
-    const double r1[3] = {r0[0] + v_ray[0] * d_ray, r0[1] + v_ray[1] * d_ray, r0[2] + v_ray[2] * d_ray};
-    
-    /* cast the ray */
-    int occ_detected = castray(&d_occ, p_occ, p1, p2, p3, r0, r1, v_ray,
-        terr_local_origin_n, terr_local_origin_e, terr_dis, in+IDX_TERR_DATA);
-    /* shift occlusion origin */
-    p1[0] = p1[0] + terr_local_origin_e;
-    p1[1] = p1[1] + terr_local_origin_n;
-    p2[0] = p2[0] + terr_local_origin_e;
-    p2[1] = p2[1] + terr_local_origin_n;
-    p3[0] = p3[0] + terr_local_origin_e;
-    p3[1] = p3[1] + terr_local_origin_n;
-    p_occ[0] = p_occ[0] + terr_local_origin_e;
-    p_occ[1] = p_occ[1] + terr_local_origin_n;
-
-    
-    /* SOFT CONSTRAINTS - - - - - - - - - - - - - - - - - - - - - - - - -*/
-    
-    /* angle of attack */
-    const double aoa = theta - gamma;
-    double sig_aoa = 0.0;
-    double prio_aoa = 1.0;
-    double jac_sig_aoa[2] = {0.0, 0.0};
-    
-    /* height */
-    const double h = -r_d;
-    double sig_h = 0.0;
-    double sig_h_temp = 0.0;
-    double prio_h = 1.0;
-    double jac_sig_h[4] = {0.0, 0.0, 0.0, 0.0};
-    double jac_sig_h_temp[4] = {0.0, 0.0, 0.0, 0.0};
-    
-    /* radial cost */
-    double sig_r = 0.0;
-    double prio_r = 1.0;
-    double jac_sig_r[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-#if USE_EXP_SOFT_COST /* EXPONENTIAL COST */
-    
-    /* angle of attack objective / jacobian - - - - - - - - - - - - - - -*/
-    
-    if (!(one_over_sqrt_w_aoa<0.0)) {
-    
-        /* upper bound */
-        const double sig_aoa_p = (aoa - aoa_p < 0.0)
-            ? exp((aoa - aoa_p)/delta_aoa*log_sqrt_w_over_sig1_aoa)
-            : 1.0 + log_sqrt_w_over_sig1_aoa/delta_aoa * (aoa - aoa_p);
-
-        /* lower bound */
-        const double sig_aoa_m = (aoa - aoa_m)
-            ? exp(-(aoa - aoa_m)/delta_aoa*log_sqrt_w_over_sig1_aoa)
-            : 1.0 - log_sqrt_w_over_sig1_aoa/delta_aoa * (aoa - aoa_m);
-
-        /* combined */
-        sig_aoa = sig_aoa_p + sig_aoa_m;
-
-        /* jacobian */
-        if ((aoa - aoa_p > 0.0) && USE_LINEAR_EXP_ASYMPTOTE) {
-            /* upper linear jacobian */
-            jac_sig_aoa[0] = -log_sqrt_w_over_sig1_aoa/delta_aoa; /* gamma */
-            jac_sig_aoa[1] = log_sqrt_w_over_sig1_aoa/delta_aoa; /* theta */
-        }
-        else if ((aoa - aoa_m < 0) && USE_LINEAR_EXP_ASYMPTOTE) {
-            /* lower linear jacobian */
-            jac_sig_aoa[0] = log_sqrt_w_over_sig1_aoa/delta_aoa; /* gamma */
-            jac_sig_aoa[1] = -log_sqrt_w_over_sig1_aoa/delta_aoa; /* theta */
-        }
-        else {
-            /* exponential jacobian */
-            jac_sig_aoa_exp(jac_sig_aoa, delta_aoa, log_sqrt_w_over_sig1_aoa,
-                sig_aoa_m, sig_aoa_p);
-        }
-
-        /* prioritization */
-        prio_aoa = 1.0; /*1.0 - ((sig_aoa*one_over_sqrt_w_aoa > 1.0) ? 1.0 : sig_aoa*one_over_sqrt_w_aoa);*/
-    }
-
-    
-    /* height objective / jacobian - - - - - - - - - - - - - - - - - - - */
-    
-    if (!(one_over_sqrt_w_h<0.0)) {
-        
-        /* lookup 2.5d grid (CENTER) */
-        int idx_q[4];
-        double dn, de;    
-        double sgn_n = 0.0;
-        double sgn_e = 0.0;
-        lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, &dn, &de);
-        /* bi-linear interpolation */
-        double h12 = (1-dn)*in[IDX_TERR_DATA+idx_q[0]] + dn*in[IDX_TERR_DATA+idx_q[1]];
-        double h34 = (1-dn)*in[IDX_TERR_DATA+idx_q[2]] + dn*in[IDX_TERR_DATA+idx_q[3]];
-        double h_terr = (1-de)*h12 + de*h34;
-        /* objective / jacobian */
-        if ((h - h_terr - h_offset < 0.0) && USE_LINEAR_EXP_ASYMPTOTE) {
-            /* linear */
-            sig_h = 1.0 + -log_sqrt_w_over_sig1_h/delta_h * (h - h_terr - h_offset);
-            jac_sig_h_lin(jac_sig_h,
-                de, delta_h, delta_y,
-                in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]],
-                in[IDX_TERR_DATA+idx_q[2]], h34, in[IDX_TERR_DATA+idx_q[3]],
-                log_sqrt_w_over_sig1_h, sgn_e,
-                sgn_n, terr_dis, xi);
-        }
-        else {
-            /* exponential */
-            sig_h = exp(-(h - h_terr - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
-            jac_sig_h_exp(jac_sig_h,
-                de, delta_h, delta_y,
-                in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]],
-                in[IDX_TERR_DATA+idx_q[2]], h34, in[IDX_TERR_DATA+idx_q[3]],
-                log_sqrt_w_over_sig1_h, sgn_e, sgn_n, sig_h,
-                terr_dis, xi);
-        }
-
-        /* lookup 2.5d grid (LEFT side) */
-        sgn_n = 1.0;
-        sgn_e = -1.0;
-        lookup_terrain_idx(r_n + sgn_n*sin_xi * delta_y, r_e + sgn_e*cos_xi * delta_y, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, &dn, &de);
-        /* bi-linear interpolation */
-        h12 = (1-dn)*in[IDX_TERR_DATA+idx_q[0]] + dn*in[IDX_TERR_DATA+idx_q[1]];
-        h34 = (1-dn)*in[IDX_TERR_DATA+idx_q[2]] + dn*in[IDX_TERR_DATA+idx_q[3]];
-        h_terr = (1-de)*h12 + de*h34;
-        /* objective / jacobian */
-        if ((h - h_terr - h_offset < 0.0) && USE_LINEAR_EXP_ASYMPTOTE) {
-            /* linear */
-            sig_h_temp = 1.0 + -log_sqrt_w_over_sig1_h/delta_h * (h - h_terr - h_offset);
-            jac_sig_h_lin(jac_sig_h_temp,
-                de, delta_h, delta_y,
-                in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]],
-                in[IDX_TERR_DATA+idx_q[2]], h34, in[IDX_TERR_DATA+idx_q[3]],
-                log_sqrt_w_over_sig1_h, sgn_e,
-                sgn_n, terr_dis, xi);
-        }
-        else {
-            /* exponential */
-            sig_h_temp = exp(-(h - h_terr - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
-            jac_sig_h_exp(jac_sig_h_temp,
-                de, delta_h, delta_y,
-                in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]], in[IDX_TERR_DATA+idx_q[2]],
-                h34, in[IDX_TERR_DATA+idx_q[3]], log_sqrt_w_over_sig1_h,
-                sgn_e, sgn_n, sig_h_temp,
-                terr_dis, xi);
-        }
-        sig_h += sig_h_temp;
-        jac_sig_h[0] += jac_sig_h_temp[0];
-        jac_sig_h[1] += jac_sig_h_temp[1];
-        jac_sig_h[2] += jac_sig_h_temp[2];
-        jac_sig_h[3] += jac_sig_h_temp[3];
-
-        /* lookup 2.5d grid (RIGHT side) */
-        sgn_n = -1.0;
-        sgn_e = 1.0;
-        lookup_terrain_idx(r_n + sgn_n*sin_xi * delta_y, r_e + sgn_e*cos_xi * delta_y, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, &dn, &de);
-        /* bi-linear interpolation */
-        h12 = (1-dn)*in[IDX_TERR_DATA+idx_q[0]] + dn*in[IDX_TERR_DATA+idx_q[1]];
-        h34 = (1-dn)*in[IDX_TERR_DATA+idx_q[2]] + dn*in[IDX_TERR_DATA+idx_q[3]];
-        h_terr = (1-de)*h12 + de*h34;
-        /* objective / jacobian */
-        if ((h - h_terr - h_offset < 0.0) && USE_LINEAR_EXP_ASYMPTOTE) {
-            /* linear */
-            sig_h_temp = 1.0 + -log_sqrt_w_over_sig1_h/delta_h * (h - h_terr - h_offset);
-            jac_sig_h_lin(jac_sig_h_temp,
-                de, delta_h, delta_y,
-                in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]],
-                in[IDX_TERR_DATA+idx_q[2]], h34, in[IDX_TERR_DATA+idx_q[3]],
-                log_sqrt_w_over_sig1_h, sgn_e,
-                sgn_n, terr_dis, xi);
-        }
-        else {
-            /* exponential */
-            sig_h_temp = exp(-(h - h_terr - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
-            jac_sig_h_exp(jac_sig_h_temp,
-                de, delta_h, delta_y,
-                in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]], in[IDX_TERR_DATA+idx_q[2]],
-                h34, in[IDX_TERR_DATA+idx_q[3]], log_sqrt_w_over_sig1_h,
-                sgn_e, sgn_n, sig_h_temp,
-                terr_dis, xi);
-        }
-        sig_h += sig_h_temp;
-        jac_sig_h[0] += jac_sig_h_temp[0];
-        jac_sig_h[1] += jac_sig_h_temp[1];
-        jac_sig_h[2] += jac_sig_h_temp[2];
-        jac_sig_h[3] += jac_sig_h_temp[3];
-
-        /* prioritization */
-        prio_h = 1.0 - ((sig_h*one_over_sqrt_w_h > 1.0) ? 1.0 : sig_h*one_over_sqrt_w_h);
-    }
-    
-    /* radial objective / jacobian - - - - - - - - - - - - - - - - - - - */
-    
-    if (!(one_over_sqrt_w_r<0.0) && (occ_detected>0)) {
-        
-        /* objective / jacobian */
-        if ((d_occ - r_offset_1 < 0.0) && USE_LINEAR_EXP_ASYMPTOTE) {
-            /* linear */
-            sig_r = 1.0 + -log_sqrt_w_over_sig1_r/delta_r * (d_occ - r_offset_1);
-            if (occ_detected==2) {
-                jac_sig_r_tl_lin(jac_sig_r,
-                    d_occ, delta_r, gamma,
-                    k_r, log_sqrt_w_over_sig1_r,
-                    p1[0], p1[2], p1[1],
-                    p2[2], p3[2], r_d,
-                    r_e, r_n, r_offset_1,
-                    terr_dis, v, vG_norm,
-                    vG_d, vG_e, vG_n, xi);
-            }
-            else if (occ_detected==1) {
-                jac_sig_r_br_lin(jac_sig_r,
-                    d_occ, delta_r, gamma,
-                    k_r, log_sqrt_w_over_sig1_r,
-                    p1[0], p1[2], p1[1],
-                    p2[2], p3[2], r_d,
-                    r_e, r_n, r_offset_1,
-                    terr_dis, v, vG_norm,
-                    vG_d, vG_e, vG_n, xi);
-            }
-        }
-        else {
-            /* exponential */
-            sig_r = exp(-(d_occ - r_offset_1)/delta_r*log_sqrt_w_over_sig1_r);
-            if (occ_detected==2) {
-                jac_sig_r_tl_exp(jac_sig_r,
-                    d_occ, delta_r, gamma,
-                    k_r, log_sqrt_w_over_sig1_r,
-                    p1[0], p1[2], p1[1],
-                    p2[2], p3[2], r_d,
-                    r_e, r_n, r_offset_1,
-                    sig_r, terr_dis, v,
-                    vG_norm, vG_d, vG_e,
-                    vG_n, xi);
-            }
-            else if (occ_detected==1) {
-                jac_sig_r_br_exp(jac_sig_r,
-                    d_occ, delta_r, gamma,
-                    k_r, log_sqrt_w_over_sig1_r,
-                    p1[0], p1[2], p1[1],
-                    p2[2], p3[2], r_d,
-                    r_e, r_n, r_offset_1,
-                    sig_r, terr_dis, v,
-                    vG_norm, vG_d, vG_e,
-                    vG_n, xi);
-            }
-        }
-        jac_sig_r[3] = 0.0;
-        /*jac_sig_r[4] = 0.0;
-        jac_sig_r[5] = 0.0;*/
-
-        /* prioritization */
-        prio_r = 1.0 - ((sig_r*one_over_sqrt_w_r > 1.0) ? 1.0 : sig_r*one_over_sqrt_w_r);
-    }
-    
-#else /* CUBIC COST */
-    
-    /* angle of attack objective / jacobian - - - - - - - - - - - - - - -*/
-    
-    /* positive bound */
-    if (aoa_p - aoa < delta_aoa) {
-        sig_aoa = (delta_aoa - (aoa_p - aoa)) / delta_aoa;
-        sig_aoa = sig_aoa * sig_aoa * sig_aoa;
-        jac_sig_aoa_p_cubic(jac_sig_aoa, aoa, aoa_p, delta_aoa);
-    }
-    /* negative bound */
-    if (aoa - aoa_m < delta_aoa) {
-        sig_aoa = (delta_aoa - (aoa - aoa_m)) / delta_aoa;
-        sig_aoa = sig_aoa * sig_aoa * sig_aoa;
-        jac_sig_aoa_m_cubic(jac_sig_aoa, aoa, aoa_m, delta_aoa);
-    }
-    /* prioritization */
-    prio_aoa = 1.0;/*1.0 - ((sig_aoa > 1.0) ? 1.0 : sig_aoa); */
-    
-    
-    /* height objective / jacobian - - - - - - - - - - - - - - - - - - - */
-
-    /* lookup 2.5d grid (CENTER) */
-    const double one_over_deltah = 1.0 / delta_h;
-    int idx_q[4];
-    double dn, de;    
-    double sgn_n = 0.0;
-    double sgn_e = 0.0;
-    lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, &dn, &de);
-    /* bi-linear interpolation */
-    double h12 = (1-dn)*in[IDX_TERR_DATA+idx_q[0]] + dn*in[IDX_TERR_DATA+idx_q[1]];
-    double h34 = (1-dn)*in[IDX_TERR_DATA+idx_q[2]] + dn*in[IDX_TERR_DATA+idx_q[3]];
-    double h_terr = (1-de)*h12 + de*h34;
-    /* objective / jacobian */
-    double arg_sig_h = delta_h - (h - h_terr - h_offset);
-    if (arg_sig_h > 0.0) {
-        sig_h = arg_sig_h * one_over_deltah;
-        sig_h = sig_h * sig_h * sig_h;
-        jac_sig_h_cubic(jac_sig_h,
-            de, delta_h, delta_y,
-            in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]], in[IDX_TERR_DATA+idx_q[2]],
-            h34, in[IDX_TERR_DATA+idx_q[3]], h_offset,
-            r_d, sgn_e, sgn_n,
-            terr_dis, xi);
-    }
-    
-    /* lookup 2.5d grid (LEFT side) */
-    sgn_n = 1.0;
-    sgn_e = -1.0;
-    lookup_terrain_idx(r_n + sgn_n*sin_xi * delta_y, r_e + sgn_e*cos_xi * delta_y, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, &dn, &de);
-    /* bi-linear interpolation */
-    h12 = (1-dn)*in[IDX_TERR_DATA+idx_q[0]] + dn*in[IDX_TERR_DATA+idx_q[1]];
-    h34 = (1-dn)*in[IDX_TERR_DATA+idx_q[2]] + dn*in[IDX_TERR_DATA+idx_q[3]];
-    h_terr = (1-de)*h12 + de*h34;
-    /* objective / jacobian */
-    arg_sig_h = delta_h - (h - h_terr - h_offset);
-    if (arg_sig_h > 0.0) {
-        sig_h_temp = arg_sig_h * one_over_deltah;
-        sig_h_temp = sig_h_temp * sig_h_temp * sig_h_temp;
-        jac_sig_h_cubic(jac_sig_h_temp,
-            de, delta_h, delta_y,
-            in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]], in[IDX_TERR_DATA+idx_q[2]],
-            h34, in[IDX_TERR_DATA+idx_q[3]], h_offset,
-            r_d, sgn_e, sgn_n,
-            terr_dis, xi);
-    }
-    sig_h += sig_h_temp;
-    jac_sig_h[0] += jac_sig_h_temp[0];
-    jac_sig_h[1] += jac_sig_h_temp[1];
-    jac_sig_h[2] += jac_sig_h_temp[2];
-    jac_sig_h[3] += jac_sig_h_temp[3];
-
-    /* lookup 2.5d grid (RIGHT side) */
-    sgn_n = -1.0;
-    sgn_e = 1.0;
-    lookup_terrain_idx(r_n + sgn_n*sin_xi * delta_y, r_e + sgn_e*cos_xi * delta_y, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, &dn, &de);
-    /* bi-linear interpolation */
-    h12 = (1-dn)*in[IDX_TERR_DATA+idx_q[0]] + dn*in[IDX_TERR_DATA+idx_q[1]];
-    h34 = (1-dn)*in[IDX_TERR_DATA+idx_q[2]] + dn*in[IDX_TERR_DATA+idx_q[3]];
-    h_terr = (1-de)*h12 + de*h34;
-    /* objective / jacobian */
-    arg_sig_h = delta_h - (h - h_terr - h_offset);
-    if (arg_sig_h > 0.0) {
-        sig_h_temp = arg_sig_h * one_over_deltah;
-        sig_h_temp = sig_h_temp * sig_h_temp * sig_h_temp;
-        jac_sig_h_cubic(jac_sig_h_temp,
-            de, delta_h, delta_y,
-            in[IDX_TERR_DATA+idx_q[0]], h12, in[IDX_TERR_DATA+idx_q[1]], in[IDX_TERR_DATA+idx_q[2]],
-            h34, in[IDX_TERR_DATA+idx_q[3]], h_offset,
-            r_d, sgn_e, sgn_n,
-            terr_dis, xi);
-    }
-    sig_h += sig_h_temp;
-    jac_sig_h[0] += jac_sig_h_temp[0];
-    jac_sig_h[1] += jac_sig_h_temp[1];
-    jac_sig_h[2] += jac_sig_h_temp[2];
-    jac_sig_h[3] += jac_sig_h_temp[3];
-    
-    /* prioritization */
-    prio_h = 1.0 - ((sig_h > 1.0) ? 1.0 : sig_h);
-
-    
-    /* radial objective / jacobian - - - - - - - - - - - - - - - - - - - */
-    
-    /* objective */
-    if (occ_detected>0) {
-        sig_r = constrain_double(delta_r - (d_occ - r_offset), 0.0, delta_r) / delta_r;
-        sig_r = sig_r*sig_r*sig_r;
-    }
-    
-    /* prioritization */
-    prio_r = 1.0 - ((sig_r > 1.0) ? 1.0 : sig_r);
-
-    /* jacobian */
-    if (occ_detected==2) {
-        jac_sig_r_tl_cubic(jac_sig_r,
-            r_n, r_e, r_d,
-            v, gamma, xi,
-            w_e, w_n, w_d,
-            terr_dis,
-            p1[0], p1[1], p1[2],
-            p2[0], p2[1], p2[2],
-            p3[0], p3[1], p3[2],
-            r_offset, delta_r0, k_r,
-            sig_r, d_occ, delta_r,
-        	vG_sq, vG_norm,
-        	vG_n, vG_e, vG_d);
-    }
-    else if (occ_detected==1) {
-        jac_sig_r_br_cubic(jac_sig_r,
-            r_n, r_e, r_d,
-            v, gamma, xi,
-            w_e, w_n, w_d,
-            terr_dis,
-            p1[0], p1[1], p1[2],
-            p2[0], p2[1], p2[2],
-            p3[0], p3[1], p3[2],
-            r_offset, delta_r0, k_r,
-            sig_r, d_occ, delta_r,
-        	vG_sq, vG_norm,
-        	vG_n, vG_e, vG_d);
-    }
-    /*jac_sig_r[3] = 0.0;*/
-    jac_sig_r[4] = 0.0;
-    jac_sig_r[5] = 0.0;
-    
-#endif
-    
-    
-    /* GUIDANCE - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-    
-    /* path following - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-    
-    /* path tangent unit vector  */
-    const double tP_n_bar = cos(chi_p);
-    const double tP_e_bar = sin(chi_p);
-    
-    /* "closest" point on track */
-    const double tp_dot_br = tP_n_bar*(r_n-b_n) + tP_e_bar*(r_e-b_e);
-    const double tp_dot_br_n = tp_dot_br*tP_n_bar;
-    const double tp_dot_br_e = tp_dot_br*tP_e_bar;
-    const double p_lat = tp_dot_br_n*tP_n_bar + tp_dot_br_e*tP_e_bar;
-    const double p_d = b_d - p_lat*tan(Gamma_p);
-        
-    /* position error */
-    const double e_lat = (r_n-b_n)*tP_e_bar - (r_e-b_e)*tP_n_bar;
-    const double e_lon = p_d - r_d;
-    
-    /* lateral-directional error boundary */
-    const double e_b_lat = T_b_lat * sqrt(vG_n*vG_n + vG_e*vG_e);
-    
-    /* course approach angle */
-    const double chi_app = atan(M_PI_2*e_lat/e_b_lat);
-    
-    /* longitudinal error boundary */
-    double e_b_lon;
-    if (fabs(vG_d) < 1.0) {
-        e_b_lon = T_b_lon * 0.5 * (1.0 + vG_d*vG_d); /* vG_d may be zero */
-    }
-    else {
-        e_b_lon = T_b_lon * fabs(vG_d);
-    }
-    
-    /* flight path approach angle */
-    const double Gamma_app = -gamma_app_max * atan(M_PI_2*e_lon/e_b_lon);
-    
-    /* normalized ground velocity setpoint */
-    v_cos_gamma = cos(Gamma_p + Gamma_app);
-    const double vP_n_unit = v_cos_gamma*cos(chi_p + chi_app);
-    const double vP_e_unit = v_cos_gamma*sin(chi_p + chi_app);
-    const double vP_d_unit = -sin(Gamma_p + Gamma_app);
-    
-    /* terrain considerations - - - - - - - - - - - - - - - - - - - - - -*/
-    
-#if USE_OCC_GRAD_AS_GUIDANCE /*XXX: maybe make this an online param */
-    
-    /* terrain avoidance velocity setpoint */
-    const double norm_jac_sig_r = sqrt(jac_sig_r[0]*jac_sig_r[0] + jac_sig_r[1]*jac_sig_r[1] + jac_sig_r[2]*jac_sig_r[2]);
-    const double one_over_norm_jac_sig_r = (norm_jac_sig_r > 0.0001) ? 1.0/norm_jac_sig_r : 10000.0;
-    const double v_occ_n_unit = -jac_sig_r[0] * one_over_norm_jac_sig_r;
-    const double v_occ_e_unit = -jac_sig_r[1] * one_over_norm_jac_sig_r;
-    const double v_occ_d_unit = -jac_sig_r[2] * one_over_norm_jac_sig_r; /*XXX: if the normalized version works, remember to take out the vgnorm here */
-    
-    /* velocity errors */
-    const double e_v_n = vP_n_unit * prio_r + (1.0-prio_r) * v_occ_n_unit - vG_n_unit;
-    const double e_v_e = vP_e_unit * prio_r + (1.0-prio_r) * v_occ_e_unit - vG_e_unit;
-    const double e_v_d = vP_d_unit * prio_r + (1.0-prio_r) * v_occ_d_unit - vG_d_unit;
-    
-#else
-    
-    /* velocity errors */
-    const double e_v_n = (vP_n_unit - vG_n_unit) * prio_r;
-    const double e_v_e = (vP_e_unit - vG_e_unit) * prio_r;
-    const double e_v_d = (vP_d_unit - vG_d_unit) * prio_r;
-    
-#endif
+    /* speed states */
+    double speed_states[12];
+    calculate_speed_states(speed_states, v, gamma, xi, w_n, w_e, w_d);
+    const double v_n = speed_states[0];
+    const double v_e = speed_states[1];
+    const double v_d = speed_states[2];
+    const double vG_n = speed_states[3];
+    const double vG_e = speed_states[4];
+    const double vG_d = speed_states[5];
+    const double one_over_vG_norm = speed_states[8];
+    const double vG_n_unit = speed_states[9];
+    const double vG_e_unit = speed_states[10];
+    const double vG_d_unit = speed_states[11]; 
     
     
     /* OBJECTIVES - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
     
     /* state output */
-    out[0] = e_v_n * prio_aoa * prio_h;
-    out[1] = e_v_e * prio_aoa * prio_h;
-    out[2] = e_v_d * prio_aoa * prio_h;
+    out[0] = vG_n_unit;
+    out[1] = vG_e_unit;
+    out[2] = vG_d_unit;
     out[3] = v;
     out[4] = phi;
     out[5] = theta;
     out[6] = sig_aoa;
-    out[7] = sig_h * prio_aoa;
-    out[8] = sig_r * prio_aoa;
+    out[7] = sig_h;
+    out[8] = sig_r;
     
     /* control output */
     if (!eval_end_term) {
@@ -1951,9 +1267,7 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
         double jac_v_e[3];
         double jac_v_d[3];
         jac_vg_unit(jac_v_n, jac_v_e, jac_v_d,
-            gamma, one_over_vG_norm, v,
-            vG_d, vG_e, vG_n,
-            v_d, v_e, v_n, xi);
+            gamma, one_over_vG_norm, v, vG_d, vG_d_unit, vG_e, vG_e_unit, vG_n, vG_n_unit, v_d, v_e, v_n, xi);
         double jac_v = 1.0;
         double jac_phi = 1.0;
         double jac_theta = 1.0;
@@ -1962,27 +1276,27 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
         out[9] = 0.0;
         out[10] = 0.0;
         out[11] = 0.0;
-        out[12] = jac_v_n[0] * prio_aoa * prio_h;
-        out[13] = jac_v_n[1] * prio_aoa * prio_h;
-        out[14] = jac_v_n[2] * prio_aoa * prio_h;
+        out[12] = jac_v_n[0];
+        out[13] = jac_v_n[1];
+        out[14] = jac_v_n[2];
         out[15] = 0.0;
         out[16] = 0.0;
         out[17] = 0.0;
         out[18] = 0.0;
         out[19] = 0.0;
         out[20] = 0.0;
-        out[21] = jac_v_e[0] * prio_aoa * prio_h;
-        out[22] = jac_v_e[1] * prio_aoa * prio_h;
-        out[23] = jac_v_e[2] * prio_aoa * prio_h;
+        out[21] = jac_v_e[0];
+        out[22] = jac_v_e[1];
+        out[23] = jac_v_e[2];
         out[24] = 0.0;
         out[25] = 0.0;
         out[26] = 0.0;
         out[27] = 0.0;
         out[28] = 0.0;
         out[29] = 0.0;
-        out[30] = jac_v_d[0] * prio_aoa * prio_h;
-        out[31] = jac_v_d[1] * prio_aoa * prio_h;
-        out[32] = jac_v_d[2] * prio_aoa * prio_h;
+        out[30] = jac_v_d[0];
+        out[31] = jac_v_d[1];
+        out[32] = jac_v_d[2];
         out[33] = 0.0;
         out[34] = 0.0;
         out[35] = 0.0;
@@ -2048,9 +1362,7 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
         double jac_v_e[3];
         double jac_v_d[3];
         jac_vg_unit(jac_v_n, jac_v_e, jac_v_d,
-            gamma, one_over_vG_norm, v,
-            vG_d, vG_e, vG_n,
-            v_d, v_e, v_n, xi);
+            gamma, one_over_vG_norm, v, vG_d, vG_d_unit, vG_e, vG_e_unit, vG_n, vG_n_unit, v_d, v_e, v_n, xi);
         double jac_v = 1.0;
         double jac_phi = 1.0;
         double jac_theta = 1.0;
@@ -2062,27 +1374,27 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
         out[12] = 0.0;
         out[13] = 0.0;
         out[14] = 0.0;
-        out[15] = jac_v_n[0] * prio_aoa * prio_h;
-        out[16] = jac_v_n[1] * prio_aoa * prio_h;
-        out[17] = jac_v_n[2] * prio_aoa * prio_h;
+        out[15] = jac_v_n[0];
+        out[16] = jac_v_n[1];
+        out[17] = jac_v_n[2];
         out[18] = 0.0;
         out[19] = 0.0;
         out[20] = 0.0;
         out[21] = 0.0;
         out[22] = 0.0;
         out[23] = 0.0;
-        out[24] = jac_v_e[0] * prio_aoa * prio_h;
-        out[25] = jac_v_e[1] * prio_aoa * prio_h;
-        out[26] = jac_v_e[2] * prio_aoa * prio_h;
+        out[24] = jac_v_e[0];
+        out[25] = jac_v_e[1];
+        out[26] = jac_v_e[2];
         out[27] = 0.0;
         out[28] = 0.0;
         out[29] = 0.0;
         out[30] = 0.0;
         out[31] = 0.0;
         out[32] = 0.0;
-        out[33] = jac_v_d[0] * prio_aoa * prio_h;
-        out[34] = jac_v_d[1] * prio_aoa * prio_h;
-        out[35] = jac_v_d[2] * prio_aoa * prio_h;
+        out[33] = jac_v_d[0];
+        out[34] = jac_v_d[1];
+        out[35] = jac_v_d[2];
         out[36] = 0.0;
         out[37] = 0.0;
         out[38] = 0.0;
@@ -2217,4 +1529,527 @@ void acado_evaluateLSQEndTerm( const real_t *in, real_t *out )
 {
 	lsq_obj_eval(in, out, true);
 }
+/* / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / */
+
+/* / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / */
+/* EXTERNAL FUNCTIONS / / / / / / / / / / / / / / / / / / / / / / / / / /*/
+/*
+ * below are a collection of functions to be called from outside the MPC
+ * internal model.
+ */
+
+/* GUIDANCE / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /*/
+
+/* calculate ground velocity reference */
+void calculate_velocity_reference(double *v_ref, double *e_lat, double *e_lon,
+        const double *states,
+        const double *path_reference,
+        const double *guidance_params,
+        const double *speed_states,
+        const double *jac_sig_r,
+        const double prio_r)
+{
+    /* DEFINE INPUTS - - - - - - - - - - - - - - - - - - - - - - - - - - */
     
+    /* states */
+    const double r_n = states[0];
+    const double r_e = states[1];
+    const double r_d = states[2];
+    const double v = states[3];
+    const double gamma = states[4];
+    const double xi = states[5];
+    /*const double phi = states[6];
+    const double theta = states[7];
+    const double n_p = states[8];*/
+    
+    /* path reference */
+    const double b_n = path_reference[0];
+    const double b_e = path_reference[1];
+    const double b_d = path_reference[2];
+    const double Gamma_p = path_reference[3];
+    const double chi_p = path_reference[4];
+    
+    /* guidance */
+    const double T_b_lat = guidance_params[0];
+    const double T_b_lon = guidance_params[1];
+    const double gamma_app_max = guidance_params[2];
+    bool use_occ_as_guidance = (guidance_params[3] > 0.5);
+    
+    /* speed states */
+    const double vG_n = speed_states[3];
+    const double vG_e = speed_states[4];
+    const double vG_d = speed_states[5];
+    
+    /* path following - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+    
+    /* path tangent unit vector  */
+    const double tP_n_bar = cos(chi_p);
+    const double tP_e_bar = sin(chi_p);
+    
+    /* "closest" point on track */
+    const double tp_dot_br = tP_n_bar*(r_n-b_n) + tP_e_bar*(r_e-b_e);
+    const double tp_dot_br_n = tp_dot_br*tP_n_bar;
+    const double tp_dot_br_e = tp_dot_br*tP_e_bar;
+    const double p_lat = tp_dot_br_n*tP_n_bar + tp_dot_br_e*tP_e_bar;
+    const double p_d = b_d - p_lat*tan(Gamma_p);
+        
+    /* position error */
+    *e_lat = (r_n-b_n)*tP_e_bar - (r_e-b_e)*tP_n_bar;
+    *e_lon = p_d - r_d;
+    
+    /* lateral-directional error boundary */
+    const double e_b_lat = T_b_lat * sqrt(vG_n*vG_n + vG_e*vG_e);
+    
+    /* course approach angle */
+    const double chi_app = atan(M_PI_2*(*e_lat)/e_b_lat);
+    
+    /* longitudinal error boundary */
+    double e_b_lon;
+    if (fabs(vG_d) < 1.0) {
+        e_b_lon = T_b_lon * 0.5 * (1.0 + vG_d*vG_d); /* vG_d may be zero */
+    }
+    else {
+        e_b_lon = T_b_lon * fabs(vG_d);
+    }
+    
+    /* flight path approach angle */
+    const double Gamma_app = -gamma_app_max * atan(M_PI_2*(*e_lon)/e_b_lon);
+    
+    /* normalized ground velocity setpoint */
+    const double cos_gamma = cos(Gamma_p + Gamma_app);
+    const double vP_n_unit = cos_gamma*cos(chi_p + chi_app);
+    const double vP_e_unit = cos_gamma*sin(chi_p + chi_app);
+    const double vP_d_unit = -sin(Gamma_p + Gamma_app);
+    
+    if (use_occ_as_guidance) {
+        /* terrain avoidance velocity setpoint */
+        const double norm_jac_sig_r = sqrt(jac_sig_r[0]*jac_sig_r[0] + jac_sig_r[1]*jac_sig_r[1] + jac_sig_r[2]*jac_sig_r[2]);
+        const double one_over_norm_jac_sig_r = (norm_jac_sig_r > 0.0001) ? 1.0/norm_jac_sig_r : 10000.0;
+        const double v_occ_n_unit = -jac_sig_r[0] * one_over_norm_jac_sig_r;
+        const double v_occ_e_unit = -jac_sig_r[1] * one_over_norm_jac_sig_r;
+        const double v_occ_d_unit = -jac_sig_r[2] * one_over_norm_jac_sig_r;
+
+        /* velocity errors */
+        v_ref[0] = vP_n_unit * prio_r + (1.0-prio_r) * v_occ_n_unit;
+        v_ref[1] = vP_e_unit * prio_r + (1.0-prio_r) * v_occ_e_unit;
+        v_ref[2] = vP_d_unit * prio_r + (1.0-prio_r) * v_occ_d_unit;
+    }
+    else {
+        /* velocity errors */
+        v_ref[0] = vP_n_unit;
+        v_ref[1] = vP_e_unit;
+        v_ref[2] = vP_d_unit;
+    }
+}
+
+/* SOFT CONSTRAINTS / / / / / / / / / / / / / / / / / / / / / / / / / / /*/
+
+/* calculate soft angle of attack objective */
+void calculate_aoa_objective(double *sig_aoa, double *jac_sig_aoa, double *prio_aoa,
+        const double *states, const double *aoa_params)
+{
+    /* DEFINE INPUTS - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    
+    /* states */
+    /*const double r_n = states[0];
+    const double r_e = states[1];
+    const double r_d = states[2];
+    const double v = states[3];*/
+    const double gamma = states[4];
+    /*const double xi = states[5];
+    const double phi = states[6];*/
+    const double theta = states[7];
+    /*const double n_p = states[8];*/
+    
+    /* angle of attack soft constraint */
+    const double delta_aoa = aoa_params[0];
+    const double aoa_m = aoa_params[1];
+    const double aoa_p = aoa_params[2];
+    const double log_sqrt_w_over_sig1_aoa = aoa_params[3];
+    const double one_over_sqrt_w_aoa = aoa_params[4];
+    
+    /* angle of attack */
+    const double aoa = theta - gamma;
+    *sig_aoa = 0.0;
+    *prio_aoa = 1.0;
+    jac_sig_aoa[0] = 0.0;
+    jac_sig_aoa[1] = 0.0;
+
+    /* angle of attack objective / jacobian - - - - - - - - - - - - - - -*/
+
+    if (!(one_over_sqrt_w_aoa<0.0)) {
+
+        /* upper bound */
+        const double sig_aoa_p = (aoa - aoa_p < 0.0)
+            ? exp((aoa - aoa_p)/delta_aoa*log_sqrt_w_over_sig1_aoa)
+            : 1.0 + log_sqrt_w_over_sig1_aoa/delta_aoa * (aoa - aoa_p);
+
+        /* lower bound */
+        const double sig_aoa_m = (aoa - aoa_m > 0.0)
+            ? exp(-(aoa - aoa_m)/delta_aoa*log_sqrt_w_over_sig1_aoa)
+            : 1.0 - log_sqrt_w_over_sig1_aoa/delta_aoa * (aoa - aoa_m);
+
+        /* combined */
+        *sig_aoa = sig_aoa_p + sig_aoa_m;
+        
+        /* jacobian */
+        if (aoa - aoa_p > 0.0) {
+            /* upper linear jacobian */
+            jac_sig_aoa[0] = -log_sqrt_w_over_sig1_aoa/delta_aoa; /* gamma */
+            jac_sig_aoa[1] = log_sqrt_w_over_sig1_aoa/delta_aoa; /* theta */
+        }
+        else if (aoa - aoa_m < 0.0) {
+            /* lower linear jacobian */
+            jac_sig_aoa[0] = log_sqrt_w_over_sig1_aoa/delta_aoa; /* gamma */
+            jac_sig_aoa[1] = -log_sqrt_w_over_sig1_aoa/delta_aoa; /* theta */
+        }
+        else {
+            /* exponential jacobian */
+            jac_sig_aoa_exp(jac_sig_aoa, delta_aoa, log_sqrt_w_over_sig1_aoa,
+                sig_aoa_m, sig_aoa_p);
+        }
+
+        /* prioritization */
+        *prio_aoa = 1.0; /*1.0 - ((*sig_aoa*one_over_sqrt_w_aoa > 1.0) ? 1.0 : *sig_aoa*one_over_sqrt_w_aoa);*/
+    }
+}
+
+/* calculate soft height objective */
+void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h, double *h_terr,
+        const double *states, const double *terr_params, const double *terr_map)
+{
+    /* DEFINE INPUTS - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    
+    /* states */
+    const double r_n = states[0];
+    const double r_e = states[1];
+    const double r_d = states[2];
+    /*const double v = states[3];
+    const double gamma = states[4];*/
+    const double xi = states[5];
+    /*const double phi = states[6];
+    const double theta = states[7];
+    const double n_p = states[8];*/
+    
+    /* height params */
+    const double h_offset = terr_params[0];
+    const double delta_h = terr_params[1];
+    const double delta_y = terr_params[2];
+    const double log_sqrt_w_over_sig1_h = terr_params[3];
+    const double one_over_sqrt_w_h = terr_params[4];
+    
+    /* radial params */
+    /*const double r_offset = terr_params[5];
+    const double delta_r0 = terr_params[6];
+    const double k_r = terr_params[7];
+    const double log_sqrt_w_over_sig1_r = terr_params[8];
+    const double one_over_sqrt_w_r = terr_params[9];*/
+    
+    /* terrain params */
+    const double terr_local_origin_n = terr_params[10];
+    const double terr_local_origin_e = terr_params[11];
+    const double terr_dis = terr_params[12];
+    
+    /* INTERMEDIATE CALCULATIONS - - - - - - - - - - - - - - - - - - - - */
+    
+    const double sin_xi = sin(xi);
+    const double cos_xi = cos(xi);
+    
+    /* CALCULATE OBJECTIVE - - - - - - - - - - - - - - - - - - - - - - - */
+    
+    /* init */
+    const double h = -r_d;
+    *sig_h = 0.0;
+    double sig_h_temp = 0.0;
+    *prio_h = 1.0;
+    jac_sig_h[0] = 0.0;
+    jac_sig_h[1] = 0.0;
+    jac_sig_h[2] = 0.0;
+    jac_sig_h[3] = 0.0;
+    double jac_sig_h_temp[4] = {0.0, 0.0, 0.0, 0.0};
+    
+    /* if not disabled by weight */
+    if (!(one_over_sqrt_w_h<0.0)) {
+        
+        /* lookup 2.5d grid (CENTER) - - - - - - - - - - - - - - - - - - */
+        int idx_q[4];
+        double dn, de;    
+        double sgn_n = 0.0;
+        double sgn_e = 0.0;
+        lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, &dn, &de);
+        
+        /* bi-linear interpolation */
+        double h12 = (1-dn)*terr_map[idx_q[0]] + dn*terr_map[idx_q[1]];
+        double h34 = (1-dn)*terr_map[idx_q[2]] + dn*terr_map[idx_q[3]];
+        double h_terr_temp = (1-de)*h12 + de*h34;
+        *h_terr = h_terr_temp;
+        
+        /* objective / jacobian */
+        if (h - h_terr_temp - h_offset < 0.0) {
+            /* linear */
+            *sig_h = 1.0 + -log_sqrt_w_over_sig1_h/delta_h * (h - h_terr_temp - h_offset);
+            
+            jac_sig_h_lin(jac_sig_h,
+                de, delta_h, delta_y,
+                terr_map[idx_q[0]], h12, terr_map[idx_q[1]],
+                terr_map[idx_q[2]], h34, terr_map[idx_q[3]],
+                log_sqrt_w_over_sig1_h, sgn_e,
+                sgn_n, terr_dis, xi);
+        }
+        else {
+            /* exponential */
+            *sig_h = exp(-(h - h_terr_temp - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
+            
+            jac_sig_h_exp(jac_sig_h,
+                de, delta_h, delta_y,
+                terr_map[idx_q[0]], h12, terr_map[idx_q[1]],
+                terr_map[idx_q[2]], h34, terr_map[idx_q[3]],
+                log_sqrt_w_over_sig1_h, sgn_e, sgn_n, *sig_h,
+                terr_dis, xi);
+        }
+
+        /* lookup 2.5d grid (LEFT) - - - - - - - - - - - - - - - - - - - */
+        sgn_n = 1.0;
+        sgn_e = -1.0;
+        lookup_terrain_idx(r_n + sgn_n*sin_xi * delta_y, r_e + sgn_e*cos_xi * delta_y, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, &dn, &de);
+        
+        /* bi-linear interpolation */
+        h12 = (1-dn)*terr_map[idx_q[0]] + dn*terr_map[idx_q[1]];
+        h34 = (1-dn)*terr_map[idx_q[2]] + dn*terr_map[idx_q[3]];
+        h_terr_temp = (1-de)*h12 + de*h34;
+        
+        /* objective / jacobian */
+        if (h - h_terr_temp - h_offset < 0.0) {
+            /* linear */
+            sig_h_temp = 1.0 + -log_sqrt_w_over_sig1_h/delta_h * (h - h_terr_temp - h_offset);
+            
+            jac_sig_h_lin(jac_sig_h_temp,
+                de, delta_h, delta_y,
+                terr_map[idx_q[0]], h12, terr_map[idx_q[1]],
+                terr_map[idx_q[2]], h34, terr_map[idx_q[3]],
+                log_sqrt_w_over_sig1_h, sgn_e,
+                sgn_n, terr_dis, xi);
+        }
+        else {
+            /* exponential */
+            sig_h_temp = exp(-(h - h_terr_temp - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
+            
+            jac_sig_h_exp(jac_sig_h_temp,
+                de, delta_h, delta_y,
+                terr_map[idx_q[0]], h12, terr_map[idx_q[1]], terr_map[idx_q[2]],
+                h34, terr_map[idx_q[3]], log_sqrt_w_over_sig1_h,
+                sgn_e, sgn_n, sig_h_temp,
+                terr_dis, xi);
+        }
+        *sig_h += sig_h_temp;
+        jac_sig_h[0] += jac_sig_h_temp[0];
+        jac_sig_h[1] += jac_sig_h_temp[1];
+        jac_sig_h[2] += jac_sig_h_temp[2];
+        jac_sig_h[3] += jac_sig_h_temp[3];
+
+        /* lookup 2.5d grid (RIGHT) - - - - - - - - - - - - - - - - - - -*/
+        sgn_n = -1.0;
+        sgn_e = 1.0;
+        lookup_terrain_idx(r_n + sgn_n*sin_xi * delta_y, r_e + sgn_e*cos_xi * delta_y, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, &dn, &de);
+        
+        /* bi-linear interpolation */
+        h12 = (1-dn)*terr_map[idx_q[0]] + dn*terr_map[idx_q[1]];
+        h34 = (1-dn)*terr_map[idx_q[2]] + dn*terr_map[idx_q[3]];
+        h_terr_temp = (1-de)*h12 + de*h34;
+        
+        /* objective / jacobian */
+        if (h - h_terr_temp - h_offset < 0.0) {
+            /* linear */
+            sig_h_temp = 1.0 + -log_sqrt_w_over_sig1_h/delta_h * (h - h_terr_temp - h_offset);
+            
+            jac_sig_h_lin(jac_sig_h_temp,
+                de, delta_h, delta_y,
+                terr_map[idx_q[0]], h12, terr_map[idx_q[1]],
+                terr_map[idx_q[2]], h34, terr_map[idx_q[3]],
+                log_sqrt_w_over_sig1_h, sgn_e,
+                sgn_n, terr_dis, xi);
+        }
+        else {
+            /* exponential */
+            sig_h_temp = exp(-(h - h_terr_temp - h_offset)/delta_h*log_sqrt_w_over_sig1_h);
+            
+            jac_sig_h_exp(jac_sig_h_temp,
+                de, delta_h, delta_y,
+                terr_map[idx_q[0]], h12, terr_map[idx_q[1]], terr_map[idx_q[2]],
+                h34, terr_map[idx_q[3]], log_sqrt_w_over_sig1_h,
+                sgn_e, sgn_n, sig_h_temp,
+                terr_dis, xi);
+        }
+        *sig_h += sig_h_temp;
+        jac_sig_h[0] += jac_sig_h_temp[0];
+        jac_sig_h[1] += jac_sig_h_temp[1];
+        jac_sig_h[2] += jac_sig_h_temp[2];
+        jac_sig_h[3] += jac_sig_h_temp[3];
+
+        /* prioritization */
+        *prio_h = 1.0 - ((*sig_h*one_over_sqrt_w_h > 1.0) ? 1.0 : *sig_h*one_over_sqrt_w_h);
+    }
+}
+
+/* calculate soft radial objective */
+void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *prio_r, double *r_occ, int *occ_detected,
+        const double *states, const double *speed_states,
+        const double *terr_params, const double *terr_map)
+{
+    /* DEFINE INPUTS - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    
+    /* states */
+    const double r_n = states[0];
+    const double r_e = states[1];
+    const double r_d = states[2];
+    const double v = states[3];
+    const double gamma = states[4];
+    const double xi = states[5];
+    /*const double phi = states[6];
+    const double theta = states[7];
+    const double n_p = states[8];*/
+    
+    /* speed states */
+    const double vG_n = speed_states[3];
+    const double vG_e = speed_states[4];
+    const double vG_d = speed_states[5];
+    const double vG_sq = speed_states[6];
+    const double vG_norm = speed_states[7];
+    const double vG_n_unit = speed_states[9];
+    const double vG_e_unit = speed_states[10];
+    const double vG_d_unit = speed_states[11];
+
+    /* height params */
+    /*const double h_offset = terr_params[0];
+    const double delta_h = terr_params[1];
+    const double delta_y = terr_params[2];
+    const double log_sqrt_w_over_sig1_h = terr_params[3];
+    const double one_over_sqrt_w_h = terr_params[4];*/
+    
+    /* radial params */
+    const double r_offset = terr_params[5];
+    const double delta_r0 = terr_params[6];
+    const double k_r = terr_params[7];
+    const double log_sqrt_w_over_sig1_r = terr_params[8];
+    const double one_over_sqrt_w_r = terr_params[9];
+    
+    /* terrain params */
+    const double terr_local_origin_n = terr_params[10];
+    const double terr_local_origin_e = terr_params[11];
+    const double terr_dis = terr_params[12];
+    
+    /* CALCULATE OBJECTIVE - - - - - - - - - - - - - - - - - - - - - - - */
+    
+    /* init */
+    *sig_r = 0.0;
+    jac_sig_r[0] = 0.0;
+    jac_sig_r[1] = 0.0;
+    jac_sig_r[2] = 0.0;
+    jac_sig_r[3] = 0.0;
+    jac_sig_r[4] = 0.0;
+    jac_sig_r[5] = 0.0;
+    *prio_r = 1.0;
+    
+    /* cast ray along ground speed vector to check for occlusions */
+    
+    /* init */
+    double p_occ[3];
+    double p1[3];
+    double p2[3];
+    double p3[3];
+    
+    /* unit ray vector */
+    double v_ray[3] = {vG_e_unit, vG_n_unit, -vG_d_unit}; /* in ENU */
+    
+    /* minimum turning radius */
+    const double Rmin = vG_sq * k_r;
+    
+    /* radial buffer zone */
+    const double delta_r = delta_r0 + Rmin;
+    
+    /* adjusted radial offset */
+    const double r_offset_1 = r_offset + Rmin;
+    
+    /* ray length */
+    const double d_ray = delta_r + r_offset_1 + terr_dis;
+    
+    /* ray start ENU */
+    const double r0[3] = {r_e, r_n, -r_d};
+    /* ray end ENU */
+    const double r1[3] = {r0[0] + v_ray[0] * d_ray, r0[1] + v_ray[1] * d_ray, r0[2] + v_ray[2] * d_ray};
+    
+    /* cast the ray */
+    *occ_detected = castray(r_occ, p_occ, p1, p2, p3, r0, r1, v_ray,
+        terr_local_origin_n, terr_local_origin_e, terr_dis, terr_map);
+    
+    /* shift occlusion origin */
+    p1[0] = p1[0] + terr_local_origin_e;
+    p1[1] = p1[1] + terr_local_origin_n;
+    p2[0] = p2[0] + terr_local_origin_e;
+    p2[1] = p2[1] + terr_local_origin_n;
+    p3[0] = p3[0] + terr_local_origin_e;
+    p3[1] = p3[1] + terr_local_origin_n;
+    p_occ[0] = p_occ[0] + terr_local_origin_e;
+    p_occ[1] = p_occ[1] + terr_local_origin_n;
+    
+    if (!(one_over_sqrt_w_r<0.0) && (*occ_detected>0)) {
+        
+        /* objective / jacobian */
+        if (*r_occ - r_offset_1 < 0.0) {
+            /* linear */
+            *sig_r = 1.0 + -log_sqrt_w_over_sig1_r/delta_r * (*r_occ - r_offset_1);
+            if (*occ_detected==2) {
+                jac_sig_r_tl_lin(jac_sig_r,
+                    *r_occ, delta_r, gamma,
+                    k_r, log_sqrt_w_over_sig1_r,
+                    p1[0], p1[2], p1[1],
+                    p2[2], p3[2], r_d,
+                    r_e, r_n, r_offset_1,
+                    terr_dis, v, vG_norm,
+                    vG_d, vG_e, vG_n, xi);
+            }
+            else if (*occ_detected==1) {
+                jac_sig_r_br_lin(jac_sig_r,
+                    *r_occ, delta_r, gamma,
+                    k_r, log_sqrt_w_over_sig1_r,
+                    p1[0], p1[2], p1[1],
+                    p2[2], p3[2], r_d,
+                    r_e, r_n, r_offset_1,
+                    terr_dis, v, vG_norm,
+                    vG_d, vG_e, vG_n, xi);
+            }
+        }
+        else {
+            /* exponential */
+            *sig_r = exp(-(*r_occ - r_offset_1)/delta_r*log_sqrt_w_over_sig1_r);
+            if (*occ_detected==2) {
+                jac_sig_r_tl_exp(jac_sig_r,
+                    *r_occ, delta_r, gamma,
+                    k_r, log_sqrt_w_over_sig1_r,
+                    p1[0], p1[2], p1[1],
+                    p2[2], p3[2], r_d,
+                    r_e, r_n, r_offset_1,
+                    *sig_r, terr_dis, v,
+                    vG_norm, vG_d, vG_e,
+                    vG_n, xi);
+            }
+            else if (*occ_detected==1) {
+                jac_sig_r_br_exp(jac_sig_r,
+                    *r_occ, delta_r, gamma,
+                    k_r, log_sqrt_w_over_sig1_r,
+                    p1[0], p1[2], p1[1],
+                    p2[2], p3[2], r_d,
+                    r_e, r_n, r_offset_1,
+                    *sig_r, terr_dis, v,
+                    vG_norm, vG_d, vG_e,
+                    vG_n, xi);
+            }
+        }
+        jac_sig_r[3] = 0.0;
+        /*jac_sig_r[4] = 0.0;
+        jac_sig_r[5] = 0.0;*/
+
+        /* prioritization */
+        *prio_r = 1.0 - ((*sig_r*one_over_sqrt_w_r > 1.0) ? 1.0 : *sig_r*one_over_sqrt_w_r);
+    }
+}

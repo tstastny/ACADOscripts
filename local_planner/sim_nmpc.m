@@ -17,7 +17,7 @@ n_U = 3;
 n_X = 9; % number of nmpc states
 n_Y = 9;
 n_Z = 3;
-n_OD = 34+3249;%841;
+n_OD = 23;
 
 Ts_step = 0.1; % step size in nmpc
 Ts_nmpc = 0.1; % interval between nmpc calls
@@ -32,23 +32,24 @@ w_n = 0;
 w_e = 0;
 w_d = 0;
 
-% path reference
-b_n = 0;
-b_e = 0;
-b_d = -50;
-Gamma_p = deg2rad(5);
-chi_p = deg2rad(-10);
-
-% guidance
-T_b_lat = 5;
-T_b_lon = 3;
-gamma_app_max = deg2rad(20)*2/pi;
-
 % control augmented attitude time constants and gains
 tau_phi = 0.5;
 tau_theta = 0.5;
 k_phi = 1.1;
 k_theta = 1.1;
+
+% path reference
+b_n = 0;
+b_e = 0;
+b_d = -50;
+Gamma_p = deg2rad(5);
+chi_p = deg2rad(0);
+
+% guidance
+T_b_lat = 5;
+T_b_lon = 3;
+gamma_app_max = deg2rad(20)*2/pi;
+use_occ_as_guidance = 0;
 
 % angle of attack soft constraint
 delta_aoa = deg2rad(3);
@@ -71,7 +72,7 @@ sig_r_1 = 0.001;
 % terrain lookup
 len_local_idx_n = 57;%29;
 len_local_idx_e = 57;%29;
-terr_dis = 10;
+terr_dis = 5;
 
 %% REFERENCES -------------------------------------------------------------
 
@@ -80,6 +81,7 @@ v_ref = 14;
 %% MORE PARAMS ------------------------------------------------------------
 
 tau_u = 0.5; % control reference time constant
+tau_terr = 0.5; % filter jacobians for terrain objectives
 
 %% OPTIONS ----------------------------------------------------------------
 
@@ -94,11 +96,6 @@ shift_states_controls = false;
 
 % output objective costs and jacobians
 output_objectives = true;
-
-% defines
-USE_EXP_SOFT_COST = 1;
-USE_OCC_GRAD_AS_GUIDANCE = 0;
-defines = [USE_EXP_SOFT_COST;USE_OCC_GRAD_AS_GUIDANCE];
 
 %% INITIALIZATION ---------------------------------------------------------
 
@@ -164,25 +161,14 @@ end
 
 % initial online data
 terrain_constructor;
-get_local_terrain;
-onlinedatak = [ ...
-    rho, w_n, w_e, w_d, ...
-    b_n, b_e, b_d, Gamma_p, chi_p, ...
-    T_b_lat, T_b_lon, gamma_app_max, ...
-    tau_phi, tau_theta, k_phi, k_theta, ...
-    delta_aoa, aoa_m, aoa_p, log_sqrt_w_over_sig1_aoa, one_over_sqrt_w_aoa, ...
-    h_offset, delta_h, delta_y, log_sqrt_w_over_sig1_h, one_over_sqrt_w_h, ...
-    r_offset, delta_r0, k_r, log_sqrt_w_over_sig1_r, one_over_sqrt_w_r, ...
-    terr_local_origin_n, terr_local_origin_e, terr_dis, terrain_data ...
-    ];
 
 % input struct
 input.x = repmat(nmpc_ic.x, N+1,1);
 input.u = repmat(nmpc_ic.u, N,1);
 input.y = repmat([yref, zref], N,1);
 input.yN = yref;
-input.od = repmat(onlinedatak, N+1, 1);
-% input.od = [onlinedatak; zeros(N, n_OD)];
+input.od = zeros(N+1,n_OD);
+input.od(:,1:8) = repmat([rho, w_n, w_e, w_d, tau_phi, tau_theta, k_phi, k_theta], N+1, 1);
 R_end = R_controls * 1e0;
 for i=0:N-1
     ww = i/(N-1);
@@ -209,8 +195,6 @@ ctrl_hor = repmat(controls, [N,1]);
 % properly init position states
 input.x(:,1:3) = input.x(:,1:3) + repmat(dstates(1:3),N+1,1).*repmat((0:Ts_nmpc:N*Ts_nmpc)',1,3);
 
-% [out,aux] = eval_obj([simout,controls,input.od(1,:)]);
-
 % init arrays
 tsolve_k = 0;
 tarray_k = 0;
@@ -228,14 +212,17 @@ rec.x = zeros(len_t,n_X);
 rec.x_hor = zeros(N+1,len_t,n_X);
 rec.u_hor = zeros(N,len_t,n_U);
 rec.u = zeros(len_t,n_U);
-rec.yz = zeros(len_t,n_Y+n_Z);
-rec.aux = zeros(len_t,39);
 if output_objectives
+    rec.yref = zeros(N,len_nmpc,n_Y+n_Z);
+    rec.yNref = zeros(len_nmpc,n_Y);
+    rec.W = zeros(len_nmpc,n_Y+n_Z);
     rec.y = zeros(N,len_nmpc,n_Y+n_Z);
     rec.dydx = zeros(N,len_nmpc,(n_Y+n_Z)*n_X);
     rec.dydu = zeros(N,len_nmpc,(n_Y+n_Z)*n_U);
     rec.yN = zeros(len_nmpc,n_Y);
     rec.dyNdx = zeros(len_nmpc,n_Y*n_X);
+    rec.priorities = zeros(N+1,len_nmpc,3);
+    rec.aux = zeros(N+1,len_nmpc,5);
 end
 
 k_nmpc = 0;
@@ -255,8 +242,9 @@ for k = 1:len_t
         st_nmpc = tic;
         
         % update states - - - - - - - - - - - - - - - - - - - - - - - - - -
+        st_array_allo = tic;
 
-         % shift (or dont) initial states and controls
+        % shift (or dont) initial states and controls
         if k > 1
             
             % filter control horizon reference
@@ -280,28 +268,53 @@ for k = 1:len_t
             end
         end
         
-        % update online data
-        st_array_allo = tic;
+        % update terrain map
         posk = input.x0(1:3);
         get_local_terrain;
-        onlinedatak = [ ...
-            rho, w_n, w_e, w_d, ...
-            b_n, b_e, b_d, Gamma_p, chi_p, ...
-            T_b_lat, T_b_lon, gamma_app_max, ...
-            tau_phi, tau_theta, k_phi, k_theta, ...
-            delta_aoa, aoa_m, aoa_p, log_sqrt_w_over_sig1_aoa, one_over_sqrt_w_aoa, ...
-            h_offset, delta_h, delta_y, log_sqrt_w_over_sig1_h, one_over_sqrt_w_h, ...
-            r_offset, delta_r0, k_r, log_sqrt_w_over_sig1_r, one_over_sqrt_w_r, ...
-            terr_local_origin_n, terr_local_origin_e, terr_dis, terrain_data ...
-            ];
-        input.od = repmat(onlinedatak, N+1, 1);
-        %input.od(1,:) = onlinedatak;
-
-        % guidance - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         
-        % unit velocity setpoints
-        %input.y(:,1:3) = get_unit_velocity_setpoint(input.x(1:N,1:6), onlinedatak(2:12));
-        %input.yN(:,1:3) = get_unit_velocity_setpoint(input.x(N+1,1:6), onlinedatak(2:12));
+        % update parameters
+        path_reference = [b_n, b_e, b_d, Gamma_p, chi_p];
+        guidance_params = [T_b_lat, T_b_lon, gamma_app_max, use_occ_as_guidance];
+        aoa_params = [delta_aoa, aoa_m, aoa_p, log_sqrt_w_over_sig1_aoa, one_over_sqrt_w_aoa];
+        terr_params = [h_offset, delta_h, delta_y, log_sqrt_w_over_sig1_h, one_over_sqrt_w_h, ...
+            r_offset, delta_r0, k_r, log_sqrt_w_over_sig1_r, one_over_sqrt_w_r, ...
+            terr_local_origin_n, terr_local_origin_e, terr_dis];
+        
+        % pre-evaluate objectives / update references / online data
+        preeval_input.x = input.x;
+        preeval_input.y = input.y;
+        preeval_input.yN = input.yN;
+        preeval_input.od = input.od;
+        preeval_input.aoa_params = aoa_params;
+        preeval_input.terr_params = terr_params;
+        preeval_input.terr_map = terrain_data;
+        preeval_input.path_reference = path_reference;
+        preeval_input.guidance_params = guidance_params;
+        preeval_output = external_objective_mex(preeval_input);
+        input.y = preeval_output.y;
+        input.yN = preeval_output.yN;
+        input.od(:,[9:12, 17]) = preeval_output.od(:,[9:12, 17]);
+        input.od(:,[13:16, 18:23]) = (preeval_output.od(:,[13:16, 18:23]) - input.od(:,[13:16, 18:23])) / tau_terr * Ts_nmpc + input.od(:,[13:16, 18:23]);
+        
+        % update priorities
+        prio_aoa = preeval_output.priorities(:,1);
+        prio_h = preeval_output.priorities(:,2);
+        prio_r = preeval_output.priorities(:,3);
+        if ~use_occ_as_guidance
+            prio_v = prio_h .* prio_r;
+            for ii=0:N-1
+                input.W(ii*(n_Y+n_Z)+1:ii*(n_Y+n_Z)+3,1:3) = diag(Q_output(1:3))*prio_v(ii+1); % XXX: remember this doesnt include the horizon dependent weight scaling atm
+            end
+            input.WN(1:3,1:3) = diag(QN_output(1:3))*prio_v(end); % XXX: remember this doesnt include the horizon dependent weight scaling atm
+        end
+        
+        % update environment
+        onlinedatak = [ ...
+            rho, w_n, w_e, w_d ...
+            ];
+        input.od(:,1:4) = repmat(onlinedatak, N+1, 1);
+        
+        % guidance - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         
         % control reference
         input.y(:,end-2:end) = ctrl_hor;
@@ -338,7 +351,7 @@ for k = 1:len_t
     % END NMPC - - - - -
     
     % apply control
-    [dstates, simout]  = model_dynamics(time(k), states, controls, input.od(1,:),model_params,sysid_config);
+    [dstates, simout]  = model_dynamics(time(k), states, controls, input.od(1,:), model_params, sysid_config);
 
     % integration (model propagation)
     states = states + dstates*Ts;
@@ -354,16 +367,19 @@ for k = 1:len_t
     rec.u(k,:) = controls;
     rec.u_ref(k,:) = ctrl_hor(1,:);%duplicate
     rec.u_ref_hor(:,k,:) = ctrl_hor;
-    [out,aux] = eval_obj([simout,controls,input.od(1,:)], len_local_idx_n, len_local_idx_e, defines);
-    rec.yz(k,:) = out;
-    rec.aux(k,:) = aux;
     if output_objectives && nmpc_executed(k)
         k_nmpc = k_nmpc+1;
+        rec.time_nmpc(k_nmpc) = time(k);
+        rec.yref(:,k_nmpc,:) = input.y;
+        rec.yNref(k_nmpc,:) = input.yN;
+        rec.W(k_nmpc,:) = diag(input.W(1:n_Y+n_Z,1:n_Y+n_Z))';
         rec.y(:,k_nmpc,:) = output2.y;
         rec.dydx(:,k_nmpc,:) = output2.dydx;
         rec.dydu(:,k_nmpc,:) = output2.dydu;
         rec.yN(k_nmpc,:) = output2.yN;
         rec.dyNdx(k_nmpc,:) = output2.dyNdx;
+        rec.priorities(:,k_nmpc,:) = preeval_output.priorities;
+        rec.aux(:,k_nmpc,:) = preeval_output.aux;
     end
     trec(k) = toc(st_rec);
 
@@ -385,6 +401,8 @@ t_st_plot = 0;
 t_ed_plot = time(end);
 isp = find(time<=t_st_plot, 1, 'last');
 iep = find(time<=t_ed_plot, 1, 'last');
+isp_nmpc = find(rec.time_nmpc<=t_st_plot, 1, 'last');
+iep_nmpc = find(rec.time_nmpc<=t_ed_plot, 1, 'last');
 
 plot_opt.position = true;
 plot_opt.position2 = true;
@@ -393,11 +411,10 @@ plot_opt.roll_horizon = true;
 plot_opt.pitch_horizon = true;
 plot_opt.motor = true;
 plot_opt.position_errors = true;
-plot_opt.directional_errors = false;
 plot_opt.velocity_tracking = true;
-plot_opt.wind_axis = true;
+plot_opt.wind_axis = false;
 plot_opt.radial_cost = true;
-plot_opt.objectives = false;
+plot_opt.objectives = true;
 plot_opt.timing = false;
 
 plot_sim

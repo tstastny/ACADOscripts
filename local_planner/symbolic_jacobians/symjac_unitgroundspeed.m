@@ -27,21 +27,19 @@ vG_norm_expr = sqrt(vG_n_expr^2 + vG_e_expr^2 + vG_d_expr^2);
 one_over_vG_norm_expr = 1/vG_norm_expr;
 
 % unit ground speed
-v_n_unit_expr = vG_n_expr * one_over_vG_norm_expr;
-v_e_unit_expr = vG_e_expr * one_over_vG_norm_expr;
-v_d_unit_expr = vG_d_expr * one_over_vG_norm_expr;
-
-% cost
-e_v_n_expr = v_n_cmd - v_n_unit_expr;
-e_v_e_expr = v_e_cmd - v_e_unit_expr;
-e_v_d_expr = v_d_cmd - v_d_unit_expr;
+vG_n_unit_expr = vG_n_expr * one_over_vG_norm_expr;
+vG_e_unit_expr = vG_e_expr * one_over_vG_norm_expr;
+vG_d_unit_expr = vG_d_expr * one_over_vG_norm_expr;
 
 % jacobian
-jac_v_n = jacobian(e_v_n_expr, [v; gamma; xi]);
-jac_v_e = jacobian(e_v_e_expr, [v; gamma; xi]);
-jac_v_d = jacobian(e_v_d_expr, [v; gamma; xi]);
+jac_v_n = jacobian(vG_n_unit_expr, [v; gamma; xi]);
+jac_v_e = jacobian(vG_e_unit_expr, [v; gamma; xi]);
+jac_v_d = jacobian(vG_d_unit_expr, [v; gamma; xi]);
 
 %% substitute calculations we'll have already done
+vG_n_unit = sym('vG_n_unit','real');
+vG_e_unit = sym('vG_e_unit','real');
+vG_d_unit = sym('vG_d_unit','real');
 vG_norm = sym('vG_norm','real');
 one_over_vG_norm = sym('one_over_vG_norm','real');
 vG_n = sym('vG_n','real');
@@ -51,32 +49,53 @@ v_n = sym('v_n','real');
 v_e = sym('v_e','real');
 v_d = sym('v_d','real');
 
-jac_v_n = subs(jac_v_n , one_over_vG_norm_expr, one_over_vG_norm);
-jac_v_n = subs(jac_v_n , vG_n_expr, vG_n);
-jac_v_n = subs(jac_v_n , vG_e_expr, vG_e);
-jac_v_n = subs(jac_v_n , vG_d_expr, vG_d);
-jac_v_n = subs(jac_v_n , v_n_expr, v_n);
-jac_v_n = subs(jac_v_n , v_e_expr, v_e);
-jac_v_n = subs(jac_v_n , v_d_expr, v_d);
-jac_v_n = subs(jac_v_n , vG_norm_expr, vG_norm);
+jac_v_n = subs(jac_v_n, one_over_vG_norm_expr, one_over_vG_norm);
+jac_v_n = subs(jac_v_n, vG_n_expr, vG_n);
+jac_v_n = subs(jac_v_n, vG_e_expr, vG_e);
+jac_v_n = subs(jac_v_n, vG_d_expr, vG_d);
+jac_v_n = subs(jac_v_n, v_n_expr, v_n);
+jac_v_n = subs(jac_v_n, v_e_expr, v_e);
+jac_v_n = subs(jac_v_n, v_d_expr, v_d);
+jac_v_n = subs(jac_v_n, vG_norm_expr, vG_norm);
+jac_v_n = subs(jac_v_n, vG_n/vG_norm, vG_n_unit);
+jac_v_n = subs(jac_v_n, vG_n*one_over_vG_norm, vG_n_unit);
+jac_v_n = subs(jac_v_n, vG_e/vG_norm, vG_e_unit);
+jac_v_n = subs(jac_v_n, vG_e*one_over_vG_norm, vG_e_unit);
+jac_v_n = subs(jac_v_n, vG_d/vG_norm, vG_d_unit);
+jac_v_n = subs(jac_v_n, vG_d*one_over_vG_norm, vG_d_unit);
 
-jac_v_e = subs(jac_v_e , one_over_vG_norm_expr, one_over_vG_norm);
-jac_v_e = subs(jac_v_e , vG_n_expr, vG_n);
-jac_v_e = subs(jac_v_e , vG_e_expr, vG_e);
-jac_v_e = subs(jac_v_e , vG_d_expr, vG_d);
-jac_v_e = subs(jac_v_e , v_n_expr, v_n);
-jac_v_e = subs(jac_v_e , v_e_expr, v_e);
-jac_v_e = subs(jac_v_e , v_d_expr, v_d);
-jac_v_e = subs(jac_v_e , vG_norm_expr, vG_norm);
+jac_v_e = subs(jac_v_e, one_over_vG_norm_expr, one_over_vG_norm);
+jac_v_e = subs(jac_v_e, vG_n_expr, vG_n);
+jac_v_e = subs(jac_v_e, vG_e_expr, vG_e);
+jac_v_e = subs(jac_v_e, vG_d_expr, vG_d);
+jac_v_e = subs(jac_v_e, v_n_expr, v_n);
+jac_v_e = subs(jac_v_e, v_e_expr, v_e);
+jac_v_e = subs(jac_v_e, v_d_expr, v_d);
+jac_v_e = subs(jac_v_e, vG_norm_expr, vG_norm);
+jac_v_e = subs(jac_v_e, vG_n/vG_norm, vG_n_unit);
+jac_v_e = subs(jac_v_e, vG_n*one_over_vG_norm, vG_n_unit);
+jac_v_e = subs(jac_v_e, vG_e/vG_norm, vG_e_unit);
+jac_v_e = subs(jac_v_e, vG_e*one_over_vG_norm, vG_e_unit);
+jac_v_e = subs(jac_v_e, vG_d/vG_norm, vG_d_unit);
+jac_v_e = subs(jac_v_e, vG_d*one_over_vG_norm, vG_d_unit);
 
-jac_v_d = subs(jac_v_d , one_over_vG_norm_expr, one_over_vG_norm);
-jac_v_d = subs(jac_v_d , vG_n_expr, vG_n);
-jac_v_d = subs(jac_v_d , vG_e_expr, vG_e);
-jac_v_d = subs(jac_v_d , vG_d_expr, vG_d);
-jac_v_d = subs(jac_v_d , v_n_expr, v_n);
-jac_v_d = subs(jac_v_d , v_e_expr, v_e);
-jac_v_d = subs(jac_v_d , v_d_expr, v_d);
-jac_v_d = subs(jac_v_d , vG_norm_expr, vG_norm);
+jac_v_d = subs(jac_v_d, vG_n_unit_expr, vG_n_unit);
+jac_v_d = subs(jac_v_d, vG_e_unit_expr, vG_e_unit);
+jac_v_d = subs(jac_v_d, vG_d_unit_expr, vG_d_unit);
+jac_v_d = subs(jac_v_d, one_over_vG_norm_expr, one_over_vG_norm);
+jac_v_d = subs(jac_v_d, vG_n_expr, vG_n);
+jac_v_d = subs(jac_v_d, vG_e_expr, vG_e);
+jac_v_d = subs(jac_v_d, vG_d_expr, vG_d);
+jac_v_d = subs(jac_v_d, v_n_expr, v_n);
+jac_v_d = subs(jac_v_d, v_e_expr, v_e);
+jac_v_d = subs(jac_v_d, v_d_expr, v_d);
+jac_v_d = subs(jac_v_d, vG_norm_expr, vG_norm);
+jac_v_d = subs(jac_v_d, vG_n/vG_norm, vG_n_unit);
+jac_v_d = subs(jac_v_d, vG_n*one_over_vG_norm, vG_n_unit);
+jac_v_d = subs(jac_v_d, vG_e/vG_norm, vG_e_unit);
+jac_v_d = subs(jac_v_d, vG_e*one_over_vG_norm, vG_e_unit);
+jac_v_d = subs(jac_v_d, vG_d/vG_norm, vG_d_unit);
+jac_v_d = subs(jac_v_d, vG_d*one_over_vG_norm, vG_d_unit);
 
 jac_vg_unit = [jac_v_n, jac_v_e, jac_v_d];
 
