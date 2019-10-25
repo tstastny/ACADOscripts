@@ -224,17 +224,17 @@ figure('color','w','name','Position errors')
 
 hand_pos_err(1)=subplot(2,1,1); hold on; grid on; box on;
 
-plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,3));
-plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,4));
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,AUX_E_LAT));
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,AUX_E_LON));
 
 legend('e_{lat}','e_{lon}')
 ylabel('e [m]')
 
 hand_pos_err(2)=subplot(2,1,2); hold on; grid on; box on;
 
-plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,1),'color',color_ref);
-plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,1)+h_offset,'color',color_ref,'linestyle','--');
-plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,1)+h_offset+delta_h,'color',color_ref,'linestyle',':');
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,AUX_H_TERR),'color',color_ref);
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,AUX_H_TERR)+h_offset,'color',color_ref,'linestyle','--');
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,AUX_H_TERR)+h_offset+delta_h,'color',color_ref,'linestyle',':');
 plot(time(isp:iep),-rec.x(isp:iep,3),'color',color_state);
 
 legend('h_{terr}','h_{terr,off}','h_{terr}+h_{terr,off}+\Delta_h','h')
@@ -328,31 +328,109 @@ if (plot_opt.radial_cost)
 %% ////////////////////////////////////////////////////////////////////////
 % RADIAL COST
 
+k_int = round(Ts_nmpc/Ts);
+idx_k = isp:k_int:iep;
+
 cos_gamma = cos(rec.x(isp:iep,5)); 
 vG_n = rec.x(isp:iep,4).*cos_gamma.*cos(rec.x(isp:iep,6)) + w_n; 
 vG_e = rec.x(isp:iep,4).*cos_gamma.*sin(rec.x(isp:iep,6)) + w_e; 
 vG_d = rec.x(isp:iep,4).*-sin(rec.x(isp:iep,5)) + w_d;
-vG_sq = vG_n.^2+vG_e.^2+vG_d.^2;
-Rmin = vG_sq*k_r;
+vG_vec = [vG_e(idx_k), vG_n(idx_k), -vG_d(idx_k)];
+vG_norm = sqrt(sum(vG_vec.^2,2));
+v_ray_fwd = vG_vec./vG_norm;
+v_ray_left = [-vG_n(idx_k), vG_e(idx_k), zeros(length(vG_n(idx_k)),1)]./vG_norm;
+v_ray_right = [vG_n(idx_k), -vG_e(idx_k), zeros(length(vG_n(idx_k)),1)]./vG_norm;
 
-k_int = round(Ts_nmpc/Ts);
-idx_k = isp:k_int:iep;
+vrel_fwd = dot(v_ray_fwd, vG_vec, 2);
+vrel_fwd(vrel_fwd < 0) = 0;
+vrel_left = dot(v_ray_left, vG_vec, 2);
+vrel_left(vrel_left < 0) = 0;
+vrel_right = dot(v_ray_right, vG_vec, 2);
+vrel_right(vrel_right < 0) = 0;
+
+Rmin_fwd_offset = vrel_fwd.^2 .* k_r_offset;
+Rmin_fwd_delta = vrel_fwd.^2 .* k_delta_r;
+Rmin_left_offset = vrel_left.^2 .* k_r_offset;
+Rmin_left_delta = vrel_left.^2 .* k_delta_r;
+Rmin_right_offset = vrel_right.^2 .* k_r_offset;
+Rmin_right_delta = vrel_right.^2 .* k_delta_r;
 
 figure('color','w','name','Radial cost');
 
-% r
-hand_r(1) = subplot(4,1,1:3); hold on; grid on; box on;
-plot(time([isp iep]),[r_offset r_offset],'color',color_ref);
-plot(rec.time_nmpc(isp_nmpc:iep_nmpc), Rmin(idx_k) + r_offset,'color',color_ref,'linestyle','--');
-plot(rec.time_nmpc(isp_nmpc:iep_nmpc), Rmin(idx_k) + r_offset + Rmin(idx_k) + delta_r0,'color',color_ref,'linestyle',':');
-plot(rec.time_nmpc(isp_nmpc:iep_nmpc), rec.aux(1,isp_nmpc:iep_nmpc,2).*double(rec.aux(1,isp_nmpc:iep_nmpc,5)>0),'color',color_state);
-legend('r_{{offset}}','r_{{offset}_1}','r_{{offset}_1}+\Delta_r','r_{occ}');
-ylabel('r [m]');
+% r fwd
+hand_r(1) = subplot(3,1,1); hold on; grid on; box on;
 
-% detection
-hand_r(2) = subplot(4,1,4); hold on; grid on; box on;
-plot(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,5),'color',color_state);
-ylabel('Detect');
+r_occ = rec.aux(1,isp_nmpc:iep_nmpc,AUX_R_OCC_FWD);
+r_occ(rec.aux(1,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_FWD)==0) = NaN;
+
+plot(time([isp iep]),[r_offset r_offset],'color',color_ref);
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc), Rmin_fwd_offset + r_offset,'color',color_ref,'linestyle','--');
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc), Rmin_fwd_offset + r_offset + Rmin_fwd_delta + delta_r0,'color',color_ref,'linestyle',':');
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc), r_occ,'color',color_state);
+stairs(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_FWD), ...
+    'color',cmap(2,:)*0.3+0.7*ones(1,3));
+
+ylabel('r (fwd) [m]');
+
+legend('r_{{offset}}','r_{{offset}_1}','r_{{offset}_1}+\Delta_r','r_{occ}','DETECT');
+
+% r left
+hand_r(2) = subplot(3,1,2); hold on; grid on; box on;
+
+r_occ = rec.aux(1,isp_nmpc:iep_nmpc,AUX_R_OCC_LEFT);
+r_occ(rec.aux(1,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_LEFT)==0) = NaN;
+
+plot(time([isp iep]),[r_offset r_offset],'color',color_ref);
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc), Rmin_left_offset + r_offset,'color',color_ref,'linestyle','--');
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc), Rmin_left_offset + r_offset + Rmin_left_delta + delta_r0,'color',color_ref,'linestyle',':');
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc), r_occ,'color',color_state);
+stairs(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_LEFT), ...
+    'color',cmap(2,:)*0.3+0.7*ones(1,3));
+
+ylabel('r (left) [m]');
+
+% r right
+hand_r(3) = subplot(3,1,3); hold on; grid on; box on;
+
+r_occ = rec.aux(1,isp_nmpc:iep_nmpc,AUX_R_OCC_RIGHT);
+r_occ(rec.aux(1,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_RIGHT)==0) = NaN;
+
+plot(time([isp iep]),[r_offset r_offset],'color',color_ref);
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc), Rmin_right_offset + r_offset,'color',color_ref,'linestyle','--');
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc), Rmin_right_offset + r_offset + Rmin_right_delta + delta_r0,'color',color_ref,'linestyle',':');
+plot(rec.time_nmpc(isp_nmpc:iep_nmpc), r_occ,'color',color_state);
+stairs(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_RIGHT), ...
+    'color',cmap(2,:)*0.3+0.7*ones(1,3));
+
+ylabel('r (right) [m]');
+
+end
+
+if (plot_opt.priorities)
+%% ////////////////////////////////////////////////////////////////////////
+% PRIORITIZATION
+
+figure('color','w','name','Terrain height prioritization');
+
+surf(rec.time_nmpc(isp_nmpc:iep_nmpc), (1:N+1)', rec.priorities(:,:,2));
+
+xlabel('Time [s]');
+ylabel('Node');
+ylim([1 N+1]);
+zlabel('{prio}_h');
+zlim([0 1]);
+
+%%
+
+figure('color','w','name','Radial terrain prioritization');
+
+surf(rec.time_nmpc(isp_nmpc:iep_nmpc), (1:N+1)', rec.priorities(:,:,3));
+
+xlabel('Time [s]');
+ylabel('Node');
+ylim([1 N+1]);
+zlabel('{prio}_r');
+zlim([0 1]);
 
 end
 

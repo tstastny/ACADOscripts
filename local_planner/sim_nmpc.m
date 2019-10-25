@@ -59,14 +59,14 @@ sig_aoa_1 = 0.001;
 
 % height soft constraint 
 h_offset = 10;
-delta_h = 20;
-delta_y = 5;
+delta_h = 10;
 sig_h_1 = 0.001;
 
 % radial soft constraint
-r_offset = 0;
-delta_r0 = 10;
-k_r = 1/tand(35)/9.81;
+r_offset = 10;
+delta_r0 = 20;
+k_r_offset = 1/tand(35)/9.81;
+k_delta_r = 1/tand(35)/9.81;
 sig_r_1 = 0.001;
 
 % terrain lookup
@@ -81,12 +81,12 @@ v_ref = 14;
 %% MORE PARAMS ------------------------------------------------------------
 
 tau_u = 0.5; % control reference time constant
-tau_terr = 0.5; % filter jacobians for terrain objectives
+tau_terr = 1; % filter jacobians for terrain objectives
 
 %% OPTIONS ----------------------------------------------------------------
 
 % terrain noise
-terr_noise = 3; % magnitude of noise
+terr_noise = 1; % magnitude of noise
 add_terrain_noise_to_global_map = false;
 add_terrain_noise_to_local_map = true;
 terrain_noise_random_seed = 0; % choose fixed random seed, set 0 to shuffle.
@@ -122,7 +122,7 @@ R_scale = [0.1 deg2rad(1) deg2rad(1)];
 
 Q_output    = [1e4 1e4 1e6, 5e2 0*1e0 0*1e0, 1e8 1e7 1e7]./Q_scale.^2;
 QN_output   = [1e4 1e4 1e6, 5e2 0*1e0 0*1e0, 1e8 1e7 1e7]./Q_scale.^2;
-R_controls  = [1e1 1e1 1e3]./R_scale.^2;
+R_controls  = [1e3 1e1 1e3]./R_scale.^2;
 
 % weight dependent parameters
 if sig_aoa_1 < 1e-5
@@ -222,9 +222,20 @@ if output_objectives
     rec.yN = zeros(len_nmpc,n_Y);
     rec.dyNdx = zeros(len_nmpc,n_Y*n_X);
     rec.priorities = zeros(N+1,len_nmpc,3);
-    rec.aux = zeros(N+1,len_nmpc,5);
+    rec.aux = zeros(N+1,len_nmpc,9);
+    AUX_E_LAT = 1;
+    AUX_E_LON = 2;
+    AUX_H_TERR = 3;
+    AUX_R_OCC_FWD = 4;
+    AUX_R_OCC_LEFT = 5;
+    AUX_R_OCC_RIGHT = 6;
+    AUX_OCC_DETECT_FWD = 7;
+    AUX_OCC_DETECT_LEFT = 8;
+    AUX_OCC_DETECT_RIGHT = 9;
 end
 
+prio_h = ones(N+1,1);
+prio_r = ones(N+1,1);
 k_nmpc = 0;
 % simulate
 for k = 1:len_t
@@ -276,8 +287,8 @@ for k = 1:len_t
         path_reference = [b_n, b_e, b_d, Gamma_p, chi_p];
         guidance_params = [T_b_lat, T_b_lon, gamma_app_max, use_occ_as_guidance];
         aoa_params = [delta_aoa, aoa_m, aoa_p, log_sqrt_w_over_sig1_aoa, one_over_sqrt_w_aoa];
-        terr_params = [h_offset, delta_h, delta_y, log_sqrt_w_over_sig1_h, one_over_sqrt_w_h, ...
-            r_offset, delta_r0, k_r, log_sqrt_w_over_sig1_r, one_over_sqrt_w_r, ...
+        terr_params = [h_offset, delta_h, log_sqrt_w_over_sig1_h, one_over_sqrt_w_h, ...
+            r_offset, delta_r0, k_r_offset, k_delta_r, log_sqrt_w_over_sig1_r, one_over_sqrt_w_r, ...
             terr_local_origin_n, terr_local_origin_e, terr_dis];
         
         % pre-evaluate objectives / update references / online data
@@ -294,12 +305,15 @@ for k = 1:len_t
         input.y = preeval_output.y;
         input.yN = preeval_output.yN;
         input.od(:,[9:12, 17]) = preeval_output.od(:,[9:12, 17]);
-        input.od(:,[13:16, 18:23]) = (preeval_output.od(:,[13:16, 18:23]) - input.od(:,[13:16, 18:23])) / tau_terr * Ts_nmpc + input.od(:,[13:16, 18:23]);
-        
+%         input.od(:,[9:12, 17]) = (preeval_output.od(:,[9:12, 17]) - input.od(:,[9:12, 17])) / 0.5 * Ts_nmpc + input.od(:,[9:12, 17]);
+        input.od(:,[13:16, 18:23]) = (preeval_output.od(:,[13:16, 18:23]) - input.od(:,[13:16, 18:23])) / 1 * Ts_nmpc + input.od(:,[13:16, 18:23]);
+
         % update priorities
         prio_aoa = preeval_output.priorities(:,1);
         prio_h = preeval_output.priorities(:,2);
         prio_r = preeval_output.priorities(:,3);
+%         prio_h = constrain( (preeval_output.priorities(:,2) - prio_h) / 0.5 * Ts_nmpc + prio_h, 0, 1);
+%         prio_r = constrain( (preeval_output.priorities(:,3) - prio_r) / 0.5 * Ts_nmpc + prio_r, 0, 1);
         if ~use_occ_as_guidance
             prio_v = prio_h .* prio_r;
             for ii=0:N-1
@@ -414,6 +428,7 @@ plot_opt.position_errors = true;
 plot_opt.velocity_tracking = true;
 plot_opt.wind_axis = false;
 plot_opt.radial_cost = true;
+plot_opt.priorities = true;
 plot_opt.objectives = true;
 plot_opt.timing = false;
 

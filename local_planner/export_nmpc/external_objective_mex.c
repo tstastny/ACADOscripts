@@ -9,14 +9,18 @@
 
 /* Define number of outputs */
 #define NOO 5
-#define N_AUX 5
+#define N_AUX 9
 
 enum aux {
-    AUX_H_TERR = 0,
-    AUX_R_OCC,
-    AUX_E_LAT,
+    AUX_E_LAT = 0,
     AUX_E_LON,
-    AUX_OCC_DETECT
+    AUX_H_TERR,
+    AUX_R_OCC_FWD,
+    AUX_R_OCC_LEFT,
+    AUX_R_OCC_RIGHT,
+    AUX_OCC_DETECT_FWD,
+    AUX_OCC_DETECT_LEFT,
+    AUX_OCC_DETECT_RIGHT
 };
 
 /** Instance of the user data structure. */
@@ -175,12 +179,26 @@ void mexFunction(	int nlhs,
     double sig_h;
     double jac_sig_h[4];
     double prio_h;
-    double sig_r;
+    double sig_r_fwd;
+    double sig_r_left;
+    double sig_r_right;
     double jac_sig_r[6];
+    double jac_sig_r_fwd[6];
+    double jac_sig_r_left[6];
+    double jac_sig_r_right[6];
     double prio_r;
     double priorities[(ACADO_N+1)*3];
     double aux_output[(ACADO_N+1)*N_AUX];
-            
+    int occ_detected_fwd = 0;
+    int occ_detected_left = 0;
+    int occ_detected_right = 0;
+    double r_occ_fwd;
+    double r_occ_left;
+    double r_occ_right;
+    double sig_input_r_fwd;
+    double sig_input_r_left;
+    double sig_input_r_right;
+    
     /* evaluate external objectives */
     
     int runObj;
@@ -193,7 +211,7 @@ void mexFunction(	int nlhs,
         acadoVariables.od[runObj * ACADO_NOD + 9] = jac_sig_aoa[0];
         acadoVariables.od[runObj * ACADO_NOD + 10] = jac_sig_aoa[1];
                 
-        priorities[runObj * 3 + 0] = prio_aoa;
+        priorities[runObj * 3 + 0] = prio_aoa * prio_aoa;
                 
         /* soft height constraint */
         double h_terr;
@@ -205,7 +223,7 @@ void mexFunction(	int nlhs,
         acadoVariables.od[runObj * ACADO_NOD + 14] = jac_sig_h[2];
         acadoVariables.od[runObj * ACADO_NOD + 15] = jac_sig_h[3];
                 
-        priorities[runObj * 3 + 1] = prio_h;
+        priorities[runObj * 3 + 1] = prio_h * prio_h;
         
         aux_output[runObj * N_AUX + AUX_H_TERR] = h_terr;
                 
@@ -220,10 +238,32 @@ void mexFunction(	int nlhs,
         calculate_speed_states(speed_states, v, gamma, xi, w_n, w_e, w_d);
                 
         /* soft radial constraint */
-        double r_occ;
-        int occ_detected;
-        calculate_radial_objective(&sig_r, jac_sig_r, &prio_r, &r_occ, &occ_detected, acadoVariables.x + (runObj * ACADO_NX), speed_states, terr_params, terr_map);
-                    
+        
+        /* forward ray */
+        double v_ray[3] = {speed_states[10], speed_states[9], -speed_states[11]};
+        calculate_radial_objective(&sig_r_fwd, jac_sig_r_fwd, &r_occ_fwd, &sig_input_r_fwd, &occ_detected_fwd, v_ray, acadoVariables.x + (runObj * ACADO_NX), speed_states, terr_params, terr_map);
+
+        /* left ray */
+        v_ray[0] = -speed_states[9];
+        v_ray[1] = speed_states[10];
+        v_ray[2] = 0.0;
+        calculate_radial_objective(&sig_r_left, jac_sig_r_left, &r_occ_left, &sig_input_r_left, &occ_detected_left, v_ray, acadoVariables.x + (runObj * ACADO_NX), speed_states, terr_params, terr_map);
+       
+        /* right ray */
+        v_ray[0] = speed_states[9];
+        v_ray[1] = -speed_states[10];
+        v_ray[2] = 0.0;
+        calculate_radial_objective(&sig_r_right, jac_sig_r_right, &r_occ_right, &sig_input_r_right, &occ_detected_right, v_ray, acadoVariables.x + (runObj * ACADO_NX), speed_states, terr_params, terr_map);
+        
+        jac_sig_r[0] = jac_sig_r_fwd[0] + jac_sig_r_left[0] + jac_sig_r_right[0];
+        jac_sig_r[1] = jac_sig_r_fwd[1] + jac_sig_r_left[1] + jac_sig_r_right[1];
+        jac_sig_r[2] = jac_sig_r_fwd[2] + jac_sig_r_left[2] + jac_sig_r_right[2];
+        jac_sig_r[3] = jac_sig_r_fwd[3] + jac_sig_r_left[3] + jac_sig_r_right[3];
+        jac_sig_r[4] = jac_sig_r_fwd[4] + jac_sig_r_left[4] + jac_sig_r_right[4];
+        jac_sig_r[5] = jac_sig_r_fwd[5] + jac_sig_r_left[5] + jac_sig_r_right[5];
+        
+        const double sig_r = sig_r_fwd + sig_r_left + sig_r_right;
+        
         acadoVariables.od[runObj * ACADO_NOD + 16] = sig_r;
         acadoVariables.od[runObj * ACADO_NOD + 17] = jac_sig_r[0];
         acadoVariables.od[runObj * ACADO_NOD + 18] = jac_sig_r[1];
@@ -232,10 +272,24 @@ void mexFunction(	int nlhs,
         acadoVariables.od[runObj * ACADO_NOD + 21] = jac_sig_r[4];
         acadoVariables.od[runObj * ACADO_NOD + 22] = jac_sig_r[5];
                 
+        /* prioritization */
+        const double one_over_sqrt_w_r = terr_params[9];
+        if (!(one_over_sqrt_w_r<0.0) && (occ_detected_fwd + occ_detected_left + occ_detected_right>0)) {
+            double sig_input = (sig_input_r_fwd < sig_input_r_left) ? sig_input_r_fwd : sig_input_r_left;
+            sig_input = (sig_input_r_left < sig_input_r_right) ? sig_input_r_left : sig_input_r_right;
+            prio_r = constrain_double(sig_input, 0.0, 1.0);
+        }
+        else {
+            prio_r = 1.0;
+        }
         priorities[runObj * 3 + 2] = prio_r;
         
-        aux_output[runObj * N_AUX + AUX_R_OCC] = r_occ;
-        aux_output[runObj * N_AUX + AUX_OCC_DETECT] = occ_detected;
+        aux_output[runObj * N_AUX + AUX_R_OCC_FWD] = r_occ_fwd;
+        aux_output[runObj * N_AUX + AUX_R_OCC_LEFT] = r_occ_left;
+        aux_output[runObj * N_AUX + AUX_R_OCC_RIGHT] = r_occ_right;
+        aux_output[runObj * N_AUX + AUX_OCC_DETECT_FWD] = occ_detected_fwd;
+        aux_output[runObj * N_AUX + AUX_OCC_DETECT_LEFT] = occ_detected_left;
+        aux_output[runObj * N_AUX + AUX_OCC_DETECT_RIGHT] = occ_detected_right;
                 
         /* velocity reference */
         double v_ref[3];
