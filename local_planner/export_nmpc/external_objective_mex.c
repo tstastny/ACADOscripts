@@ -8,8 +8,9 @@
 #include "lsq_objective.c"
 
 /* Define number of outputs */
-#define NOO 5
-#define N_AUX 15
+#define NOO 6
+#define N_AUX 12
+#define N_OCC 7
 
 enum aux {
     AUX_E_LAT = 0,
@@ -18,12 +19,19 @@ enum aux {
     AUX_R_OCC_FWD,
     AUX_R_OCC_LEFT,
     AUX_R_OCC_RIGHT,
-    AUX_OCC_DETECT_FWD,
+    AUX_OCC_DETECT_FWD, /* XXX: this is a repeat atm */
     AUX_OCC_DETECT_LEFT,
     AUX_OCC_DETECT_RIGHT,
-    AUX_P_OCC_FWD,
-    AUX_N_OCC_FWD = 12
+    AUX_PRIO_R_FWD
 };
+
+enum occ {
+    OCC_DETECT_FWD = 0,
+    P_OCC_FWD = 1,
+    N_OCC_FWD = 4
+};
+
+#define IDX_LEN_SW 13
 
 /** Instance of the user data structure. */
 ACADOvariables acadoVariables;
@@ -145,6 +153,7 @@ void mexFunction(	int nlhs,
     outNames[ 2 ] = "od";
     outNames[ 3 ] = "priorities";
     outNames[ 4 ] = "aux";
+    outNames[ 5 ] = "occ_slw";
     
 	if (nrhs != 1)
 		mexErrMsgTxt(
@@ -164,15 +173,22 @@ void mexFunction(	int nlhs,
 	getArray(1, src, 0, "od", acadoVariables.od, ACADO_N + 1, ACADO_NOD);
     
     double aoa_params[5];
-    double terr_params[13];
+    double terr_params[14];
     double terr_map[LEN_IDX_N*LEN_IDX_E];
     double path_reference[5];
     double guidance_params[4];
     getArray(1, src, 0, "aoa_params", aoa_params, 1, 5);
-    getArray(1, src, 0, "terr_params", terr_params, 1, 13);
+    getArray(1, src, 0, "terr_params", terr_params, 1, 14);
     getArray(1, src, 0, "terr_map", terr_map, 1, LEN_IDX_N*LEN_IDX_E);
     getArray(1, src, 0, "path_reference", path_reference, 1, 5);
     getArray(1, src, 0, "guidance_params", guidance_params, 1, 4);
+    
+    int len_sliding_window = constrain_int(round(terr_params[IDX_LEN_SW]), 1, ACADO_N);
+    double occ_slw[(len_sliding_window-1+ACADO_N+1) * N_OCC];
+    getArray(1, src, 0, "occ_slw", occ_slw, len_sliding_window-1+ACADO_N+1, N_OCC);
+    
+    const double log_sqrt_w_over_sig1_r = terr_params[8]; /* XXX: be careful if this list changes order... */
+    const double one_over_sqrt_w_r = terr_params[9];
     
     /* init */
     double sig_aoa;
@@ -185,7 +201,6 @@ void mexFunction(	int nlhs,
     double sig_r_left;
     double sig_r_right;
     double jac_sig_r[6];
-    double jac_sig_r_fwd[6];
     double jac_sig_r_left[6];
     double jac_sig_r_right[6];
     double prio_r;
@@ -197,121 +212,221 @@ void mexFunction(	int nlhs,
     double r_occ_fwd;
     double r_occ_left;
     double r_occ_right;
-    double sig_input_r_fwd;
-    double sig_input_r_left;
-    double sig_input_r_right;
+    double prio_r_fwd;
+    double prio_r_left;
+    double prio_r_right;
     double p_occ_fwd[3];
     double n_occ_fwd[3];
     
-    /* evaluate external objectives */
+    /* shift detection window */
+    int jHorizon;
+    for (jHorizon = 0; jHorizon < len_sliding_window; ++jHorizon) {
+        occ_slw[jHorizon * N_OCC + OCC_DETECT_FWD] = occ_slw[(jHorizon+1) * N_OCC + OCC_DETECT_FWD];
+        occ_slw[jHorizon * N_OCC + P_OCC_FWD] = occ_slw[(jHorizon+1) * N_OCC + P_OCC_FWD];
+        occ_slw[jHorizon * N_OCC + P_OCC_FWD+1] = occ_slw[(jHorizon+1) * N_OCC + P_OCC_FWD+1];
+        occ_slw[jHorizon * N_OCC + P_OCC_FWD+2] = occ_slw[(jHorizon+1) * N_OCC + P_OCC_FWD+2];
+        occ_slw[jHorizon * N_OCC + N_OCC_FWD] = occ_slw[(jHorizon+1) * N_OCC + N_OCC_FWD];
+        occ_slw[jHorizon * N_OCC + N_OCC_FWD+1] = occ_slw[(jHorizon+1) * N_OCC + N_OCC_FWD+1];
+        occ_slw[jHorizon * N_OCC + N_OCC_FWD+2] = occ_slw[(jHorizon+1) * N_OCC + N_OCC_FWD+2];
+    }
     
-    int runObj;
-    for (runObj = 0; runObj < ACADO_N +1; ++runObj)
+    /* cast rays along ground speed vector at every node */
+    int kHorizon;
+    for (kHorizon = 0; kHorizon < ACADO_N+1; ++kHorizon)
+    {
+        /* calculate speed states */
+        const double v = acadoVariables.x[kHorizon * ACADO_NX + 3];
+        const double gamma = acadoVariables.x[kHorizon * ACADO_NX + 4];
+        const double xi = acadoVariables.x[kHorizon * ACADO_NX + 5];
+        const double w_n = acadoVariables.od[kHorizon * ACADO_NOD + 1];
+        const double w_e = acadoVariables.od[kHorizon * ACADO_NOD + 2];
+        const double w_d = acadoVariables.od[kHorizon * ACADO_NOD + 3];
+        double speed_states[12];
+        calculate_speed_states(speed_states, v, gamma, xi, w_n, w_e, w_d);
+        
+        /* forward ray */
+        get_occ_along_gsp_vec(p_occ_fwd, n_occ_fwd, &r_occ_fwd, &occ_detected_fwd,
+                acadoVariables.x + (kHorizon * ACADO_NX), speed_states, terr_params, terr_map);
+        
+        /* log detections */
+        aux_output[kHorizon * N_AUX + AUX_R_OCC_FWD] = r_occ_fwd;
+        aux_output[kHorizon * N_AUX + AUX_OCC_DETECT_FWD] = occ_detected_fwd;
+        occ_slw[(len_sliding_window-1+kHorizon) * N_OCC + OCC_DETECT_FWD] = occ_detected_fwd;
+        occ_slw[(len_sliding_window-1+kHorizon) * N_OCC + P_OCC_FWD] = p_occ_fwd[0];
+        occ_slw[(len_sliding_window-1+kHorizon) * N_OCC + P_OCC_FWD+1] = p_occ_fwd[1];
+        occ_slw[(len_sliding_window-1+kHorizon) * N_OCC + P_OCC_FWD+2] = p_occ_fwd[2];
+        occ_slw[(len_sliding_window-1+kHorizon) * N_OCC + N_OCC_FWD] = n_occ_fwd[0];
+        occ_slw[(len_sliding_window-1+kHorizon) * N_OCC + N_OCC_FWD+1] = n_occ_fwd[1];
+        occ_slw[(len_sliding_window-1+kHorizon) * N_OCC + N_OCC_FWD+2] = n_occ_fwd[2];
+    }
+
+    /* sum detections on sliding horizon window for each node */
+    for (kHorizon = 0; kHorizon < ACADO_N+1; ++kHorizon)
+    {
+        /* init */
+        double jac_sig_r_fwd[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+        double jac_r_unit[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+        double r_unit_min;
+        bool f_min;
+        int occ_count = 0;
+        
+        /* calculate speed states */
+        const double v = acadoVariables.x[kHorizon * ACADO_NX + 3];
+        const double gamma = acadoVariables.x[kHorizon * ACADO_NX + 4];
+        const double xi = acadoVariables.x[kHorizon * ACADO_NX + 5];
+        const double w_n = acadoVariables.od[kHorizon * ACADO_NOD + 1];
+        const double w_e = acadoVariables.od[kHorizon * ACADO_NOD + 2];
+        const double w_d = acadoVariables.od[kHorizon * ACADO_NOD + 3];
+        double speed_states[12];
+        calculate_speed_states(speed_states, v, gamma, xi, w_n, w_e, w_d);
+        
+        /* sum detections in sliding window */
+        for (jHorizon = kHorizon; jHorizon < (kHorizon + len_sliding_window); ++jHorizon)
+        {
+            if (occ_slw[jHorizon * N_OCC + OCC_DETECT_FWD]>0) {
+                add_unit_radial_distance_and_gradient(jac_r_unit, &r_unit_min, &f_min, &occ_count,
+                        occ_slw + (jHorizon * N_OCC + P_OCC_FWD), occ_slw + (jHorizon * N_OCC + N_OCC_FWD),
+                        acadoVariables.x + (kHorizon * ACADO_NX), speed_states, terr_params);
+            }   
+        }
+        
+        /* calculate objective/jacobian */
+        prio_r_fwd = 1.0;
+        if (occ_count>0) {
+            if (f_min) {
+                sig_r_fwd = 1.0 - log_sqrt_w_over_sig1_r * r_unit_min;
+                jac_sig_r_fwd[0] = -log_sqrt_w_over_sig1_r * jac_r_unit[0] / occ_count;
+                jac_sig_r_fwd[1] = -log_sqrt_w_over_sig1_r * jac_r_unit[1] / occ_count;
+                jac_sig_r_fwd[2] = -log_sqrt_w_over_sig1_r * jac_r_unit[2] / occ_count;
+                jac_sig_r_fwd[3] = -log_sqrt_w_over_sig1_r * jac_r_unit[3] / occ_count;
+                jac_sig_r_fwd[4] = -log_sqrt_w_over_sig1_r * jac_r_unit[4] / occ_count;
+                jac_sig_r_fwd[5] = -log_sqrt_w_over_sig1_r * jac_r_unit[5] / occ_count;
+            }
+            else {
+                sig_r_fwd = exp(-r_unit_min * log_sqrt_w_over_sig1_r);
+                jac_sig_r_fwd[0] = -log_sqrt_w_over_sig1_r * sig_r_fwd * jac_r_unit[0] / occ_count;
+                jac_sig_r_fwd[1] = -log_sqrt_w_over_sig1_r * sig_r_fwd * jac_r_unit[1] / occ_count;
+                jac_sig_r_fwd[2] = -log_sqrt_w_over_sig1_r * sig_r_fwd * jac_r_unit[2] / occ_count;
+                jac_sig_r_fwd[3] = -log_sqrt_w_over_sig1_r * sig_r_fwd * jac_r_unit[3] / occ_count;
+                jac_sig_r_fwd[4] = -log_sqrt_w_over_sig1_r * sig_r_fwd * jac_r_unit[4] / occ_count;
+                jac_sig_r_fwd[5] = -log_sqrt_w_over_sig1_r * sig_r_fwd * jac_r_unit[5] / occ_count;
+            }
+            jac_sig_r_fwd[3] = 0.0; /* discourage mpc from using airspeed to combat costs */
+            prio_r_fwd = constrain_double(r_unit_min, 0.0, 1.0);
+        }
+        aux_output[kHorizon * N_AUX + AUX_PRIO_R_FWD] = prio_r_fwd;
+        
+        /* log cost and jacobian */
+        acadoVariables.od[kHorizon * ACADO_NOD + 16] = sig_r_fwd;
+        acadoVariables.od[kHorizon * ACADO_NOD + 17] = jac_sig_r_fwd[0];
+        acadoVariables.od[kHorizon * ACADO_NOD + 18] = jac_sig_r_fwd[1];
+        acadoVariables.od[kHorizon * ACADO_NOD + 19] = jac_sig_r_fwd[2];
+        acadoVariables.od[kHorizon * ACADO_NOD + 20] = jac_sig_r_fwd[3];
+        acadoVariables.od[kHorizon * ACADO_NOD + 21] = jac_sig_r_fwd[4];
+        acadoVariables.od[kHorizon * ACADO_NOD + 22] = jac_sig_r_fwd[5];
+    }
+    
+    /* evaluate external objectives */
+    double v_ray[3];
+    for (kHorizon = 0; kHorizon < ACADO_N +1; ++kHorizon)
     {
         /* soft aoa constraint */
-        calculate_aoa_objective(&sig_aoa, jac_sig_aoa, &prio_aoa, acadoVariables.x + (runObj * ACADO_NX), aoa_params);
+        calculate_aoa_objective(&sig_aoa, jac_sig_aoa, &prio_aoa, acadoVariables.x + (kHorizon * ACADO_NX), aoa_params);
                 
-        acadoVariables.od[runObj * ACADO_NOD + 8] = sig_aoa;
-        acadoVariables.od[runObj * ACADO_NOD + 9] = jac_sig_aoa[0];
-        acadoVariables.od[runObj * ACADO_NOD + 10] = jac_sig_aoa[1];
+        acadoVariables.od[kHorizon * ACADO_NOD + 8] = sig_aoa;
+        acadoVariables.od[kHorizon * ACADO_NOD + 9] = jac_sig_aoa[0];
+        acadoVariables.od[kHorizon * ACADO_NOD + 10] = jac_sig_aoa[1];
                 
-        priorities[runObj * 3 + 0] = prio_aoa * prio_aoa;
+        priorities[kHorizon * 3 + 0] = prio_aoa;
                 
         /* soft height constraint */
         double h_terr;
-        calculate_height_objective(&sig_h, jac_sig_h, &prio_h, &h_terr, acadoVariables.x + (runObj * ACADO_NX), terr_params, terr_map);
+        calculate_height_objective(&sig_h, jac_sig_h, &prio_h, &h_terr, acadoVariables.x + (kHorizon * ACADO_NX), terr_params, terr_map);
                 
-        acadoVariables.od[runObj * ACADO_NOD + 11] = sig_h;
-        acadoVariables.od[runObj * ACADO_NOD + 12] = jac_sig_h[0];
-        acadoVariables.od[runObj * ACADO_NOD + 13] = jac_sig_h[1];
-        acadoVariables.od[runObj * ACADO_NOD + 14] = jac_sig_h[2];
-        acadoVariables.od[runObj * ACADO_NOD + 15] = jac_sig_h[3];
+        acadoVariables.od[kHorizon * ACADO_NOD + 11] = sig_h;
+        acadoVariables.od[kHorizon * ACADO_NOD + 12] = jac_sig_h[0];
+        acadoVariables.od[kHorizon * ACADO_NOD + 13] = jac_sig_h[1];
+        acadoVariables.od[kHorizon * ACADO_NOD + 14] = jac_sig_h[2];
+        acadoVariables.od[kHorizon * ACADO_NOD + 15] = jac_sig_h[3];
                 
-        priorities[runObj * 3 + 1] = prio_h * prio_h;
+        priorities[kHorizon * 3 + 1] = prio_h;
         
-        aux_output[runObj * N_AUX + AUX_H_TERR] = h_terr;
+        aux_output[kHorizon * N_AUX + AUX_H_TERR] = h_terr;
                 
         /* calculate speed states */
-        const double v = acadoVariables.x[runObj * ACADO_NX + 3];
-        const double gamma = acadoVariables.x[runObj * ACADO_NX + 4];
-        const double xi = acadoVariables.x[runObj * ACADO_NX + 5];
-        const double w_n = acadoVariables.od[runObj * ACADO_NOD + 1];
-        const double w_e = acadoVariables.od[runObj * ACADO_NOD + 2];
-        const double w_d = acadoVariables.od[runObj * ACADO_NOD + 3];
+        const double v = acadoVariables.x[kHorizon * ACADO_NX + 3];
+        const double gamma = acadoVariables.x[kHorizon * ACADO_NX + 4];
+        const double xi = acadoVariables.x[kHorizon * ACADO_NX + 5];
+        const double w_n = acadoVariables.od[kHorizon * ACADO_NOD + 1];
+        const double w_e = acadoVariables.od[kHorizon * ACADO_NOD + 2];
+        const double w_d = acadoVariables.od[kHorizon * ACADO_NOD + 3];
         double speed_states[12];
         calculate_speed_states(speed_states, v, gamma, xi, w_n, w_e, w_d);
                 
         /* soft radial constraint */
-        
-        /* forward ray */
-        double v_ray[3] = {speed_states[10], speed_states[9], -speed_states[11]};
-        calculate_radial_objective(&sig_r_fwd, jac_sig_r_fwd, &r_occ_fwd, p_occ_fwd, n_occ_fwd, &sig_input_r_fwd, &occ_detected_fwd, v_ray, acadoVariables.x + (runObj * ACADO_NX), speed_states, terr_params, terr_map);
 
-        aux_output[runObj * N_AUX + AUX_P_OCC_FWD] = p_occ_fwd[0];
-        aux_output[runObj * N_AUX + AUX_P_OCC_FWD+1] = p_occ_fwd[1];
-        aux_output[runObj * N_AUX + AUX_P_OCC_FWD+2] = p_occ_fwd[2];
-        aux_output[runObj * N_AUX + AUX_N_OCC_FWD] = n_occ_fwd[0];
-        aux_output[runObj * N_AUX + AUX_N_OCC_FWD+1] = n_occ_fwd[1];
-        aux_output[runObj * N_AUX + AUX_N_OCC_FWD+2] = n_occ_fwd[2];
-        
         /* left ray */
         v_ray[0] = -speed_states[9];
         v_ray[1] = speed_states[10];
         v_ray[2] = 0.0;
-        calculate_radial_objective(&sig_r_left, jac_sig_r_left, &r_occ_left, p_occ_fwd, n_occ_fwd, &sig_input_r_left, &occ_detected_left, v_ray, acadoVariables.x + (runObj * ACADO_NX), speed_states, terr_params, terr_map);
-       
+        calculate_radial_objective(&sig_r_left, jac_sig_r_left, &r_occ_left, p_occ_fwd, n_occ_fwd, &prio_r_left, &occ_detected_left, v_ray, acadoVariables.x + (kHorizon * ACADO_NX), speed_states, terr_params, terr_map);
+        
         /* right ray */
         v_ray[0] = speed_states[9];
         v_ray[1] = -speed_states[10];
         v_ray[2] = 0.0;
-        calculate_radial_objective(&sig_r_right, jac_sig_r_right, &r_occ_right, p_occ_fwd, n_occ_fwd, &sig_input_r_right, &occ_detected_right, v_ray, acadoVariables.x + (runObj * ACADO_NX), speed_states, terr_params, terr_map);
+        calculate_radial_objective(&sig_r_right, jac_sig_r_right, &r_occ_right, p_occ_fwd, n_occ_fwd, &prio_r_right, &occ_detected_right, v_ray, acadoVariables.x + (kHorizon * ACADO_NX), speed_states, terr_params, terr_map);
         
-        jac_sig_r[0] = jac_sig_r_fwd[0] + jac_sig_r_left[0] + jac_sig_r_right[0];
-        jac_sig_r[1] = jac_sig_r_fwd[1] + jac_sig_r_left[1] + jac_sig_r_right[1];
-        jac_sig_r[2] = jac_sig_r_fwd[2] + jac_sig_r_left[2] + jac_sig_r_right[2];
-        jac_sig_r[3] = jac_sig_r_fwd[3] + jac_sig_r_left[3] + jac_sig_r_right[3];
-        jac_sig_r[4] = jac_sig_r_fwd[4] + jac_sig_r_left[4] + jac_sig_r_right[4];
-        jac_sig_r[5] = jac_sig_r_fwd[5] + jac_sig_r_left[5] + jac_sig_r_right[5];
+        jac_sig_r[0] = jac_sig_r_left[0] + jac_sig_r_right[0];
+        jac_sig_r[1] = jac_sig_r_left[1] + jac_sig_r_right[1];
+        jac_sig_r[2] = jac_sig_r_left[2] + jac_sig_r_right[2];
+        jac_sig_r[3] = jac_sig_r_left[3] + jac_sig_r_right[3];
+        jac_sig_r[4] = jac_sig_r_left[4] + jac_sig_r_right[4];
+        jac_sig_r[5] = jac_sig_r_left[5] + jac_sig_r_right[5];
         
-        const double sig_r = sig_r_fwd + sig_r_left + sig_r_right;
+        const double sig_r = sig_r_left + sig_r_right;
         
-        acadoVariables.od[runObj * ACADO_NOD + 16] = sig_r;
-        acadoVariables.od[runObj * ACADO_NOD + 17] = jac_sig_r[0];
-        acadoVariables.od[runObj * ACADO_NOD + 18] = jac_sig_r[1];
-        acadoVariables.od[runObj * ACADO_NOD + 19] = jac_sig_r[2];
-        acadoVariables.od[runObj * ACADO_NOD + 20] = jac_sig_r[3];
-        acadoVariables.od[runObj * ACADO_NOD + 21] = jac_sig_r[4];
-        acadoVariables.od[runObj * ACADO_NOD + 22] = jac_sig_r[5];
+        /* add to objective cost / jacobian */
+        acadoVariables.od[kHorizon * ACADO_NOD + 16] += sig_r;
+        acadoVariables.od[kHorizon * ACADO_NOD + 17] += jac_sig_r[0];
+        acadoVariables.od[kHorizon * ACADO_NOD + 18] += jac_sig_r[1];
+        acadoVariables.od[kHorizon * ACADO_NOD + 19] += jac_sig_r[2];
+        acadoVariables.od[kHorizon * ACADO_NOD + 20] += jac_sig_r[3];
+        acadoVariables.od[kHorizon * ACADO_NOD + 21] += jac_sig_r[4];
+        acadoVariables.od[kHorizon * ACADO_NOD + 22] += jac_sig_r[5];
+        
+        aux_output[kHorizon * N_AUX + AUX_PRIO_R_FWD+1] = prio_r_left;
+        aux_output[kHorizon * N_AUX + AUX_PRIO_R_FWD+2] = prio_r_right;
                 
         /* prioritization */
-        const double one_over_sqrt_w_r = terr_params[9];
+        occ_detected_fwd = occ_slw[(len_sliding_window-1+kHorizon) * N_OCC + OCC_DETECT_FWD];
         if (!(one_over_sqrt_w_r<0.0) && (occ_detected_fwd + occ_detected_left + occ_detected_right>0)) {
-            double sig_input = (sig_input_r_fwd < sig_input_r_left) ? sig_input_r_fwd : sig_input_r_left;
-            sig_input = (sig_input_r_left < sig_input_r_right) ? sig_input_r_left : sig_input_r_right;
-            prio_r = constrain_double(sig_input, 0.0, 1.0);
+            
+            /* take minimum unit radial distance */
+            prio_r_fwd = aux_output[kHorizon * N_AUX + AUX_PRIO_R_FWD];
+            prio_r = (prio_r_fwd < prio_r_left) ? prio_r_fwd : prio_r_left;
+            prio_r = (prio_r < prio_r_right) ? prio_r : prio_r_right;
         }
         else {
             prio_r = 1.0;
         }
-        priorities[runObj * 3 + 2] = prio_r;
+        priorities[kHorizon * 3 + 2] = prio_r;
         
-        aux_output[runObj * N_AUX + AUX_R_OCC_FWD] = r_occ_fwd;
-        aux_output[runObj * N_AUX + AUX_R_OCC_LEFT] = r_occ_left;
-        aux_output[runObj * N_AUX + AUX_R_OCC_RIGHT] = r_occ_right;
-        aux_output[runObj * N_AUX + AUX_OCC_DETECT_FWD] = occ_detected_fwd;
-        aux_output[runObj * N_AUX + AUX_OCC_DETECT_LEFT] = occ_detected_left;
-        aux_output[runObj * N_AUX + AUX_OCC_DETECT_RIGHT] = occ_detected_right;
+        aux_output[kHorizon * N_AUX + AUX_R_OCC_LEFT] = r_occ_left;
+        aux_output[kHorizon * N_AUX + AUX_R_OCC_RIGHT] = r_occ_right;
+        aux_output[kHorizon * N_AUX + AUX_OCC_DETECT_LEFT] = occ_detected_left;
+        aux_output[kHorizon * N_AUX + AUX_OCC_DETECT_RIGHT] = occ_detected_right;
                 
         /* velocity reference */
         double v_ref[3];
         double e_lat, e_lon;
-        calculate_velocity_reference(v_ref, &e_lat, &e_lon, acadoVariables.x + (runObj * ACADO_NX), path_reference, guidance_params,
+        calculate_velocity_reference(v_ref, &e_lat, &e_lon, acadoVariables.x + (kHorizon * ACADO_NX), path_reference, guidance_params,
             speed_states, jac_sig_r, prio_r);
                 
-        if (runObj < ACADO_N) {
-            acadoVariables.y[runObj * ACADO_NY + 0] = v_ref[0];
-            acadoVariables.y[runObj * ACADO_NY + 1] = v_ref[1];
-            acadoVariables.y[runObj * ACADO_NY + 2] = v_ref[2];
+        if (kHorizon < ACADO_N) {
+            acadoVariables.y[kHorizon * ACADO_NY + 0] = v_ref[0];
+            acadoVariables.y[kHorizon * ACADO_NY + 1] = v_ref[1];
+            acadoVariables.y[kHorizon * ACADO_NY + 2] = v_ref[2];
         }
         else {
             acadoVariables.yN[0] = v_ref[0];
@@ -319,8 +434,8 @@ void mexFunction(	int nlhs,
             acadoVariables.yN[2] = v_ref[2];
         }
         
-        aux_output[runObj * N_AUX + AUX_E_LAT] = e_lat;
-        aux_output[runObj * N_AUX + AUX_E_LON] = e_lon;
+        aux_output[kHorizon * N_AUX + AUX_E_LAT] = e_lat;
+        aux_output[kHorizon * N_AUX + AUX_E_LON] = e_lon;
     }
    
     /* Prepare return argument */
@@ -332,4 +447,5 @@ void mexFunction(	int nlhs,
     setArray(plhs[ 0 ], 0, "od", acadoVariables.od, ACADO_N + 1, ACADO_NOD);
     setArray(plhs[ 0 ], 0, "priorities", priorities, ACADO_N + 1, 3);
     setArray(plhs[ 0 ], 0, "aux", aux_output, ACADO_N + 1, N_AUX);
+    setArray(plhs[ 0 ], 0, "occ_slw", occ_slw, len_sliding_window-1+ACADO_N+1, N_OCC);
 }

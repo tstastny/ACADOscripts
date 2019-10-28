@@ -4,6 +4,6 @@ const double t4 = de-1.0;
 const double t5 = cos(xi); 
 const double t6 = sin(xi); 
 jac[0] = -log_sqrt_w_over_sig1_h*t3*(de*(h3*t2-h4*t2)-t4*(h1*t2-h2*t2)); 
-jac[1] = -log_sqrt_w_over_sig1_h*t3*(h12*t2-h34*t2); 
+jac[1] = -log_sqrt_w_over_sig1_h*t2*t3*(h12-h34); 
 jac[2] = log_sqrt_w_over_sig1_h*t3; 
 jac[3] = -log_sqrt_w_over_sig1_h*t3*(de*(delta_y*h3*sgn_n*t2*t5-delta_y*h4*sgn_n*t2*t5)-t4*(delta_y*h1*sgn_n*t2*t5-delta_y*h2*sgn_n*t2*t5)-delta_y*h12*sgn_e*t2*t6+delta_y*h34*sgn_e*t2*t6); 

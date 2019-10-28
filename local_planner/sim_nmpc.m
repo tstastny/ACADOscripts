@@ -1,6 +1,6 @@
 % NMPC Simulation
 % ----------------
-clear all; clc; close all; 
+clear; clc; close all; 
 
 % add function paths
 if isempty(strfind(path, ['/home/thomas/Documents/ACADOscripts/local_planner/functions', pathsep]))
@@ -64,7 +64,7 @@ sig_h_1 = 0.001;
 
 % radial soft constraint
 r_offset = 10;
-delta_r0 = 20;
+delta_r0 = 10;
 k_r_offset = 1/tand(35)/9.81;
 k_delta_r = 1/tand(35)/9.81;
 sig_r_1 = 0.001;
@@ -97,6 +97,9 @@ shift_states_controls = false;
 
 % output objective costs and jacobians
 output_objectives = true;
+
+% sliding window for terrain detections
+len_sliding_window = 10;
 
 %% INITIALIZATION ---------------------------------------------------------
 
@@ -223,7 +226,8 @@ if output_objectives
     rec.yN = zeros(len_nmpc,n_Y);
     rec.dyNdx = zeros(len_nmpc,n_Y*n_X);
     rec.priorities = zeros(N+1,len_nmpc,3);
-    rec.aux = zeros(N+1,len_nmpc,15);
+    rec.aux = zeros(N+1,len_nmpc,12);
+    rec.occ_slw = zeros(len_sliding_window-1+N+1,len_nmpc,7);
     AUX_E_LAT = 1;
     AUX_E_LON = 2;
     AUX_H_TERR = 3;
@@ -233,10 +237,13 @@ if output_objectives
     AUX_OCC_DETECT_FWD = 7;
     AUX_OCC_DETECT_LEFT = 8;
     AUX_OCC_DETECT_RIGHT = 9;
-    AUX_P_OCC_FWD = 10;
-    AUX_N_OCC_FWD = 13;
+    AUX_PRIO_R_FWD = 10;
+    OCC_DETECT_FWD = 1;
+    P_OCC_FWD = 2;
+    N_OCC_FWD = 5;
 end
 
+preeval_output.occ_slw = zeros(len_sliding_window-1+N+1,7);
 prio_h = ones(N+1,1);
 prio_r = ones(N+1,1);
 k_nmpc = 0;
@@ -292,7 +299,7 @@ for k = 1:len_t
         aoa_params = [delta_aoa, aoa_m, aoa_p, log_sqrt_w_over_sig1_aoa, one_over_sqrt_w_aoa];
         terr_params = [h_offset, delta_h, log_sqrt_w_over_sig1_h, one_over_sqrt_w_h, ...
             r_offset, delta_r0, k_r_offset, k_delta_r, log_sqrt_w_over_sig1_r, one_over_sqrt_w_r, ...
-            terr_local_origin_n, terr_local_origin_e, terr_dis];
+            terr_local_origin_n, terr_local_origin_e, terr_dis, len_sliding_window];
         
         % pre-evaluate objectives / update references / online data
         preeval_input.x = input.x;
@@ -304,6 +311,7 @@ for k = 1:len_t
         preeval_input.terr_map = terrain_data;
         preeval_input.path_reference = path_reference;
         preeval_input.guidance_params = guidance_params;
+        preeval_input.occ_slw = preeval_output.occ_slw;
         preeval_output = external_objective_mex(preeval_input);
         input.y = preeval_output.y;
         input.yN = preeval_output.yN;
@@ -400,6 +408,7 @@ for k = 1:len_t
         rec.dyNdx(k_nmpc,:) = output2.dyNdx;
         rec.priorities(:,k_nmpc,:) = preeval_output.priorities;
         rec.aux(:,k_nmpc,:) = preeval_output.aux;
+        rec.occ_slw(:,k_nmpc,:) = preeval_output.occ_slw;
     end
     trec(k) = toc(st_rec);
 

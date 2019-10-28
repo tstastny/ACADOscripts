@@ -55,6 +55,9 @@ jac_sig_h_lin = subs(jac_sig_h_lin , h34_expr, h34);
 jac_sig_h_lin = subs(jac_sig_h_lin , dn_expr, dn);
 jac_sig_h_lin = subs(jac_sig_h_lin , de_expr, de);
 
+jac_sig_h_exp = simplify(jac_sig_h_exp);
+jac_sig_h_lin = simplify(jac_sig_h_lin);
+
 %% get input arguments (used variables)
 input_arg = sym2cell(symvar(jac_sig_h_exp));
 input_arg_lin = sym2cell(symvar(jac_sig_h_lin));
