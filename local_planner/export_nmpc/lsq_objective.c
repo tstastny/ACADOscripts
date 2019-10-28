@@ -435,9 +435,9 @@ void jac_sig_r_tl_exp(double *jac,
 }
 
 /* check ray-triangle intersection */
-int intersect_triangle(double *d_occ, double *p_occ,
+int intersect_triangle(double *d_occ, double *p_occ, double *n_occ,
         const double r0[3], const double v_ray[3],
-        const double p1[3], const double p2[3], const double p3[3]) {
+        const double p1[3], const double p2[3], const double p3[3], const int v_dir) {
     /* following: "Fast, Minimum Storage Ray/Triangle Intersection",
      * Moeller et. al., Journal of Graphics Tools, Vol.2(1), 1997
      */
@@ -496,11 +496,18 @@ int intersect_triangle(double *d_occ, double *p_occ,
     p_occ[1] = one_u_v * p1[1] + u * p2[1] + v * p3[1];
     p_occ[2] = one_u_v * p1[2] + u * p2[2] + v * p3[2];
     
+    /* calculate and return plane normal */
+    cross(n_occ, e2, e1);
+    const double one_over_norm_n_occ = 1.0/sqrt(dot(n_occ,n_occ));
+    n_occ[0] *= v_dir * one_over_norm_n_occ;
+    n_occ[1] *= v_dir * one_over_norm_n_occ;
+    n_occ[2] *= v_dir * one_over_norm_n_occ;
+    
     return 1;
 }
 
 /* cast ray through terrain map and determine the intersection point on any occluding trianglular surface */
-int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
+int castray(double *d_occ, double *p_occ, double *n_occ, double *p1, double *p2, double *p3,
         const double r0[3], const double r1[3], const double v[3],
         const double pos_n_origin, const double pos_e_origin, const double terr_dis, const double *terr_map) {
     
@@ -519,6 +526,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
      * (int)   occ_detected         0=no detection, 1=BR triangle detected, 2=TL triangle detected
      * (double) d_occ           	distance to the ray-triangle intersection [m]
      * (double) p_occ[3]        	coord. of the ray-triangle intersection [m]
+     * (double) n_occ[3]            plane unit normal vector
      * (double) p1[3]           	coord. of triangle vertex 1 (e,n,u) [m]
      * (double) p2[3]             	coord. of triangle vertex 2 (e,n,u) [m]
      * (double)	p3[3]           	coord. of triangle vertex 3 (e,n,u) [m]
@@ -715,7 +723,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
-                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, n_occ, r0_rel, v, p1, p2, p3, -1);
 
                         occ_detected += ret; /* =1 if detection */
                     }
@@ -735,7 +743,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
-                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, n_occ, r0_rel, v, p1, p2, p3, 1);
 
                         occ_detected += ret*2; /* =2 if detection */
                     }
@@ -758,7 +766,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
-                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, n_occ, r0_rel, v, p1, p2, p3, 1);
 
                         occ_detected += ret*2; /* =2 if detection */
                     }
@@ -778,7 +786,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
-                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, n_occ, r0_rel, v, p1, p2, p3, -1);
 
                         occ_detected += ret; /* =1 if detection */
                     }
@@ -805,7 +813,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
-                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, n_occ, r0_rel, v, p1, p2, p3, -1);
 
                         occ_detected += ret; /* =1 if detection */
                     }
@@ -828,7 +836,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
-                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, n_occ, r0_rel, v, p1, p2, p3, 1);
 
                         occ_detected += ret*2; /* =2 if detection */
                     }
@@ -851,7 +859,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
-                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, n_occ, r0_rel, v, p1, p2, p3, -1);
 
                         occ_detected += ret; /* =1 if detection */
                     }
@@ -871,7 +879,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
-                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, n_occ, r0_rel, v, p1, p2, p3, 1);
 
                         occ_detected += ret*2; /* =2 if detection */
                     }
@@ -900,7 +908,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
-                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, n_occ, r0_rel, v, p1, p2, p3, 1);
 
                         occ_detected += ret*2; /* =2 if detection */
                     }
@@ -923,7 +931,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                             p3[2] = terr_map[idx_corner3];
 
                             /* check for ray-triangle intersection */
-                            ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
+                            ret = intersect_triangle(d_occ, p_occ, n_occ, r0_rel, v, p1, p2, p3, -1);
 
                             occ_detected += ret; /* =1 if detection */
                         }
@@ -947,7 +955,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
-                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, n_occ, r0_rel, v, p1, p2, p3, -1);
 
                         occ_detected += ret; /* =1 if detection */
                     }
@@ -970,7 +978,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                             p3[2] = terr_map[idx_corner3];
 
                             /* check for ray-triangle intersection */
-                            ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
+                            ret = intersect_triangle(d_occ, p_occ, n_occ, r0_rel, v, p1, p2, p3, 1);
 
                             occ_detected += ret*2; /* =2 if detection */
                         }
@@ -998,7 +1006,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
-                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, n_occ, r0_rel, v, p1, p2, p3, 1);
 
                         occ_detected += ret*2; /* =2 if detection */
                     }
@@ -1018,7 +1026,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
-                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, n_occ, r0_rel, v, p1, p2, p3, -1);
 
                         occ_detected += ret; /* =1 if detection */
                     }
@@ -1041,7 +1049,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
-                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, n_occ, r0_rel, v, p1, p2, p3, -1);
 
                         occ_detected += ret; /* =1 if detection */
                     }
@@ -1061,7 +1069,7 @@ int castray(double *d_occ, double *p_occ, double *p1, double *p2, double *p3,
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
-                        ret = intersect_triangle(d_occ, p_occ, r0_rel, v, p1, p2, p3);
+                        ret = intersect_triangle(d_occ, p_occ, n_occ, r0_rel, v, p1, p2, p3, 1);
 
                         occ_detected += ret*2; /* =2 if detection */
                     }
@@ -1779,7 +1787,8 @@ void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h
 }
 
 /* calculate soft radial objective */
-void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *r_occ, double *sig_input, int *occ_detected,
+void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *r_occ,
+        double *p_occ, double *n_occ, double *sig_input, int *occ_detected,
         const double *v_ray, const double *states, const double *speed_states,
         const double *terr_params, const double *terr_map)
 {
@@ -1839,7 +1848,6 @@ void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *r_occ,
     /* cast ray along ground speed vector to check for occlusions */
     
     /* init */
-    double p_occ[3];
     double p1[3];
     double p2[3];
     double p3[3];
@@ -1865,7 +1873,7 @@ void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *r_occ,
     const double r1[3] = {r0[0] + v_ray[0] * d_ray, r0[1] + v_ray[1] * d_ray, r0[2] + v_ray[2] * d_ray};
     
     /* cast the ray */
-    *occ_detected = castray(r_occ, p_occ, p1, p2, p3, r0, r1, v_ray,
+    *occ_detected = castray(r_occ, p_occ, n_occ, p1, p2, p3, r0, r1, v_ray,
         terr_local_origin_n, terr_local_origin_e, terr_dis, terr_map);
     
     /* shift occlusion origin */

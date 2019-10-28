@@ -9,7 +9,7 @@
 
 /* Define number of outputs */
 #define NOO 5
-#define N_AUX 9
+#define N_AUX 15
 
 enum aux {
     AUX_E_LAT = 0,
@@ -20,7 +20,9 @@ enum aux {
     AUX_R_OCC_RIGHT,
     AUX_OCC_DETECT_FWD,
     AUX_OCC_DETECT_LEFT,
-    AUX_OCC_DETECT_RIGHT
+    AUX_OCC_DETECT_RIGHT,
+    AUX_P_OCC_FWD,
+    AUX_N_OCC_FWD = 12
 };
 
 /** Instance of the user data structure. */
@@ -198,6 +200,8 @@ void mexFunction(	int nlhs,
     double sig_input_r_fwd;
     double sig_input_r_left;
     double sig_input_r_right;
+    double p_occ_fwd[3];
+    double n_occ_fwd[3];
     
     /* evaluate external objectives */
     
@@ -241,19 +245,26 @@ void mexFunction(	int nlhs,
         
         /* forward ray */
         double v_ray[3] = {speed_states[10], speed_states[9], -speed_states[11]};
-        calculate_radial_objective(&sig_r_fwd, jac_sig_r_fwd, &r_occ_fwd, &sig_input_r_fwd, &occ_detected_fwd, v_ray, acadoVariables.x + (runObj * ACADO_NX), speed_states, terr_params, terr_map);
+        calculate_radial_objective(&sig_r_fwd, jac_sig_r_fwd, &r_occ_fwd, p_occ_fwd, n_occ_fwd, &sig_input_r_fwd, &occ_detected_fwd, v_ray, acadoVariables.x + (runObj * ACADO_NX), speed_states, terr_params, terr_map);
 
+        aux_output[runObj * N_AUX + AUX_P_OCC_FWD] = p_occ_fwd[0];
+        aux_output[runObj * N_AUX + AUX_P_OCC_FWD+1] = p_occ_fwd[1];
+        aux_output[runObj * N_AUX + AUX_P_OCC_FWD+2] = p_occ_fwd[2];
+        aux_output[runObj * N_AUX + AUX_N_OCC_FWD] = n_occ_fwd[0];
+        aux_output[runObj * N_AUX + AUX_N_OCC_FWD+1] = n_occ_fwd[1];
+        aux_output[runObj * N_AUX + AUX_N_OCC_FWD+2] = n_occ_fwd[2];
+        
         /* left ray */
         v_ray[0] = -speed_states[9];
         v_ray[1] = speed_states[10];
         v_ray[2] = 0.0;
-        calculate_radial_objective(&sig_r_left, jac_sig_r_left, &r_occ_left, &sig_input_r_left, &occ_detected_left, v_ray, acadoVariables.x + (runObj * ACADO_NX), speed_states, terr_params, terr_map);
+        calculate_radial_objective(&sig_r_left, jac_sig_r_left, &r_occ_left, p_occ_fwd, n_occ_fwd, &sig_input_r_left, &occ_detected_left, v_ray, acadoVariables.x + (runObj * ACADO_NX), speed_states, terr_params, terr_map);
        
         /* right ray */
         v_ray[0] = speed_states[9];
         v_ray[1] = -speed_states[10];
         v_ray[2] = 0.0;
-        calculate_radial_objective(&sig_r_right, jac_sig_r_right, &r_occ_right, &sig_input_r_right, &occ_detected_right, v_ray, acadoVariables.x + (runObj * ACADO_NX), speed_states, terr_params, terr_map);
+        calculate_radial_objective(&sig_r_right, jac_sig_r_right, &r_occ_right, p_occ_fwd, n_occ_fwd, &sig_input_r_right, &occ_detected_right, v_ray, acadoVariables.x + (runObj * ACADO_NX), speed_states, terr_params, terr_map);
         
         jac_sig_r[0] = jac_sig_r_fwd[0] + jac_sig_r_left[0] + jac_sig_r_right[0];
         jac_sig_r[1] = jac_sig_r_fwd[1] + jac_sig_r_left[1] + jac_sig_r_right[1];

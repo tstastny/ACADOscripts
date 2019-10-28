@@ -21,7 +21,7 @@ else
     rng('shuffle');
 end
 if (add_terrain_noise_to_global_map)
-    terr_noise_matrix = (rand(len_global_idx_n, len_global_idx_e)*2-1)*terr_noise;
+    terr_noise_matrix = (rand(len_global_idx_n, len_global_idx_e)*2-1)*terr_noise_global;
 else
     terr_noise_matrix = 0;
 end

@@ -86,8 +86,9 @@ tau_terr = 1; % filter jacobians for terrain objectives
 %% OPTIONS ----------------------------------------------------------------
 
 % terrain noise
-terr_noise = 1; % magnitude of noise
-add_terrain_noise_to_global_map = false;
+terr_noise_global = 3; % magnitude of noise
+terr_noise_local = 1; % magnitude of noise
+add_terrain_noise_to_global_map = true;
 add_terrain_noise_to_local_map = true;
 terrain_noise_random_seed = 0; % choose fixed random seed, set 0 to shuffle.
 
@@ -215,14 +216,14 @@ rec.u = zeros(len_t,n_U);
 if output_objectives
     rec.yref = zeros(N,len_nmpc,n_Y+n_Z);
     rec.yNref = zeros(len_nmpc,n_Y);
-    rec.W = zeros(len_nmpc,n_Y+n_Z);
+    rec.W = zeros(N+1,len_nmpc,n_Y+n_Z);
     rec.y = zeros(N,len_nmpc,n_Y+n_Z);
     rec.dydx = zeros(N,len_nmpc,(n_Y+n_Z)*n_X);
     rec.dydu = zeros(N,len_nmpc,(n_Y+n_Z)*n_U);
     rec.yN = zeros(len_nmpc,n_Y);
     rec.dyNdx = zeros(len_nmpc,n_Y*n_X);
     rec.priorities = zeros(N+1,len_nmpc,3);
-    rec.aux = zeros(N+1,len_nmpc,9);
+    rec.aux = zeros(N+1,len_nmpc,15);
     AUX_E_LAT = 1;
     AUX_E_LON = 2;
     AUX_H_TERR = 3;
@@ -232,6 +233,8 @@ if output_objectives
     AUX_OCC_DETECT_FWD = 7;
     AUX_OCC_DETECT_LEFT = 8;
     AUX_OCC_DETECT_RIGHT = 9;
+    AUX_P_OCC_FWD = 10;
+    AUX_N_OCC_FWD = 13;
 end
 
 prio_h = ones(N+1,1);
@@ -306,7 +309,7 @@ for k = 1:len_t
         input.yN = preeval_output.yN;
         input.od(:,[9:12, 17]) = preeval_output.od(:,[9:12, 17]);
 %         input.od(:,[9:12, 17]) = (preeval_output.od(:,[9:12, 17]) - input.od(:,[9:12, 17])) / 0.5 * Ts_nmpc + input.od(:,[9:12, 17]);
-        input.od(:,[13:16, 18:23]) = (preeval_output.od(:,[13:16, 18:23]) - input.od(:,[13:16, 18:23])) / 1 * Ts_nmpc + input.od(:,[13:16, 18:23]);
+        input.od(:,[13:16, 18:23]) = (preeval_output.od(:,[13:16, 18:23]) - input.od(:,[13:16, 18:23])) / 1 * Ts_nmpc + input.od(:,[13:16, 18:23]); %./ repmat([ones(20,1);linspace(1,5,21)'],1,10)
 
         % update priorities
         prio_aoa = preeval_output.priorities(:,1);
@@ -386,7 +389,10 @@ for k = 1:len_t
         rec.time_nmpc(k_nmpc) = time(k);
         rec.yref(:,k_nmpc,:) = input.y;
         rec.yNref(k_nmpc,:) = input.yN;
-        rec.W(k_nmpc,:) = diag(input.W(1:n_Y+n_Z,1:n_Y+n_Z))';
+        for kk=1:N
+            rec.W(kk,k_nmpc,:) = diag(input.W((kk-1)*(n_Y+n_Z)+1:kk*(n_Y+n_Z),1:n_Y+n_Z))';
+        end
+        rec.W(N+1,k_nmpc,:) = [diag(input.WN)', zeros(1,n_Z)];
         rec.y(:,k_nmpc,:) = output2.y;
         rec.dydx(:,k_nmpc,:) = output2.dydx;
         rec.dydu(:,k_nmpc,:) = output2.dydu;
@@ -417,6 +423,8 @@ isp = find(time<=t_st_plot, 1, 'last');
 iep = find(time<=t_ed_plot, 1, 'last');
 isp_nmpc = find(rec.time_nmpc<=t_st_plot, 1, 'last');
 iep_nmpc = find(rec.time_nmpc<=t_ed_plot, 1, 'last');
+
+%%
 
 plot_opt.position = true;
 plot_opt.position2 = true;

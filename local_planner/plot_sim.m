@@ -62,6 +62,30 @@ node_int = 10;
 hor1 = plot3(rec.x_hor(1:node_int:end,isp:hor_int:iep,2), rec.x_hor(1:node_int:end,isp:hor_int:iep,1), ...
     -rec.x_hor(1:node_int:end,isp:hor_int:iep,3), '-o', 'MarkerSize', 4);
 
+% rays
+hor_int_mpc = 20;
+mpc_indices = 1:length(nmpc_executed);
+mpc_indices = mpc_indices(boolean(nmpc_executed));
+hor_indices = mpc_indices(isp_nmpc:hor_int_mpc:iep_nmpc);
+for jj = 1:node_int:(N+1)
+    det = ones(1,length(isp_nmpc:hor_int_mpc:iep_nmpc),1);
+    det(rec.aux(jj,isp_nmpc:hor_int_mpc:iep_nmpc,AUX_OCC_DETECT_FWD)==0) = NaN;
+    plot3(...
+        [rec.x_hor(jj,hor_indices,2); rec.aux(jj,isp_nmpc:hor_int_mpc:iep_nmpc,AUX_P_OCC_FWD+0)] .* det, ...
+        [rec.x_hor(jj,hor_indices,1); rec.aux(jj,isp_nmpc:hor_int_mpc:iep_nmpc,AUX_P_OCC_FWD+1)] .* det, ...
+        [-rec.x_hor(jj,hor_indices,3); rec.aux(jj,isp_nmpc:hor_int_mpc:iep_nmpc,AUX_P_OCC_FWD+2)] .* det,'-r');
+    quiver3(...
+        rec.aux(jj,isp_nmpc:hor_int_mpc:iep_nmpc,AUX_P_OCC_FWD+0) .* det, ...
+        rec.aux(jj,isp_nmpc:hor_int_mpc:iep_nmpc,AUX_P_OCC_FWD+1) .* det, ...
+        rec.aux(jj,isp_nmpc:hor_int_mpc:iep_nmpc,AUX_P_OCC_FWD+2) .* det, ...
+        rec.aux(jj,isp_nmpc:hor_int_mpc:iep_nmpc,AUX_N_OCC_FWD+0) .* det, ...
+        rec.aux(jj,isp_nmpc:hor_int_mpc:iep_nmpc,AUX_N_OCC_FWD+1) .* det, ...
+        rec.aux(jj,isp_nmpc:hor_int_mpc:iep_nmpc,AUX_N_OCC_FWD+2) .* det,'r');
+    plot3(...
+        rec.aux(jj,isp_nmpc:hor_int_mpc:iep_nmpc,AUX_P_OCC_FWD+0) .* det, ...
+        rec.aux(jj,isp_nmpc:hor_int_mpc:iep_nmpc,AUX_P_OCC_FWD+1) .* det, ...
+        rec.aux(jj,isp_nmpc:hor_int_mpc:iep_nmpc,AUX_P_OCC_FWD+2) .* det,'rs');
+end
 % position
 plot3(rec.x(isp:iep,2),rec.x(isp:iep,1),-rec.x(isp:iep,3), 'linewidth', 1.5, 'color', color_state);
 
@@ -328,13 +352,17 @@ if (plot_opt.radial_cost)
 %% ////////////////////////////////////////////////////////////////////////
 % RADIAL COST
 
+for iii = [1 41]
+
+n_hor = iii; % node in horizon to plot
+
 k_int = round(Ts_nmpc/Ts);
 idx_k = isp:k_int:iep;
 
-cos_gamma = cos(rec.x(isp:iep,5)); 
-vG_n = rec.x(isp:iep,4).*cos_gamma.*cos(rec.x(isp:iep,6)) + w_n; 
-vG_e = rec.x(isp:iep,4).*cos_gamma.*sin(rec.x(isp:iep,6)) + w_e; 
-vG_d = rec.x(isp:iep,4).*-sin(rec.x(isp:iep,5)) + w_d;
+cos_gamma = cos(rec.x_hor(n_hor,isp:iep,5)'); 
+vG_n = rec.x_hor(n_hor,isp:iep,4)'.*cos_gamma.*cos(rec.x_hor(n_hor,isp:iep,6)') + w_n; 
+vG_e = rec.x_hor(n_hor,isp:iep,4)'.*cos_gamma.*sin(rec.x_hor(n_hor,isp:iep,6)') + w_e; 
+vG_d = rec.x_hor(n_hor,isp:iep,4)'.*-sin(rec.x_hor(n_hor,isp:iep,5)') + w_d;
 vG_vec = [vG_e(idx_k), vG_n(idx_k), -vG_d(idx_k)];
 vG_norm = sqrt(sum(vG_vec.^2,2));
 v_ray_fwd = vG_vec./vG_norm;
@@ -355,19 +383,19 @@ Rmin_left_delta = vrel_left.^2 .* k_delta_r;
 Rmin_right_offset = vrel_right.^2 .* k_r_offset;
 Rmin_right_delta = vrel_right.^2 .* k_delta_r;
 
-figure('color','w','name','Radial cost');
+figure('color','w','name',['Radial cost, N=',int2str(n_hor)]);
 
 % r fwd
 hand_r(1) = subplot(3,1,1); hold on; grid on; box on;
 
-r_occ = rec.aux(1,isp_nmpc:iep_nmpc,AUX_R_OCC_FWD);
-r_occ(rec.aux(1,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_FWD)==0) = NaN;
+r_occ = rec.aux(n_hor,isp_nmpc:iep_nmpc,AUX_R_OCC_FWD)';
+r_occ(rec.aux(n_hor,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_FWD)'==0) = NaN;
 
 plot(time([isp iep]),[r_offset r_offset],'color',color_ref);
 plot(rec.time_nmpc(isp_nmpc:iep_nmpc), Rmin_fwd_offset + r_offset,'color',color_ref,'linestyle','--');
 plot(rec.time_nmpc(isp_nmpc:iep_nmpc), Rmin_fwd_offset + r_offset + Rmin_fwd_delta + delta_r0,'color',color_ref,'linestyle',':');
 plot(rec.time_nmpc(isp_nmpc:iep_nmpc), r_occ,'color',color_state);
-stairs(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_FWD), ...
+stairs(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(n_hor,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_FWD)', ...
     'color',cmap(2,:)*0.3+0.7*ones(1,3));
 
 ylabel('r (fwd) [m]');
@@ -377,14 +405,14 @@ legend('r_{{offset}}','r_{{offset}_1}','r_{{offset}_1}+\Delta_r','r_{occ}','DETE
 % r left
 hand_r(2) = subplot(3,1,2); hold on; grid on; box on;
 
-r_occ = rec.aux(1,isp_nmpc:iep_nmpc,AUX_R_OCC_LEFT);
-r_occ(rec.aux(1,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_LEFT)==0) = NaN;
+r_occ = rec.aux(n_hor,isp_nmpc:iep_nmpc,AUX_R_OCC_LEFT)';
+r_occ(rec.aux(n_hor,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_LEFT)'==0) = NaN;
 
 plot(time([isp iep]),[r_offset r_offset],'color',color_ref);
 plot(rec.time_nmpc(isp_nmpc:iep_nmpc), Rmin_left_offset + r_offset,'color',color_ref,'linestyle','--');
 plot(rec.time_nmpc(isp_nmpc:iep_nmpc), Rmin_left_offset + r_offset + Rmin_left_delta + delta_r0,'color',color_ref,'linestyle',':');
 plot(rec.time_nmpc(isp_nmpc:iep_nmpc), r_occ,'color',color_state);
-stairs(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_LEFT), ...
+stairs(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(n_hor,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_LEFT)', ...
     'color',cmap(2,:)*0.3+0.7*ones(1,3));
 
 ylabel('r (left) [m]');
@@ -392,17 +420,19 @@ ylabel('r (left) [m]');
 % r right
 hand_r(3) = subplot(3,1,3); hold on; grid on; box on;
 
-r_occ = rec.aux(1,isp_nmpc:iep_nmpc,AUX_R_OCC_RIGHT);
-r_occ(rec.aux(1,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_RIGHT)==0) = NaN;
+r_occ = rec.aux(n_hor,isp_nmpc:iep_nmpc,AUX_R_OCC_RIGHT)';
+r_occ(rec.aux(n_hor,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_RIGHT)'==0) = NaN;
 
 plot(time([isp iep]),[r_offset r_offset],'color',color_ref);
 plot(rec.time_nmpc(isp_nmpc:iep_nmpc), Rmin_right_offset + r_offset,'color',color_ref,'linestyle','--');
 plot(rec.time_nmpc(isp_nmpc:iep_nmpc), Rmin_right_offset + r_offset + Rmin_right_delta + delta_r0,'color',color_ref,'linestyle',':');
 plot(rec.time_nmpc(isp_nmpc:iep_nmpc), r_occ,'color',color_state);
-stairs(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(1,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_RIGHT), ...
+stairs(rec.time_nmpc(isp_nmpc:iep_nmpc),rec.aux(n_hor,isp_nmpc:iep_nmpc,AUX_OCC_DETECT_RIGHT)', ...
     'color',cmap(2,:)*0.3+0.7*ones(1,3));
 
 ylabel('r (right) [m]');
+
+end
 
 end
 
@@ -440,12 +470,12 @@ if (plot_opt.objectives)
 
 obj_cost = zeros(length(isp_nmpc:iep_nmpc), n_Y+n_Z);
 for ii = 1:n_Y
-    obj_cost(:,ii) = rec.W(isp_nmpc:iep_nmpc,ii) .* ...
+    obj_cost(:,ii) = rec.W(1,isp_nmpc:iep_nmpc,ii)' .* ...
         (rec.yref(1,isp_nmpc:iep_nmpc,ii)' - rec.y(1,isp_nmpc:iep_nmpc,ii)').^2;
 end
 
 for ii = 1:n_Z
-    obj_cost(:,n_Y+ii) = rec.W(isp_nmpc:iep_nmpc,n_Y+ii) .* ...
+    obj_cost(:,n_Y+ii) = rec.W(1,isp_nmpc:iep_nmpc,n_Y+ii)' .* ...
         (rec.yref(1,isp_nmpc:iep_nmpc,n_Y+ii)' - rec.y(1,isp_nmpc:iep_nmpc,n_Y+ii)').^2;
 end
 
