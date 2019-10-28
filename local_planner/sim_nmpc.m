@@ -29,8 +29,8 @@ rho = 1.15;
 
 % disturbances
 w_n = 0;
-w_e = 0;
-w_d = 0;
+w_e = -6;
+w_d = -1;
 
 % control augmented attitude time constants and gains
 tau_phi = 0.5;
@@ -105,7 +105,7 @@ len_sliding_window = 10;
 
 % initial states
 x_init = [ ...
-    -5, 100, -20, ... % r_n, r_e, r_d
+    200, 100, -20, ... % r_n, r_e, r_d
     14, deg2rad(0), deg2rad(-90), ... % v, gamma, xi
     deg2rad(0), deg2rad(2), ... % phi, theta
     104 ... % n_p
@@ -316,15 +316,15 @@ for k = 1:len_t
         input.y = preeval_output.y;
         input.yN = preeval_output.yN;
         input.od(:,[9:12, 17]) = preeval_output.od(:,[9:12, 17]);
-%         input.od(:,[9:12, 17]) = (preeval_output.od(:,[9:12, 17]) - input.od(:,[9:12, 17])) / 0.5 * Ts_nmpc + input.od(:,[9:12, 17]);
-        input.od(:,[13:16, 18:23]) = (preeval_output.od(:,[13:16, 18:23]) - input.od(:,[13:16, 18:23])) / 1 * Ts_nmpc + input.od(:,[13:16, 18:23]); %./ repmat([ones(20,1);linspace(1,5,21)'],1,10)
+%         input.od(:,[9:12, 17]) = (preeval_output.od(:,[9:12, 17]) - input.od(:,[9:12, 17])) / tau_terr * Ts_nmpc + input.od(:,[9:12, 17]);
+        input.od(:,[13:16, 18:23]) = (preeval_output.od(:,[13:16, 18:23]) - input.od(:,[13:16, 18:23])) / tau_terr * Ts_nmpc + input.od(:,[13:16, 18:23]); %./ repmat([ones(20,1);linspace(1,5,21)'],1,10)
 
         % update priorities
         prio_aoa = preeval_output.priorities(:,1);
         prio_h = preeval_output.priorities(:,2);
         prio_r = preeval_output.priorities(:,3);
-%         prio_h = constrain( (preeval_output.priorities(:,2) - prio_h) / 0.5 * Ts_nmpc + prio_h, 0, 1);
-%         prio_r = constrain( (preeval_output.priorities(:,3) - prio_r) / 0.5 * Ts_nmpc + prio_r, 0, 1);
+%         prio_h = constrain( (preeval_output.priorities(:,2) - prio_h) / tau_terr * Ts_nmpc + prio_h, 0, 1);
+%         prio_r = constrain( (preeval_output.priorities(:,3) - prio_r) / tau_terr * Ts_nmpc + prio_r, 0, 1);
         if ~use_occ_as_guidance
             prio_v = prio_h .* prio_r;
             for ii=0:N-1

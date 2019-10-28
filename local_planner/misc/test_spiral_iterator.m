@@ -2,18 +2,19 @@
 
 clear;clc;close all;
 
-len = 11;
-
 terr_dis = 5;
-radius = 19.5;
+delta_r0 = 10;
+r_offset_0 = 5;
+radius = delta_r0 + r_offset_0 + 2*terr_dis;
 
-nRings_ = ceil(radius/terr_dis)+2;
+nRings_ = ceil(radius/terr_dis);
 
-nmax_iter = int_cast(pi*(radius+terr_dis)^2/terr_dis^2);
+nmax_iter = ceil(pi*(radius + 2*terr_dis)^2/terr_dis^2);
 
-pos = terr_dis*[5,5];
-xc = round(pos(1)/terr_dis);
-yc = round(pos(2)/terr_dis);
+pos = 0*[0.2,0.3]*terr_dis;
+pos_normalized = pos/terr_dis;
+xc = round(pos_normalized(1));
+yc = round(pos_normalized(2));
 
 figure('color','w'); hold on; grid on; box on;
 plot(pos(1), pos(2), 'bo');
@@ -32,7 +33,7 @@ while distance_ < nRings_
         pointInMap(1) = x + xc;
         pointInMap(2) = y + yc;
         if (distance_ == nRings_ || distance_ == nRings_ - 1)
-            if (norm(pointInMap-pos)^2<radius^2)
+            if (norm(pointInMap-pos_normalized)^2<radius^2)
 
                 plot(pointInMap(1)*terr_dis, pointInMap(2)*terr_dis, 'o', 'color', [0.3 0.3 0.3]);
                 points(k,:) = [pointInMap(1)*terr_dis, pointInMap(2)*terr_dis]; k = k + 1;
