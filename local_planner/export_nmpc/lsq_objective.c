@@ -189,10 +189,11 @@ void jacobian_sig_h_lin(double *jac,
     const double t6 = sin(xi);
     const double t7 = delta_y*sgn_n*t2*t5;
     const double t8 = delta_y*sgn_e*t2*t6;
-    jac[0] = -log_sqrt_w_over_sig1_h*t3*(de*(h3*t2-h4*t2)-t4*(h1*t2-h2*t2)); 
-    jac[1] = -log_sqrt_w_over_sig1_h*t3*(h12*t2-h34*t2); 
-    jac[2] = log_sqrt_w_over_sig1_h*t3; 
-    jac[3] = -log_sqrt_w_over_sig1_h*t3*(t7*(de*(h3-h4)-t4*(h1-h2))+t8*(-h12+h34)); 
+    const double t9 = log_sqrt_w_over_sig1_h*t3;
+    jac[0] = -t9*(de*(h3*t2-h4*t2)-t4*(h1*t2-h2*t2)); 
+    jac[1] = -t9*(h12*t2-h34*t2); 
+    jac[2] = t9; 
+    jac[3] = -t9*(t7*(de*(h3-h4)-t4*(h1-h2))+t8*(-h12+h34)); 
 }
 
 /* height terrain jacobian (exponential) */
@@ -215,10 +216,14 @@ void jacobian_sig_h_exp(double *jac,
     const double t4 = de-1.0; 
     const double t5 = cos(xi); 
     const double t6 = sin(xi); 
-    jac[0] = -log_sqrt_w_over_sig1_h*sig_h*t3*(de*(h3*t2-h4*t2)-t4*(h1*t2-h2*t2)); 
-    jac[1] = -log_sqrt_w_over_sig1_h*sig_h*t3*(h12*t2-h34*t2); 
-    jac[2] = log_sqrt_w_over_sig1_h*sig_h*t3; 
-    jac[3] = -log_sqrt_w_over_sig1_h*sig_h*t3*(de*(delta_y*h3*sgn_n*t2*t5-delta_y*h4*sgn_n*t2*t5)-t4*(delta_y*h1*sgn_n*t2*t5-delta_y*h2*sgn_n*t2*t5)-delta_y*h12*sgn_e*t2*t6+delta_y*h34*sgn_e*t2*t6);
+    const double t7 = log_sqrt_w_over_sig1_h*sig_h*t3;
+    const double t8 = sgn_e*t6;
+    const double t9 = de*sgn_n*t5;
+    const double t10 = sgn_n*t4*t5;
+    jac[0] = -t7*(de*(h3*t2-h4*t2)-t4*(h1*t2-h2*t2)); 
+    jac[1] = -t7*(h12*t2-h34*t2); 
+    jac[2] = t7; 
+    jac[3] = delta_y*t2*t7*(h12*t8 - h34*t8 - h3*t9 + h4*t9 + h1*t10 - h2*t10);
 }
 
 /* jacobian of unit radial distance */

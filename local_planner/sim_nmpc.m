@@ -105,7 +105,7 @@ len_sliding_window = 10;
 
 % initial states
 x_init = [ ...
-    200, 100, -20, ... % r_n, r_e, r_d
+    150, 100, -20, ... % r_n, r_e, r_d
     14, deg2rad(0), deg2rad(-90), ... % v, gamma, xi
     deg2rad(0), deg2rad(2), ... % phi, theta
     104 ... % n_p
