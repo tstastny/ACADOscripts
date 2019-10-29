@@ -352,7 +352,7 @@ if (plot_opt.radial_cost)
 %% ////////////////////////////////////////////////////////////////////////
 % RADIAL COST
 
-for iii = [1 41]
+for iii = [1 N+1]
 
 n_hor = iii; % node in horizon to plot
 

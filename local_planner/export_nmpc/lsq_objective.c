@@ -3,13 +3,6 @@
 #include <string.h>
 
 #define EPSILON 0.000001
-#define GRAVITY 9.81;
-
-/* lookup table constants */
-#define LEN_IDX_N 57
-#define LEN_IDX_E 57
-#define LEN_IDX_N_1 56
-#define LEN_IDX_E_1 56
 
 /* math functions / / / / / / / / / / / / / / / / / / / / / / / / / / / /*/
 int constrain_int(int x, int xmin, int xmax) {
@@ -33,14 +26,19 @@ double dot(const double v1[3], const double v2[3]) {
 
 /* objective helper functions / / / / / / / / / / / / / / / / / / / / / /*/
 void lookup_terrain_idx(const double pos_n, const double pos_e, const double pos_n_origin,
-        const double pos_e_origin, const double terr_dis, int *idx_q, double *dn, double *de)
+        const double pos_e_origin, const int map_height, const int map_width,
+        const double map_resolution, int *idx_q, double *dn, double *de)
 {
+    
+    const int map_height_1 = map_height - 1;
+    const int map_width_1 = map_width - 1;
+            
     /* relative position / indices */
     const double rel_n = pos_n - pos_n_origin;
-    const double rel_n_bar = rel_n / terr_dis;
+    const double rel_n_bar = rel_n / map_resolution;
     int idx_n = (int)(floor(rel_n_bar));
     const double rel_e = pos_e - pos_e_origin;
-    const double rel_e_bar = rel_e / terr_dis;
+    const double rel_e_bar = rel_e / map_resolution;
     int idx_e = (int)(floor(rel_e_bar));
     
     /* interpolation weights */
@@ -51,23 +49,23 @@ void lookup_terrain_idx(const double pos_n, const double pos_e, const double pos
     if (idx_n < 0) {
         idx_n = 0;
     }
-    else if (idx_n > LEN_IDX_N_1) {
-        idx_n = LEN_IDX_N_1;
+    else if (idx_n > map_height_1) {
+        idx_n = map_height_1;
     }
     if (idx_e < 0) {
         idx_e = 0;
     }
-    else if (idx_e > LEN_IDX_E_1) {
-        idx_e = LEN_IDX_E_1;
+    else if (idx_e > map_width_1) {
+        idx_e = map_width_1;
     }
     
     /* neighbors (north) */
     int q_n[4];
-    if (idx_n >= LEN_IDX_N_1) {
-        q_n[0] = LEN_IDX_N_1;
-        q_n[1] = LEN_IDX_N_1;
-        q_n[2] = LEN_IDX_N_1;
-        q_n[3] = LEN_IDX_N_1;
+    if (idx_n >= map_height_1) {
+        q_n[0] = map_height_1;
+        q_n[1] = map_height_1;
+        q_n[2] = map_height_1;
+        q_n[3] = map_height_1;
     }
     else {
         q_n[0] = idx_n;
@@ -77,11 +75,11 @@ void lookup_terrain_idx(const double pos_n, const double pos_e, const double pos
     }
     /* neighbors (east) */
     int q_e[4];
-    if (idx_e >= LEN_IDX_E_1) {
-        q_e[0] = LEN_IDX_E_1;
-        q_e[1] = LEN_IDX_E_1;
-        q_e[2] = LEN_IDX_E_1;
-        q_e[3] = LEN_IDX_E_1;
+    if (idx_e >= map_width_1) {
+        q_e[0] = map_width_1;
+        q_e[1] = map_width_1;
+        q_e[2] = map_width_1;
+        q_e[3] = map_width_1;
     }
     else {
         q_e[0] = idx_e;
@@ -91,10 +89,10 @@ void lookup_terrain_idx(const double pos_n, const double pos_e, const double pos
     }
     
     /* neighbors row-major indices */
-    idx_q[0] = q_n[0]*LEN_IDX_E + q_e[0];
-    idx_q[1] = q_n[1]*LEN_IDX_E + q_e[1];
-    idx_q[2] = q_n[2]*LEN_IDX_E + q_e[2];
-    idx_q[3] = q_n[3]*LEN_IDX_E + q_e[3];
+    idx_q[0] = q_n[0]*map_width + q_e[0];
+    idx_q[1] = q_n[1]*map_width + q_e[1];
+    idx_q[2] = q_n[2]*map_width + q_e[2];
+    idx_q[3] = q_n[3]*map_width + q_e[3];
 }
 
 /* unit ground speed jacobian */
@@ -173,7 +171,7 @@ void jacobian_sig_h_lin(double *jac,
         const double  h1, const double h12, const double h2,
         const double h3, const double h34, const double h4,
         const double log_sqrt_w_over_sig1_h, const double sgn_e,
-        const double sgn_n, const double terr_dis, const double xi) {
+        const double sgn_n, const double map_resolution, const double xi) {
 
     /* w.r.t.:
      * r_n
@@ -182,7 +180,7 @@ void jacobian_sig_h_lin(double *jac,
      * xi
      */
     
-    const double t2 = 1.0/terr_dis; 
+    const double t2 = 1.0/map_resolution; 
     const double t3 = 1.0/delta_h; 
     const double t4 = de-1.0; 
     const double t5 = cos(xi); 
@@ -202,7 +200,7 @@ void jacobian_sig_h_exp(double *jac,
         const double h1, const double h12, const double h2, const double h3,
         const double h34, const double h4, const double log_sqrt_w_over_sig1_h,
         const double sgn_e, const double sgn_n, const double sig_h,
-        const double terr_dis, const double xi) {
+        const double map_resolution, const double xi) {
     
     /* w.r.t.:
      * r_n
@@ -211,7 +209,7 @@ void jacobian_sig_h_exp(double *jac,
      * xi
      */
 
-    const double t2 = 1.0/terr_dis; 
+    const double t2 = 1.0/map_resolution; 
     const double t3 = 1.0/delta_h; 
     const double t4 = de-1.0; 
     const double t5 = cos(xi); 
@@ -338,7 +336,8 @@ int intersect_triangle(double *d_occ, double *p_occ, double *n_occ,
 /* cast ray through terrain map and determine the intersection point on any occluding trianglular surface */
 int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2, double *p3,
         const double r0[3], const double r1[3], const double v[3],
-        const double pos_n_origin, const double pos_e_origin, const double terr_dis, const double *terr_map) {
+        const double pos_n_origin, const double pos_e_origin, const int map_height,
+        const int map_width, const double map_resolution, const double *terr_map) {
     
     /* INPUTS:
      *
@@ -347,7 +346,7 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
      * (double) v[3]              	ray unit vector (e,n,u)
      * (double) pos_n_origin        northing origin of terrain map
      * (double) pos_e_origin        easting origin of terrain map
-     * (double) terr_dis          	terrain discretization
+     * (double) map_resolution          	terrain discretization
      * (double) terr_map          	terrain map
      *
      * OUTPUTS:
@@ -360,23 +359,26 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
      * (double) p2[3]             	coord. of triangle vertex 2 (e,n,u) [m]
      * (double)	p3[3]           	coord. of triangle vertex 3 (e,n,u) [m]
      */ 
+    
+    const int map_height_1 = map_height - 1;
+    const int map_width_1 = map_width - 1;
 
     /* initialize */
     int occ_detected = 0;
 
     /* relative (unit) start position */
-    const double x0 = (r0[0] - pos_e_origin)/terr_dis;
-    const double y0 = (r0[1] - pos_n_origin)/terr_dis;
+    const double x0 = (r0[0] - pos_e_origin)/map_resolution;
+    const double y0 = (r0[1] - pos_n_origin)/map_resolution;
 
     /* initial height */
     const double h0 = r0[2];
     
     /* vector for triangle intersect inputs */
-    const double r0_rel[3] = {x0*terr_dis,y0*terr_dis,h0}; /*XXX: this origin subtracting/adding is inefficient.. pick one and go with it for this function
+    const double r0_rel[3] = {x0*map_resolution,y0*map_resolution,h0}; /*XXX: this origin subtracting/adding is inefficient.. pick one and go with it for this function
 
     /* relative end position */
-    const double x1 = (r1[0] - pos_e_origin)/terr_dis;
-    const double y1 = (r1[1] - pos_n_origin)/terr_dis;
+    const double x1 = (r1[0] - pos_e_origin)/map_resolution;
+    const double y1 = (r1[1] - pos_n_origin)/map_resolution;
 
     /* end height */
     const double h1 = r1[2];
@@ -457,15 +459,15 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
     /* check that start position is not already under the terrain */
     
     /* bound corner coordinates */
-    int x_check = constrain_int(x, 0, LEN_IDX_E_1);
-    int y_check = constrain_int(y, 0, LEN_IDX_N_1);
-    int x_check1 = constrain_int(x_check+1, 0, LEN_IDX_E_1);
-    int y_check1 = constrain_int(y_check+1, 0, LEN_IDX_N_1);
+    int x_check = constrain_int(x, 0, map_width_1);
+    int y_check = constrain_int(y, 0, map_height_1);
+    int x_check1 = constrain_int(x_check+1, 0, map_width_1);
+    int y_check1 = constrain_int(y_check+1, 0, map_height_1);
     /* convert to row-major indices */
-    int idx_corner1 = y_check*LEN_IDX_E + x_check;
-    int idx_corner2 = y_check1*LEN_IDX_E + x_check;
-    int idx_corner3 = y_check1*LEN_IDX_E + x_check1;
-    int idx_corner4 = y_check*LEN_IDX_E + x_check1;
+    int idx_corner1 = y_check*map_width + x_check;
+    int idx_corner2 = y_check1*map_width + x_check;
+    int idx_corner3 = y_check1*map_width + x_check1;
+    int idx_corner4 = y_check*map_width + x_check1;
     
     const double x0_unit = x0 - x;
     const double y0_unit = y0 - y;
@@ -512,15 +514,15 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
         h_entr = h_exit;
         
         /* bound corner coordinates */
-        x_check = constrain_int(x, 0, LEN_IDX_E_1);
-        y_check = constrain_int(y, 0, LEN_IDX_N_1);
-        x_check1 = constrain_int(x_check+1, 0, LEN_IDX_E_1);
-        y_check1 = constrain_int(y_check+1, 0, LEN_IDX_N_1);
+        x_check = constrain_int(x, 0, map_width_1);
+        y_check = constrain_int(y, 0, map_height_1);
+        x_check1 = constrain_int(x_check+1, 0, map_width_1);
+        y_check1 = constrain_int(y_check+1, 0, map_height_1);
         /* convert to row-major indices */
-        idx_corner1 = y_check*LEN_IDX_E + x_check;
-        idx_corner2 = y_check1*LEN_IDX_E + x_check;
-        idx_corner3 = y_check1*LEN_IDX_E + x_check1;
-        idx_corner4 = y_check*LEN_IDX_E + x_check1;
+        idx_corner1 = y_check*map_width + x_check;
+        idx_corner2 = y_check1*map_width + x_check;
+        idx_corner3 = y_check1*map_width + x_check1;
+        idx_corner4 = y_check*map_width + x_check1;
         /* check the four corners */
         check1 = terr_map[idx_corner1] > h_check; /* corner 1 (bottom left) */
         check2 = terr_map[idx_corner2] > h_check; /* corner 2 (top left) */
@@ -541,14 +543,14 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
                     if (check1 || check4 || check3) {
 
                         /* set 3 corners */
-                        p1[0] = terr_dis*x;
-                        p1[1] = terr_dis*y;
+                        p1[0] = map_resolution*x;
+                        p1[1] = map_resolution*y;
                         p1[2] = terr_map[idx_corner1];
-                        p2[0] = terr_dis*(x+1);
-                        p2[1] = terr_dis*y;
+                        p2[0] = map_resolution*(x+1);
+                        p2[1] = map_resolution*y;
                         p2[2] = terr_map[idx_corner4];
-                        p3[0] = terr_dis*(x+1);
-                        p3[1] = terr_dis*(y+1);
+                        p3[0] = map_resolution*(x+1);
+                        p3[1] = map_resolution*(y+1);
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
@@ -561,14 +563,14 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
                     if ((check1 || check2 || check3) && (occ_detected==0)) {
 
                         /* set 3 corners */
-                        p1[0] = terr_dis*x;
-                        p1[1] = terr_dis*y;
+                        p1[0] = map_resolution*x;
+                        p1[1] = map_resolution*y;
                         p1[2] = terr_map[idx_corner1];
-                        p2[0] = terr_dis*x;
-                        p2[1] = terr_dis*(y+1);
+                        p2[0] = map_resolution*x;
+                        p2[1] = map_resolution*(y+1);
                         p2[2] = terr_map[idx_corner2];
-                        p3[0] = terr_dis*(x+1);
-                        p3[1] = terr_dis*(y+1);
+                        p3[0] = map_resolution*(x+1);
+                        p3[1] = map_resolution*(y+1);
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
@@ -584,14 +586,14 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
                     if (check1 || check2 || check3) {
 
                         /* set 3 corners */
-                        p1[0] = terr_dis*x;
-                        p1[1] = terr_dis*y;
+                        p1[0] = map_resolution*x;
+                        p1[1] = map_resolution*y;
                         p1[2] = terr_map[idx_corner1];
-                        p2[0] = terr_dis*x;
-                        p2[1] = terr_dis*(y+1);
+                        p2[0] = map_resolution*x;
+                        p2[1] = map_resolution*(y+1);
                         p2[2] = terr_map[idx_corner2];
-                        p3[0] = terr_dis*(x+1);
-                        p3[1] = terr_dis*(y+1);
+                        p3[0] = map_resolution*(x+1);
+                        p3[1] = map_resolution*(y+1);
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
@@ -604,14 +606,14 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
                     if ((check1 || check4 || check3) && occ_detected==0) {
 
                         /* set 3 corners */
-                        p1[0] = terr_dis*x;
-                        p1[1] = terr_dis*y;
+                        p1[0] = map_resolution*x;
+                        p1[1] = map_resolution*y;
                         p1[2] = terr_map[idx_corner1];
-                        p2[0] = terr_dis*(x+1);
-                        p2[1] = terr_dis*y;
+                        p2[0] = map_resolution*(x+1);
+                        p2[1] = map_resolution*y;
                         p2[2] = terr_map[idx_corner4];
-                        p3[0] = terr_dis*(x+1);
-                        p3[1] = terr_dis*(y+1);
+                        p3[0] = map_resolution*(x+1);
+                        p3[1] = map_resolution*(y+1);
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
@@ -631,14 +633,14 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
                     if (check1 || check4 || check3) {
 
                         /* set 3 corners */
-                        p1[0] = terr_dis*x;
-                        p1[1] = terr_dis*y;
+                        p1[0] = map_resolution*x;
+                        p1[1] = map_resolution*y;
                         p1[2] = terr_map[idx_corner1];
-                        p2[0] = terr_dis*(x+1);
-                        p2[1] = terr_dis*y;
+                        p2[0] = map_resolution*(x+1);
+                        p2[1] = map_resolution*y;
                         p2[2] = terr_map[idx_corner4];
-                        p3[0] = terr_dis*(x+1);
-                        p3[1] = terr_dis*(y+1);
+                        p3[0] = map_resolution*(x+1);
+                        p3[1] = map_resolution*(y+1);
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
@@ -654,14 +656,14 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
                     if (check1 || check2 || check3) {
 
                         /* set 3 corners */
-                        p1[0] = terr_dis*x;
-                        p1[1] = terr_dis*y;
+                        p1[0] = map_resolution*x;
+                        p1[1] = map_resolution*y;
                         p1[2] = terr_map[idx_corner1];
-                        p2[0] = terr_dis*x;
-                        p2[1] = terr_dis*(y+1);
+                        p2[0] = map_resolution*x;
+                        p2[1] = map_resolution*(y+1);
                         p2[2] = terr_map[idx_corner2];
-                        p3[0] = terr_dis*(x+1);
-                        p3[1] = terr_dis*(y+1);
+                        p3[0] = map_resolution*(x+1);
+                        p3[1] = map_resolution*(y+1);
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
@@ -677,14 +679,14 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
                     if (check1 || check4 || check3) {
 
                         /* set 3 corners */
-                        p1[0] = terr_dis*x;
-                        p1[1] = terr_dis*y;
+                        p1[0] = map_resolution*x;
+                        p1[1] = map_resolution*y;
                         p1[2] = terr_map[idx_corner1];
-                        p2[0] = terr_dis*(x+1);
-                        p2[1] = terr_dis*y;
+                        p2[0] = map_resolution*(x+1);
+                        p2[1] = map_resolution*y;
                         p2[2] = terr_map[idx_corner4];
-                        p3[0] = terr_dis*(x+1);
-                        p3[1] = terr_dis*(y+1);
+                        p3[0] = map_resolution*(x+1);
+                        p3[1] = map_resolution*(y+1);
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
@@ -697,14 +699,14 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
                     if ((check1 || check2 || check3) && (occ_detected==0)) {
 
                         /* set 3 corners */
-                        p1[0] = terr_dis*x;
-                        p1[1] = terr_dis*y;
+                        p1[0] = map_resolution*x;
+                        p1[1] = map_resolution*y;
                         p1[2] = terr_map[idx_corner1];
-                        p2[0] = terr_dis*x;
-                        p2[1] = terr_dis*(y+1);
+                        p2[0] = map_resolution*x;
+                        p2[1] = map_resolution*(y+1);
                         p2[2] = terr_map[idx_corner2];
-                        p3[0] = terr_dis*(x+1);
-                        p3[1] = terr_dis*(y+1);
+                        p3[0] = map_resolution*(x+1);
+                        p3[1] = map_resolution*(y+1);
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
@@ -726,14 +728,14 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
                     if (check1 || check2 || check3) {
 
                         /* set 3 corners */
-                        p1[0] = terr_dis*x;
-                        p1[1] = terr_dis*y;
+                        p1[0] = map_resolution*x;
+                        p1[1] = map_resolution*y;
                         p1[2] = terr_map[idx_corner1];
-                        p2[0] = terr_dis*x;
-                        p2[1] = terr_dis*(y+1);
+                        p2[0] = map_resolution*x;
+                        p2[1] = map_resolution*(y+1);
                         p2[2] = terr_map[idx_corner2];
-                        p3[0] = terr_dis*(x+1);
-                        p3[1] = terr_dis*(y+1);
+                        p3[0] = map_resolution*(x+1);
+                        p3[1] = map_resolution*(y+1);
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
@@ -749,14 +751,14 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
                         if (check1 || check4 || check3) {
 
                             /* set 3 corners */
-                            p1[0] = terr_dis*x;
-                            p1[1] = terr_dis*y;
+                            p1[0] = map_resolution*x;
+                            p1[1] = map_resolution*y;
                             p1[2] = terr_map[idx_corner1];
-                            p2[0] = terr_dis*(x+1);
-                            p2[1] = terr_dis*y;
+                            p2[0] = map_resolution*(x+1);
+                            p2[1] = map_resolution*y;
                             p2[2] = terr_map[idx_corner4];
-                            p3[0] = terr_dis*(x+1);
-                            p3[1] = terr_dis*(y+1);
+                            p3[0] = map_resolution*(x+1);
+                            p3[1] = map_resolution*(y+1);
                             p3[2] = terr_map[idx_corner3];
 
                             /* check for ray-triangle intersection */
@@ -773,14 +775,14 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
                     if (check1 || check4 || check3) {
 
                         /* set 3 corners */
-                        p1[0] = terr_dis*x;
-                        p1[1] = terr_dis*y;
+                        p1[0] = map_resolution*x;
+                        p1[1] = map_resolution*y;
                         p1[2] = terr_map[idx_corner1];
-                        p2[0] = terr_dis*(x+1);
-                        p2[1] = terr_dis*y;
+                        p2[0] = map_resolution*(x+1);
+                        p2[1] = map_resolution*y;
                         p2[2] = terr_map[idx_corner4];
-                        p3[0] = terr_dis*(x+1);
-                        p3[1] = terr_dis*(y+1);
+                        p3[0] = map_resolution*(x+1);
+                        p3[1] = map_resolution*(y+1);
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
@@ -796,14 +798,14 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
                         if (check1 || check2 || check3) {
 
                             /* set 3 corners */
-                            p1[0] = terr_dis*x;
-                            p1[1] = terr_dis*y;
+                            p1[0] = map_resolution*x;
+                            p1[1] = map_resolution*y;
                             p1[2] = terr_map[idx_corner1];
-                            p2[0] = terr_dis*x;
-                            p2[1] = terr_dis*(y+1);
+                            p2[0] = map_resolution*x;
+                            p2[1] = map_resolution*(y+1);
                             p2[2] = terr_map[idx_corner2];
-                            p3[0] = terr_dis*(x+1);
-                            p3[1] = terr_dis*(y+1);
+                            p3[0] = map_resolution*(x+1);
+                            p3[1] = map_resolution*(y+1);
                             p3[2] = terr_map[idx_corner3];
 
                             /* check for ray-triangle intersection */
@@ -824,14 +826,14 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
                     if (check1 || check2 || check3) {
 
                         /* set 3 corners */
-                        p1[0] = terr_dis*x;
-                        p1[1] = terr_dis*y;
+                        p1[0] = map_resolution*x;
+                        p1[1] = map_resolution*y;
                         p1[2] = terr_map[idx_corner1];
-                        p2[0] = terr_dis*x;
-                        p2[1] = terr_dis*(y+1);
+                        p2[0] = map_resolution*x;
+                        p2[1] = map_resolution*(y+1);
                         p2[2] = terr_map[idx_corner2];
-                        p3[0] = terr_dis*(x+1);
-                        p3[1] = terr_dis*(y+1);
+                        p3[0] = map_resolution*(x+1);
+                        p3[1] = map_resolution*(y+1);
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
@@ -844,14 +846,14 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
                     if ((check1 || check4 || check3) && (occ_detected==0)) {
 
                         /* set 3 corners */
-                        p1[0] = terr_dis*x;
-                        p1[1] = terr_dis*y;
+                        p1[0] = map_resolution*x;
+                        p1[1] = map_resolution*y;
                         p1[2] = terr_map[idx_corner1];
-                        p2[0] = terr_dis*(x+1);
-                        p2[1] = terr_dis*y;
+                        p2[0] = map_resolution*(x+1);
+                        p2[1] = map_resolution*y;
                         p2[2] = terr_map[idx_corner4];
-                        p3[0] = terr_dis*(x+1);
-                        p3[1] = terr_dis*(y+1);
+                        p3[0] = map_resolution*(x+1);
+                        p3[1] = map_resolution*(y+1);
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
@@ -867,14 +869,14 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
                     if (check1 || check4 || check3) {
 
                         /* set 3 corners */
-                        p1[0] = terr_dis*x;
-                        p1[1] = terr_dis*y;
+                        p1[0] = map_resolution*x;
+                        p1[1] = map_resolution*y;
                         p1[2] = terr_map[idx_corner1];
-                        p2[0] = terr_dis*(x+1);
-                        p2[1] = terr_dis*y;
+                        p2[0] = map_resolution*(x+1);
+                        p2[1] = map_resolution*y;
                         p2[2] = terr_map[idx_corner4];
-                        p3[0] = terr_dis*(x+1);
-                        p3[1] = terr_dis*(y+1);
+                        p3[0] = map_resolution*(x+1);
+                        p3[1] = map_resolution*(y+1);
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
@@ -887,14 +889,14 @@ int castray(double *r_occ, double *p_occ, double *n_occ, double *p1, double *p2,
                     if ((check1 || check2 || check3) && (occ_detected==0)) {
 
                         /* set 3 corners */
-                        p1[0] = terr_dis*x;
-                        p1[1] = terr_dis*y;
+                        p1[0] = map_resolution*x;
+                        p1[1] = map_resolution*y;
                         p1[2] = terr_map[idx_corner1];
-                        p2[0] = terr_dis*x;
-                        p2[1] = terr_dis*(y+1);
+                        p2[0] = map_resolution*x;
+                        p2[1] = map_resolution*(y+1);
                         p2[2] = terr_map[idx_corner2];
-                        p3[0] = terr_dis*(x+1);
-                        p3[1] = terr_dis*(y+1);
+                        p3[0] = map_resolution*(x+1);
+                        p3[1] = map_resolution*(y+1);
                         p3[2] = terr_map[idx_corner3];
 
                         /* check for ray-triangle intersection */
@@ -1516,7 +1518,9 @@ void calculate_aoa_objective(double *sig_aoa, double *jac_sig_aoa, double *prio_
 
 /* calculate soft height objective */
 void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h, double *h_terr,
-        const double *states, const double *terr_params, const double *terr_map)
+        const double *states, const double *terr_params, const double terr_local_origin_n,
+        const double terr_local_origin_e, const int map_height, const int map_width,
+        const double map_resolution, const double *terr_map)
 {
     /* DEFINE INPUTS - - - - - - - - - - - - - - - - - - - - - - - - - - */
     
@@ -1537,19 +1541,6 @@ void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h
     const double delta_y = 0.0;
     const double log_sqrt_w_over_sig1_h = terr_params[2];
     const double one_over_sqrt_w_h = terr_params[3];
-    
-    /* radial params */
-    /*const double r_offset = terr_params[4];
-    const double delta_r0 = terr_params[5];
-    const double k_r_offset = terr_params[6];
-    const double k_delta_r = terr_params[7];
-    const double log_sqrt_w_over_sig1_r = terr_params[8];
-    const double one_over_sqrt_w_r = terr_params[9];*/
-    
-    /* terrain params */
-    const double terr_local_origin_n = terr_params[10];
-    const double terr_local_origin_e = terr_params[11];
-    const double terr_dis = terr_params[12];
     
     /* INTERMEDIATE CALCULATIONS - - - - - - - - - - - - - - - - - - - - */
     
@@ -1577,7 +1568,7 @@ void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h
         double dn, de;    
         double sgn_n = 0.0;
         double sgn_e = 0.0;
-        lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e, terr_dis, idx_q, &dn, &de);
+        lookup_terrain_idx(r_n, r_e, terr_local_origin_n, terr_local_origin_e, map_height, map_width, map_resolution, idx_q, &dn, &de);
         
         /* bi-linear interpolation */
         double h12 = (1-dn)*terr_map[idx_q[0]] + dn*terr_map[idx_q[1]];
@@ -1596,7 +1587,7 @@ void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h
                 terr_map[idx_q[0]], h12, terr_map[idx_q[1]],
                 terr_map[idx_q[2]], h34, terr_map[idx_q[3]],
                 log_sqrt_w_over_sig1_h, sgn_e,
-                sgn_n, terr_dis, xi);
+                sgn_n, map_resolution, xi);
         }
         else {
             /* exponential */
@@ -1607,7 +1598,7 @@ void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h
                 terr_map[idx_q[0]], h12, terr_map[idx_q[1]],
                 terr_map[idx_q[2]], h34, terr_map[idx_q[3]],
                 log_sqrt_w_over_sig1_h, sgn_e, sgn_n, *sig_h,
-                terr_dis, xi);
+                map_resolution, xi);
         }
 
         /* prioritization */
@@ -1619,7 +1610,8 @@ void calculate_height_objective(double *sig_h, double *jac_sig_h, double *prio_h
 void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *r_occ,
         double *p_occ, double *n_occ, double *prio_r, int *occ_detected,
         const double *v_ray, const double *states, const double *speed_states,
-        const double *terr_params, const double *terr_map)
+        const double *terr_params, const double terr_local_origin_n, const double terr_local_origin_e,
+        const int map_height, const int map_width, const double map_resolution, const double *terr_map)
 {
     /* DEFINE INPUTS - - - - - - - - - - - - - - - - - - - - - - - - - - */
     
@@ -1643,12 +1635,6 @@ void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *r_occ,
     const double vG_n_unit = speed_states[9];
     const double vG_e_unit = speed_states[10];
     const double vG_d_unit = speed_states[11];
-
-    /* height params */
-    /*const double h_offset = terr_params[0];
-    const double delta_h = terr_params[1];
-    const double log_sqrt_w_over_sig1_h = terr_params[2];
-    const double one_over_sqrt_w_h = terr_params[3];*/
     
     /* radial params */
     const double r_offset = terr_params[4];
@@ -1658,10 +1644,6 @@ void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *r_occ,
     const double log_sqrt_w_over_sig1_r = terr_params[8];
     const double one_over_sqrt_w_r = terr_params[9];
     
-    /* terrain params */
-    const double terr_local_origin_n = terr_params[10];
-    const double terr_local_origin_e = terr_params[11];
-    const double terr_dis = terr_params[12];
     
     /* CALCULATE OBJECTIVE - - - - - - - - - - - - - - - - - - - - - - - */
     
@@ -1695,7 +1677,7 @@ void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *r_occ,
     const double r_offset_1 = r_offset + v_rel_sq * k_r_offset;
     
     /* ray length */
-    const double d_ray = delta_r + r_offset_1 + terr_dis;
+    const double d_ray = delta_r + r_offset_1 + map_resolution;
     
     /* ray start ENU */
     const double r0[3] = {r_e, r_n, -r_d};
@@ -1704,7 +1686,8 @@ void calculate_radial_objective(double *sig_r, double *jac_sig_r, double *r_occ,
     
     /* cast the ray */
     *occ_detected = castray(r_occ, p_occ, n_occ, p1, p2, p3, r0, r1, v_ray,
-        terr_local_origin_n, terr_local_origin_e, terr_dis, terr_map);
+            terr_local_origin_n, terr_local_origin_e, map_height, map_width,
+            map_resolution, terr_map);
     
     /* shift occlusion origin */
     p_occ[0] = p_occ[0] + terr_local_origin_e;
@@ -1840,8 +1823,9 @@ void add_unit_radial_distance_and_gradient(double *jac_r_unit, double *r_unit_mi
 
 /* cast a ray along the ground speed vector and return any detection point and normal */
 void get_occ_along_gsp_vec(double *p_occ, double *n_occ, double *r_occ, int *occ_detected,
-        const double *states, const double *speed_states,
-        const double *terr_params, const double *terr_map)
+        const double *states, const double *speed_states, const double *terr_params,
+        const double terr_local_origin_n, const double terr_local_origin_e,
+        const int map_height, const int map_width, const double map_resolution, const double *terr_map)
 {
     /* DEFINE INPUTS - - - - - - - - - - - - - - - - - - - - - - - - - - */
     
@@ -1867,11 +1851,6 @@ void get_occ_along_gsp_vec(double *p_occ, double *n_occ, double *r_occ, int *occ
     const double log_sqrt_w_over_sig1_r = terr_params[8];
     const double one_over_sqrt_w_r = terr_params[9];
     
-    /* terrain params */
-    const double terr_local_origin_n = terr_params[10];
-    const double terr_local_origin_e = terr_params[11];
-    const double terr_dis = terr_params[12];
-    
     /* cast ray along ground speed vector to check for occlusions */
     
     /* init */
@@ -1889,7 +1868,7 @@ void get_occ_along_gsp_vec(double *p_occ, double *n_occ, double *r_occ, int *occ
     const double r_offset_1 = r_offset + vG_sq * k_r_offset;
     
     /* ray length */
-    const double d_ray = delta_r + r_offset_1 + terr_dis;
+    const double d_ray = delta_r + r_offset_1 + map_resolution;
     
     /* ray start ENU */
     const double r0[3] = {r_e, r_n, -r_d};
@@ -1898,7 +1877,8 @@ void get_occ_along_gsp_vec(double *p_occ, double *n_occ, double *r_occ, int *occ
     
     /* cast the ray */
     *occ_detected = castray(r_occ, p_occ, n_occ, p1, p2, p3, r0, r1, v_ray,
-        terr_local_origin_n, terr_local_origin_e, terr_dis, terr_map);
+            terr_local_origin_n, terr_local_origin_e, map_height, map_width,
+            map_resolution, terr_map);
     
     /* shift occlusion origin */
     p_occ[0] = p_occ[0] + terr_local_origin_e;

@@ -4,12 +4,12 @@
 terr_origin_n = -5000;
 terr_origin_e = -5000;
 
-one_over_dis = 1/terr_dis;
-dis_2 = terr_dis/2;
+one_over_dis = 1/map_resolution;
+dis_2 = map_resolution/2;
 
 % northing / easting
-nn = terr_origin_n:terr_dis:5000;
-ee = terr_origin_e:terr_dis:5000;
+nn = terr_origin_n:map_resolution:5000;
+ee = terr_origin_e:map_resolution:5000;
 
 len_global_idx_n = length(nn);
 len_global_idx_e = length(ee);

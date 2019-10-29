@@ -12,7 +12,7 @@ load('model_config/model_params.mat');
 run('model_config/sysid_config_Techpod.m');
 
 %% NMPC SETUP -------------------------------------------------------------
-N = 40;
+N = 50;
 n_U = 3;
 n_X = 9; % number of nmpc states
 n_Y = 9;
@@ -64,15 +64,15 @@ sig_h_1 = 0.001;
 
 % radial soft constraint
 r_offset = 10;
-delta_r0 = 10;
+delta_r0 = 5;
 k_r_offset = 1/tand(35)/9.81;
 k_delta_r = 1/tand(35)/9.81;
 sig_r_1 = 0.001;
 
 % terrain lookup
-len_local_idx_n = 57;%29;
-len_local_idx_e = 57;%29;
-terr_dis = 5;
+map_height = 57;
+map_width = 57;
+map_resolution = 5;
 
 %% REFERENCES -------------------------------------------------------------
 
@@ -299,7 +299,9 @@ for k = 1:len_t
         aoa_params = [delta_aoa, aoa_m, aoa_p, log_sqrt_w_over_sig1_aoa, one_over_sqrt_w_aoa];
         terr_params = [h_offset, delta_h, log_sqrt_w_over_sig1_h, one_over_sqrt_w_h, ...
             r_offset, delta_r0, k_r_offset, k_delta_r, log_sqrt_w_over_sig1_r, one_over_sqrt_w_r, ...
-            terr_local_origin_n, terr_local_origin_e, terr_dis, len_sliding_window];
+            len_sliding_window];
+        map_dimension = [map_height, map_width];
+        map_params = [terr_local_origin_n, terr_local_origin_e, map_resolution];
         
         % pre-evaluate objectives / update references / online data
         preeval_input.x = input.x;
@@ -308,6 +310,8 @@ for k = 1:len_t
         preeval_input.od = input.od;
         preeval_input.aoa_params = aoa_params;
         preeval_input.terr_params = terr_params;
+        preeval_input.map_dimension = map_dimension;
+        preeval_input.map_params = map_params;
         preeval_input.terr_map = terrain_data;
         preeval_input.path_reference = path_reference;
         preeval_input.guidance_params = guidance_params;

@@ -10,7 +10,7 @@ load('model_config/model_params.mat');
 run('model_config/sysid_config_Techpod.m');
 
 Ts = 0.1;   % model discretization step [0.1 s]
-N = 40;     % horizon
+N = 50;     % horizon
 
 % STATES - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 DifferentialState r_n;      % northing [m]
