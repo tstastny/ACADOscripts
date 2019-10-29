@@ -989,28 +989,28 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
     const double w_d = in[15-idx_shift];
     
     /* soft aoa */
-    const double sig_aoa = in[21-idx_shift];
+    const double sig_aoa = in[22-idx_shift];
     double jac_sig_aoa[2];
-    jac_sig_aoa[0] = in[22-idx_shift];
-    jac_sig_aoa[1] = in[23-idx_shift];
+    jac_sig_aoa[0] = in[23-idx_shift];
+    jac_sig_aoa[1] = in[24-idx_shift];
     
     /* soft height */
-    const double sig_h = in[24-idx_shift];
+    const double sig_h = in[25-idx_shift];
     double jac_sig_h[4];
-    jac_sig_h[0] = in[25-idx_shift];
-    jac_sig_h[1] = in[26-idx_shift];
-    jac_sig_h[2] = in[27-idx_shift];
-    jac_sig_h[3] = in[28-idx_shift];
+    jac_sig_h[0] = in[26-idx_shift];
+    jac_sig_h[1] = in[27-idx_shift];
+    jac_sig_h[2] = in[28-idx_shift];
+    jac_sig_h[3] = in[29-idx_shift];
     
     /* soft radial */
-    const double sig_r = in[29-idx_shift];
+    const double sig_r = in[30-idx_shift];
     double jac_sig_r[6];
-    jac_sig_r[0] = in[30-idx_shift];
-    jac_sig_r[1] = in[31-idx_shift];
-    jac_sig_r[2] = in[32-idx_shift];
-    jac_sig_r[3] = in[33-idx_shift];
-    jac_sig_r[4] = in[34-idx_shift];
-    jac_sig_r[5] = in[35-idx_shift];
+    jac_sig_r[0] = in[31-idx_shift];
+    jac_sig_r[1] = in[32-idx_shift];
+    jac_sig_r[2] = in[33-idx_shift];
+    jac_sig_r[3] = in[34-idx_shift];
+    jac_sig_r[4] = in[35-idx_shift];
+    jac_sig_r[5] = in[36-idx_shift];
     
     
     /* INTERMEDIATE CALCULATIONS - - - - - - - - - - - - - - - - - - - - */

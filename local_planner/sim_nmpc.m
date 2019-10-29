@@ -17,8 +17,8 @@ n_U = 3;
 n_X = 9; % number of nmpc states
 n_Y = 9;
 n_Z = 3;
-n_OD = 24;
-idx_OD_obj = 10;
+n_OD = 25;
+idx_OD_obj = 11;
 
 Ts_step = 0.1; % step size in nmpc
 Ts_nmpc = 0.1; % interval between nmpc calls
@@ -42,6 +42,9 @@ k_theta = 1.1;
 % throttle parameters
 tau_n_prop = 0.2;
 
+% flap setting
+delta_flaps = -0.5*deg2rad(5);
+
 % path reference
 b_n = 0;
 b_e = 0;
@@ -56,9 +59,9 @@ gamma_app_max = deg2rad(20)*2/pi;
 use_occ_as_guidance = 0;
 
 % angle of attack soft constraint
-delta_aoa = deg2rad(3);
+delta_aoa = deg2rad(4);
 aoa_m = deg2rad(-5);
-aoa_p = deg2rad(8);
+aoa_p = deg2rad(7);
 sig_aoa_1 = 0.001;
 
 % height soft constraint 
@@ -128,8 +131,8 @@ zref = [0.5 0 deg2rad(3)];
 Q_scale = [1 1 1 1 1 1 1 1 1];
 R_scale = [0.1 deg2rad(1) deg2rad(1)];
 
-Q_output    = [1e4 1e4 1e6, 5e2 0*1e0 0*1e0, 1e8 1e7 1e7]./Q_scale.^2;
-QN_output   = [1e4 1e4 1e6, 5e2 0*1e0 0*1e0, 1e8 1e7 1e7]./Q_scale.^2;
+Q_output    = [1e4 1e4 1e6, 1e3 0*1e0 0*1e0, 1e8 1e7 1e7]./Q_scale.^2;
+QN_output   = [1e4 1e4 1e6, 1e3 0*1e0 0*1e0, 1e8 1e7 1e7]./Q_scale.^2;
 R_controls  = [1e3 1e1 1e3]./R_scale.^2;
 
 % weight dependent parameters
@@ -176,7 +179,7 @@ input.u = repmat(nmpc_ic.u, N,1);
 input.y = repmat([yref, zref], N,1);
 input.yN = yref;
 input.od = zeros(N+1,n_OD);
-input.od(:,1:idx_OD_obj-1) = repmat([rho, w_n, w_e, w_d, tau_phi, tau_theta, k_phi, k_theta, tau_n_prop], N+1, 1);
+input.od(:,1:idx_OD_obj-1) = repmat([rho, w_n, w_e, w_d, tau_phi, tau_theta, k_phi, k_theta, tau_n_prop, delta_flaps], N+1, 1);
 R_end = R_controls * 1e0;
 for i=0:N-1
     ww = i/(N-1);
@@ -446,12 +449,12 @@ iep_nmpc = find(rec.time_nmpc<=t_ed_plot, 1, 'last');
 plot_opt.position = true;
 plot_opt.position2 = true;
 plot_opt.attitude = true;
-plot_opt.roll_horizon = true;
-plot_opt.pitch_horizon = true;
+plot_opt.roll_horizon = false;
+plot_opt.pitch_horizon = false;
 plot_opt.motor = true;
 plot_opt.position_errors = true;
 plot_opt.velocity_tracking = true;
-plot_opt.wind_axis = false;
+plot_opt.wind_axis = true;
 plot_opt.radial_cost = true;
 plot_opt.priorities = true;
 plot_opt.objectives = true;

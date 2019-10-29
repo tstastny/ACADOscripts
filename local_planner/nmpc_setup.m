@@ -47,6 +47,9 @@ OnlineData k_theta;
 % throttle parameters
 OnlineData tau_n_prop;
 
+% flap setting
+OnlineData delta_flaps;
+
 % soft aoa objective
 OnlineData sig_aoa;
 OnlineData jac_sig_aoa(2);
@@ -85,8 +88,9 @@ n_T0_vmax = (-cT_1*vmax/sysid_config.d_prop + ...                           % ze
 % static modeling
 qbarS = 1/2 * rho * v^2 * sysid_config.S_w;                                 % dynamic pressure
 aoa = theta - gamma;                                                        % angle of attack
-L = qbarS * (cL_0 + cL_aoa*aoa);                                            % lift
-D = qbarS * (cD_0 + cD_aoa*aoa + cD_aoa2*aoa^2);                            % drag
+L = qbarS * (cL_0 + cL_aoa*aoa + 2.0*cL_delta_F*delta_flaps);               % lift
+D = qbarS * (cD_0 + cD_aoa*aoa + cD_aoa2*aoa^2 + ...
+    2.0*(cD_delta_F*delta_flaps + cD_delta_F2*delta_flaps^2));              % drag
 vp = v * cos(aoa - sysid_config.epsilon_T);                                 % inflow at propeller
 sig_vp = (vp - vmin)/(vmax - vmin);                                         % prop inflow linear interpolater
 u_n = ...                                                                   % prop speed input (converted from throttle input considering inflow and zero thrusting conditions)
@@ -126,7 +130,7 @@ n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
 n_Y = 9;                    % outputs
 n_Z = 3;                    % objectives
-n_OD = 24;                  % online data
+n_OD = 25;                  % online data
 
 acadoSet('problemname', 'nmpc');
 

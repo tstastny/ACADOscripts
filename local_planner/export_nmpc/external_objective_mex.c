@@ -32,7 +32,7 @@ enum occ {
 };
 
 #define IDX_LEN_SW 10
-#define IDX_OD_OBJ 9
+#define IDX_OD_OBJ 10
 
 /** Instance of the user data structure. */
 ACADOvariables acadoVariables;
