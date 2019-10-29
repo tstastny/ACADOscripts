@@ -24,7 +24,7 @@ len_2_n = (len_local_idx_n-1)/2;
 len_2_e = (len_local_idx_e-1)/2;
 
 if (add_terrain_noise_to_local_map)
-    terr_noise_matrix = (rand(len_local_idx_n,len_local_idx_e)*2-1)*terr_noise;
+    terr_noise_matrix = (rand(len_local_idx_n,len_local_idx_e)*2-1)*terr_noise_local;
 else
     terr_noise_matrix = 0;
 end

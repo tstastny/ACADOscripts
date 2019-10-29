@@ -98,6 +98,7 @@ jac_v_d = subs(jac_v_d, vG_d/vG_norm, vG_d_unit);
 jac_v_d = subs(jac_v_d, vG_d*one_over_vG_norm, vG_d_unit);
 
 jac_vg_unit = [jac_v_n, jac_v_e, jac_v_d];
+jac_vg_unit = simplify(jac_vg_unit);
 
 %% get input arguments (used variables)
 input_arg = sym2cell(symvar(jac_vg_unit));

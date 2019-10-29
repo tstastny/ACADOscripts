@@ -1,5 +1,7 @@
 % / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
 % symbolic jacobian for radial cost (exponential formulation)
+% > individual r_offset / delta_r tuning
+% > relative speed formulation
 % / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
 
 clear; clc;
@@ -24,9 +26,13 @@ p3_n = sym('p3_n','real');     % third terrain interpolation point
 p3_e = sym('p3_e','real');
 p3_h = sym('p3_h','real');
 delta_r0 = sym('delta_r0','real'); % radial cost buffer params
-k_r = sym('k_r','real');
+k_r_offset = sym('k_r_offset','real');
+k_delta_r = sym('k_delta_r','real');
 r_offset = sym('r_offset','real');
 log_sqrt_w_over_sig1_r = sym('log_sqrt_w_over_sig1_r','real');
+v_ray_n = sym('v_ray_n','real');
+v_ray_e = sym('v_ray_e','real');
+v_ray_h = sym('v_ray_h','real');
 
 vG_n_expr = v*cos(gamma)*cos(xi) + w_n;
 vG_e_expr = v*cos(gamma)*sin(xi) + w_e;
@@ -52,17 +58,22 @@ C_br = terr_dis^2;
 D_br = -p1_h * terr_dis^2;
 
 % distance to triangulated plane (tl)
-r_tl_expr = -(A_tl*(r_e-p1_e) + B_tl*(r_n-p1_n) + C_tl*(-r_d-p1_h) + D_tl) * vG_expr / (A_tl*vG_e_expr + B_tl*vG_n_expr + C_tl*-vG_d_expr);
+r_tl_expr = -(A_tl*(r_e-p1_e) + B_tl*(r_n-p1_n) + C_tl*(-r_d-p1_h) + D_tl) / (A_tl*v_ray_e + B_tl*v_ray_n + C_tl*v_ray_h);
 % distance to triangulated plane (br)
-r_br_expr = -(A_br*(r_e-p1_e) + B_br*(r_n-p1_n) + C_br*(-r_d-p1_h) + D_br) * vG_expr / (A_br*vG_e_expr + B_br*vG_n_expr + C_br*-vG_d_expr);
+r_br_expr = -(A_br*(r_e-p1_e) + B_br*(r_n-p1_n) + C_br*(-r_d-p1_h) + D_br) / (A_br*v_ray_e + B_br*v_ray_n + C_br*v_ray_h);
+
+% relative speed
+v_rel_expr = vG_n_expr*v_ray_n + vG_e_expr*v_ray_e + -vG_d_expr*v_ray_h;
+v_rel_sq_expr = v_rel_expr^2;
 
 % radial cost
-delta_r_expr = delta_r0 + vG_sq_expr*k_r;
-sig_r_tl = exp(-(r_tl_expr - r_offset)/delta_r_expr*log_sqrt_w_over_sig1_r);
-sig_r_br = exp(-(r_br_expr - r_offset)/delta_r_expr*log_sqrt_w_over_sig1_r);
+delta_r_expr = delta_r0 + v_rel_sq_expr*k_delta_r;
+r_offset_1_expr = r_offset + v_rel_sq_expr*k_r_offset;
+sig_r_tl = exp(-(r_tl_expr - r_offset_1_expr)/delta_r_expr*log_sqrt_w_over_sig1_r);
+sig_r_br = exp(-(r_br_expr - r_offset_1_expr)/delta_r_expr*log_sqrt_w_over_sig1_r);
 
-sig_r_tl_lin = 1.0 - log_sqrt_w_over_sig1_r/delta_r_expr * (r_tl_expr - r_offset);
-sig_r_br_lin = 1.0 - log_sqrt_w_over_sig1_r/delta_r_expr * (r_br_expr - r_offset);
+sig_r_tl_lin = 1.0 - log_sqrt_w_over_sig1_r/delta_r_expr * (r_tl_expr - r_offset_1_expr);
+sig_r_br_lin = 1.0 - log_sqrt_w_over_sig1_r/delta_r_expr * (r_br_expr - r_offset_1_expr);
 
 % jacobian of radial cost
 jac_sig_r_tl_exp = jacobian(sig_r_tl, [r_n; r_e; r_d; v; gamma; xi]);
@@ -75,18 +86,26 @@ jac_sig_r_br_lin = jacobian(sig_r_br_lin, [r_n; r_e; r_d; v; gamma; xi]);
 sig_r = sym('sig_r','real');
 jac_sig_r_tl_exp = subs(jac_sig_r_tl_exp , sig_r_tl, sig_r);
 jac_sig_r_br_exp = subs(jac_sig_r_br_exp , sig_r_br, sig_r);
-d_occ = sym('d_occ','real');
-jac_sig_r_tl_exp = subs(jac_sig_r_tl_exp , r_tl_expr, d_occ);
-jac_sig_r_br_exp = subs(jac_sig_r_br_exp , r_br_expr, d_occ);
+r_occ = sym('r_occ','real');
+jac_sig_r_tl_exp = subs(jac_sig_r_tl_exp , r_tl_expr, r_occ);
+jac_sig_r_br_exp = subs(jac_sig_r_br_exp , r_br_expr, r_occ);
 delta_r = sym('delta_r','real');
 jac_sig_r_tl_exp = subs(jac_sig_r_tl_exp , delta_r_expr, delta_r);
 jac_sig_r_br_exp = subs(jac_sig_r_br_exp , delta_r_expr, delta_r);
+v_rel = sym('v_rel','real');
+jac_sig_r_tl_exp = subs(jac_sig_r_tl_exp , v_rel_expr, v_rel);
+jac_sig_r_br_exp = subs(jac_sig_r_br_exp , v_rel_expr, v_rel);
+v_rel_sq = sym('v_rel_sq','real');
+jac_sig_r_tl_exp = subs(jac_sig_r_tl_exp , v_rel_sq_expr, v_rel_sq);
+jac_sig_r_br_exp = subs(jac_sig_r_br_exp , v_rel_sq_expr, v_rel_sq);
+jac_sig_r_tl_exp = subs(jac_sig_r_tl_exp , v_rel^2, v_rel_sq);
+jac_sig_r_br_exp = subs(jac_sig_r_br_exp , v_rel^2, v_rel_sq);
 vG = sym('vG','real');
 jac_sig_r_tl_exp = subs(jac_sig_r_tl_exp , vG_expr, vG);
 jac_sig_r_br_exp = subs(jac_sig_r_br_exp , vG_expr, vG);
 vG_sq = sym('vG_sq','real');
-% jac_sig_r_tl_exp = subs(jac_sig_r_tl_exp , vG_sq_expr, vG_sq);
-% jac_sig_r_br_exp = subs(jac_sig_r_br_exp , vG_sq_expr, vG_sq);
+jac_sig_r_tl_exp = subs(jac_sig_r_tl_exp , vG_sq_expr, vG_sq);
+jac_sig_r_br_exp = subs(jac_sig_r_br_exp , vG_sq_expr, vG_sq);
 jac_sig_r_tl_exp = subs(jac_sig_r_tl_exp , vG^2, vG_sq);
 jac_sig_r_br_exp = subs(jac_sig_r_br_exp , vG^2, vG_sq);
 % vG = sym('vG','real');
@@ -101,17 +120,26 @@ jac_sig_r_br_exp = subs(jac_sig_r_br_exp , vG_e_expr, vG_e);
 vG_d = sym('vG_d','real');
 jac_sig_r_tl_exp = subs(jac_sig_r_tl_exp , vG_d_expr, vG_d);
 jac_sig_r_br_exp = subs(jac_sig_r_br_exp , vG_d_expr, vG_d);
+r_offset_1 = sym('r_offset_1','real');
+jac_sig_r_tl_exp = subs(jac_sig_r_tl_exp , r_offset + vG_sq*k_r_offset, r_offset_1);
+jac_sig_r_br_exp = subs(jac_sig_r_br_exp , r_offset + vG_sq*k_r_offset, r_offset_1);
 
 jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , sig_r_tl, sig_r);
 jac_sig_r_br_lin = subs(jac_sig_r_br_lin , sig_r_br, sig_r);
-jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , r_tl_expr, d_occ);
-jac_sig_r_br_lin = subs(jac_sig_r_br_lin , r_br_expr, d_occ);
+jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , r_tl_expr, r_occ);
+jac_sig_r_br_lin = subs(jac_sig_r_br_lin , r_br_expr, r_occ);
 jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , delta_r_expr, delta_r);
 jac_sig_r_br_lin = subs(jac_sig_r_br_lin , delta_r_expr, delta_r);
+jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , v_rel_expr, v_rel);
+jac_sig_r_br_lin = subs(jac_sig_r_br_lin , v_rel_expr, v_rel);
+jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , v_rel_sq_expr, v_rel_sq);
+jac_sig_r_br_lin = subs(jac_sig_r_br_lin , v_rel_sq_expr, v_rel_sq);
+jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , v_rel^2, v_rel_sq);
+jac_sig_r_br_lin = subs(jac_sig_r_br_lin , v_rel^2, v_rel_sq);
 jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , vG_expr, vG);
 jac_sig_r_br_lin = subs(jac_sig_r_br_lin , vG_expr, vG);
-% jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , vG_sq_expr, vG_sq);
-% jac_sig_r_br_lin = subs(jac_sig_r_br_lin , vG_sq_expr, vG_sq);
+jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , vG_sq_expr, vG_sq);
+jac_sig_r_br_lin = subs(jac_sig_r_br_lin , vG_sq_expr, vG_sq);
 jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , vG^2, vG_sq);
 jac_sig_r_br_lin = subs(jac_sig_r_br_lin , vG^2, vG_sq);
 jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , vG_sq^(1/2), vG);
@@ -122,25 +150,19 @@ jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , vG_e_expr, vG_e);
 jac_sig_r_br_lin = subs(jac_sig_r_br_lin , vG_e_expr, vG_e);
 jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , vG_d_expr, vG_d);
 jac_sig_r_br_lin = subs(jac_sig_r_br_lin , vG_d_expr, vG_d);
+jac_sig_r_tl_lin = subs(jac_sig_r_tl_lin , r_offset + vG_sq*k_r_offset, r_offset_1);
+jac_sig_r_br_lin = subs(jac_sig_r_br_lin , r_offset + vG_sq*k_r_offset, r_offset_1);
 
 %% get input arguments (used variables)
-input_arg_tl = sym2cell(symvar(jac_sig_r_tl_exp));
-input_arg_br = sym2cell(symvar(jac_sig_r_br_exp));
+input_arg_tl_exp = sym2cell(symvar(jac_sig_r_tl_exp));
+input_arg_br_exp = sym2cell(symvar(jac_sig_r_br_exp));
 input_arg_tl_lin = sym2cell(symvar(jac_sig_r_tl_lin));
 input_arg_br_lin = sym2cell(symvar(jac_sig_r_br_lin));
 
 if 0
 %% export to m code
-matlabFunction(jac_sig_r_tl_exp,'File','jac_sig_r_tl_exp.m', ...
-    'Vars',{r_n, r_e, r_d, v, gamma, xi, w_e, w_n, w_d, ...
-    terr_dis, p1_n, p1_e, p1_h, p2_n, p2_e, p2_h, p3_n, p3_e, p3_h, ...
-    r_offset, delta_r0, k_r, log_sqrt_w_over_sig1_r, ...
-    sig_r, d_occ, delta_r, vG_sq, vG, vG_n, vG_e, vG_d},'Outputs',{'out'});
-matlabFunction(jac_sig_r_br_exp,'File','jac_sig_r_br_exp.m', ...
-    'Vars',{r_n, r_e, r_d, v, gamma, xi, w_e, w_n, w_d, ...
-    terr_dis, p1_n, p1_e, p1_h, p2_n, p2_e, p2_h, p3_n, p3_e, p3_h, ...
-    r_offset, delta_r0, k_r, log_sqrt_w_over_sig1_r, ...
-    sig_r, d_occ, delta_r, vG_sq, vG, vG_n, vG_e, vG_d},'Outputs',{'out'});
+matlabFunction(jac_sig_r_tl_exp,'File','jac_sig_r_tl_exp.m','Vars',input_arg_tl_exp,'Outputs',{'out'});
+matlabFunction(jac_sig_r_br_exp,'File','jac_sig_r_br_exp.m','Vars',input_arg_br_exp,'Outputs',{'out'});
 %%
 matlabFunction(jac_sig_r_tl_lin,'File','jac_sig_r_tl_lin.m','Vars',input_arg_tl_lin,'Outputs',{'out'});
 matlabFunction(jac_sig_r_br_lin,'File','jac_sig_r_br_lin.m','Vars',input_arg_br_lin,'Outputs',{'out'});
@@ -178,7 +200,25 @@ for i = 1:length(txt)
         end
     end
 end
+txt_top = cell(2,1);
+txt_top{1} = 'void jac_sig_r_br_exp(double *jac,';
+txt_top{2} = ['const double ', char(input_arg_br_exp{1})];
+for k = 2:length(input_arg_br_exp)
+    txt_top{2} = [txt_top{2}, ', const double ', char(input_arg_br_exp{k})];
+end
+txt_top{2} = [txt_top{2}, ') {\n'];
+txt_top{3} = '/* w.r.t.:';
+txt_top{4} = '* r_n';
+txt_top{5} = '* r_e';
+txt_top{6} = '* r_d';
+txt_top{7} = '* v';
+txt_top{8} = '* gamma';
+txt_top{9} = '* xi';
+txt_top{10} = '*/\n';
 fid = fopen('jac_sig_r_br_exp_ccode.c','w');
+for k = 1:length(txt_top)
+    fprintf(fid,[char(txt_top{k}),' \n']);
+end
 for k = 1:length(txt)
     fprintf(fid,[char(txt{k}),' \n']);
 end
@@ -204,7 +244,25 @@ for i = 1:length(txt)
         end
     end
 end
+txt_top = cell(2,1);
+txt_top{1} = 'void jac_sig_r_tl_exp(double *jac,';
+txt_top{2} = ['const double ', char(input_arg_tl_exp{1})];
+for k = 2:length(input_arg_tl_exp)
+    txt_top{2} = [txt_top{2}, ', const double ', char(input_arg_tl_exp{k})];
+end
+txt_top{2} = [txt_top{2}, ') {\n'];
+txt_top{3} = '/* w.r.t.:';
+txt_top{4} = '* r_n';
+txt_top{5} = '* r_e';
+txt_top{6} = '* r_d';
+txt_top{7} = '* v';
+txt_top{8} = '* gamma';
+txt_top{9} = '* xi';
+txt_top{10} = '*/\n';
 fid = fopen('jac_sig_r_tl_exp_ccode.c','w');
+for k = 1:length(txt_top)
+    fprintf(fid,[char(txt_top{k}),' \n']);
+end
 for k = 1:length(txt)
     fprintf(fid,[char(txt{k}),' \n']);
 end
@@ -230,7 +288,25 @@ for i = 1:length(txt)
         end
     end
 end
+txt_top = cell(2,1);
+txt_top{1} = 'void jac_sig_r_br_lin(double *jac,';
+txt_top{2} = ['const double ', char(input_arg_br_lin{1})];
+for k = 2:length(input_arg_br_lin)
+    txt_top{2} = [txt_top{2}, ', const double ', char(input_arg_br_lin{k})];
+end
+txt_top{2} = [txt_top{2}, ') {\n'];
+txt_top{3} = '/* w.r.t.:';
+txt_top{4} = '* r_n';
+txt_top{5} = '* r_e';
+txt_top{6} = '* r_d';
+txt_top{7} = '* v';
+txt_top{8} = '* gamma';
+txt_top{9} = '* xi';
+txt_top{10} = '*/\n';
 fid = fopen('jac_sig_r_br_lin_ccode.c','w');
+for k = 1:length(txt_top)
+    fprintf(fid,[char(txt_top{k}),' \n']);
+end
 for k = 1:length(txt)
     fprintf(fid,[char(txt{k}),' \n']);
 end
@@ -256,7 +332,25 @@ for i = 1:length(txt)
         end
     end
 end
+txt_top = cell(2,1);
+txt_top{1} = 'void jac_sig_r_tl_lin(double *jac,';
+txt_top{2} = ['const double ', char(input_arg_tl_lin{1})];
+for k = 2:length(input_arg_tl_lin)
+    txt_top{2} = [txt_top{2}, ', const double ', char(input_arg_tl_lin{k})];
+end
+txt_top{2} = [txt_top{2}, ') {\n'];
+txt_top{3} = '/* w.r.t.:';
+txt_top{4} = '* r_n';
+txt_top{5} = '* r_e';
+txt_top{6} = '* r_d';
+txt_top{7} = '* v';
+txt_top{8} = '* gamma';
+txt_top{9} = '* xi';
+txt_top{10} = '*/\n';
 fid = fopen('jac_sig_r_tl_lin_ccode.c','w');
+for k = 1:length(txt_top)
+    fprintf(fid,[char(txt_top{k}),' \n']);
+end
 for k = 1:length(txt)
     fprintf(fid,[char(txt{k}),' \n']);
 end
