@@ -73,6 +73,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OnlineData tau_theta; 
     OnlineData k_phi; 
     OnlineData k_theta; 
+    OnlineData tau_n_prop; 
     OnlineData sig_aoa; 
     OnlineData jac_sig_aoa1; 
     OnlineData jac_sig_aoa2; 
@@ -101,7 +102,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     acadodata_f1 << dot(xi) == (((-1.32619999999999987894e-01)/2.80000000000000026645e-01*cos((-3.49065850398865909487e-02-gamma+theta))/n_p*v+1.15210000000000006848e-01)*6.14656000000000229955e-03*pow(n_p,2.00000000000000000000e+00)*rho*sin((-gamma+theta))+((-gamma+theta)*2.85009999999999985576e+00+5.21549999999999958078e-01)*4.17999999999999982681e-01*5.00000000000000000000e-01*pow(v,2.00000000000000000000e+00)*rho)/3.12400000000000011013e+00/cos(gamma)*sin(phi)/v;
     acadodata_f1 << dot(phi) == (k_phi*phi_ref-phi)/tau_phi;
     acadodata_f1 << dot(theta) == (k_theta*theta_ref-theta)/tau_theta;
-    acadodata_f1 << dot(n_p) == ((-(-1.00000000000000000000e+01+cos((-3.49065850398865909487e-02-gamma+theta))*v)/1.50000000000000000000e+01+1.00000000000000000000e+00)*(1.22767629097648992342e+02*u_T+4.08990375690176648504e+01)+(-1.00000000000000000000e+01+cos((-3.49065850398865909487e-02-gamma+theta))*v)*(1.02693635333290359313e+02+6.09730313333762978800e+01*u_T)/1.50000000000000000000e+01-n_p)/2.00000000000000011102e-01;
+    acadodata_f1 << dot(n_p) == ((-(-1.00000000000000000000e+01+cos((-3.49065850398865909487e-02-gamma+theta))*v)/1.50000000000000000000e+01+1.00000000000000000000e+00)*(1.22767629097648992342e+02*u_T+4.08990375690176648504e+01)+(-1.00000000000000000000e+01+cos((-3.49065850398865909487e-02-gamma+theta))*v)*(1.02693635333290359313e+02+6.09730313333762978800e+01*u_T)/1.50000000000000000000e+01-n_p)/tau_n_prop;
 
     OCP ocp1(0, 5, 50);
     ocp1.minimizeLSQ(acadodata_M1, "evaluateLSQ");
@@ -110,12 +111,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     ocp1.subjectTo(0.00000000000000000000e+00 <= u_T <= 1.00000000000000000000e+00);
     ocp1.subjectTo((-6.10865238198015303439e-01) <= phi_ref <= 6.10865238198015303439e-01);
     ocp1.subjectTo((-2.61799387799149407829e-01) <= theta_ref <= 4.36332312998582383390e-01);
-    ocp1.setNOD( 23 );
+    ocp1.setNOD( 24 );
 
 
     ocp1.setNU( 3 );
     ocp1.setNP( 0 );
-    ocp1.setNOD( 23 );
+    ocp1.setNOD( 24 );
     OCPexport ExportModule1( ocp1 );
     ExportModule1.set( GENERATE_MATLAB_INTERFACE, 1 );
     uint options_flag;

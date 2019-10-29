@@ -40,6 +40,8 @@ tau_phi = onlinedata(1-nX-nU+16-idx_shift);
 tau_theta = onlinedata(1-nX-nU+17-idx_shift);
 k_phi = onlinedata(1-nX-nU+18-idx_shift);
 k_theta = onlinedata(1-nX-nU+19-idx_shift);
+% throttle parameters
+tau_n_prop = onlinedata(1-nX-nU+20-idx_shift);
 
 % MODEL -------------------------------------------------------------------
 
@@ -55,9 +57,6 @@ mass = sysid_config.mass;   % mass [kg]
 for i = 1:length(model_params)
     eval([model_params(i).Name,' = ',num2str(model_params(i).Value),';']);
 end
-
-% prop speed time constant
-tau_n = 0.2;
 
 % prop advance ratio scaling
 vmin = 10;                                                                  % minimum stabilizable airspeed on trim map
@@ -89,7 +88,7 @@ d_states(5) = 1/mass/v * ( (T * sin(aoa) + L) * cos(phi) - mass * g * cos(gamma)
 d_states(6) = sin(phi)/mass/v/cos(gamma) * (T * sin(aoa) + L);
 d_states(7) = (k_phi * phi_ref - phi) / tau_phi;
 d_states(8) = (k_theta * theta_ref - theta) / tau_theta;
-d_states(9) = (u_n - n_p) / tau_n;
+d_states(9) = (u_n - n_p) / tau_n_prop;
 
 % output
 output = states;

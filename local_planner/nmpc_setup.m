@@ -44,6 +44,9 @@ OnlineData tau_theta;
 OnlineData k_phi;
 OnlineData k_theta;
 
+% throttle parameters
+OnlineData tau_n_prop;
+
 % soft aoa objective
 OnlineData sig_aoa;
 OnlineData jac_sig_aoa(2);
@@ -70,9 +73,6 @@ mass = sysid_config.mass;   % mass [kg]
 for i = 1:length(model_params)
     eval([model_params(i).Name,' = ',num2str(model_params(i).Value),';']);
 end
-
-% prop speed time constant
-tau_n = 0.2;
 
 % prop advance ratio scaling
 vmin = 10;                                                                  % minimum stabilizable airspeed on trim map
@@ -104,7 +104,7 @@ dot_gamma = 1/mass/v * ( (T * sin(aoa) + L) * cos(phi) - mass * g * cos(gamma) )
 dot_xi = sin(phi)/mass/v/cos(gamma) * (T * sin(aoa) + L);
 dot_phi = (k_phi * phi_ref - phi) / tau_phi;
 dot_theta = (k_theta * theta_ref - theta) / tau_theta;
-dot_n_p = (u_n - n_p) / tau_n;
+dot_n_p = (u_n - n_p) / tau_n_prop;
 
 % ode
 f = acado.DifferentialEquation;
@@ -126,7 +126,7 @@ n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
 n_Y = 9;                    % outputs
 n_Z = 3;                    % objectives
-n_OD = 23;                  % online data
+n_OD = 24;                  % online data
 
 acadoSet('problemname', 'nmpc');
 

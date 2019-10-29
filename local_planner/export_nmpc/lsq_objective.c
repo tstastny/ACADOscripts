@@ -983,43 +983,34 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
     
     /* online data */
     
-    /* environment */
-    /*const double rho = in[12-idx_shift]; */
-    
     /* disturbances */
     const double w_n = in[13-idx_shift];
     const double w_e = in[14-idx_shift];
     const double w_d = in[15-idx_shift];
     
-    /* control augmented attitude time constants and gains */
-    /*const double tau_phi = in[16-idx_shift];
-    const double tau_theta = in[17-idx_shift];
-    const double k_phi = in[18-idx_shift];
-    const double k_theta = in[19-idx_shift];*/
-    
     /* soft aoa */
-    const double sig_aoa = in[20-idx_shift];
+    const double sig_aoa = in[21-idx_shift];
     double jac_sig_aoa[2];
-    jac_sig_aoa[0] = in[21-idx_shift];
-    jac_sig_aoa[1] = in[22-idx_shift];
+    jac_sig_aoa[0] = in[22-idx_shift];
+    jac_sig_aoa[1] = in[23-idx_shift];
     
     /* soft height */
-    const double sig_h = in[23-idx_shift];
+    const double sig_h = in[24-idx_shift];
     double jac_sig_h[4];
-    jac_sig_h[0] = in[24-idx_shift];
-    jac_sig_h[1] = in[25-idx_shift];
-    jac_sig_h[2] = in[26-idx_shift];
-    jac_sig_h[3] = in[27-idx_shift];
+    jac_sig_h[0] = in[25-idx_shift];
+    jac_sig_h[1] = in[26-idx_shift];
+    jac_sig_h[2] = in[27-idx_shift];
+    jac_sig_h[3] = in[28-idx_shift];
     
     /* soft radial */
-    const double sig_r = in[28-idx_shift];
+    const double sig_r = in[29-idx_shift];
     double jac_sig_r[6];
-    jac_sig_r[0] = in[29-idx_shift];
-    jac_sig_r[1] = in[30-idx_shift];
-    jac_sig_r[2] = in[31-idx_shift];
-    jac_sig_r[3] = in[32-idx_shift];
-    jac_sig_r[4] = in[33-idx_shift];
-    jac_sig_r[5] = in[34-idx_shift];
+    jac_sig_r[0] = in[30-idx_shift];
+    jac_sig_r[1] = in[31-idx_shift];
+    jac_sig_r[2] = in[32-idx_shift];
+    jac_sig_r[3] = in[33-idx_shift];
+    jac_sig_r[4] = in[34-idx_shift];
+    jac_sig_r[5] = in[35-idx_shift];
     
     
     /* INTERMEDIATE CALCULATIONS - - - - - - - - - - - - - - - - - - - - */
@@ -1360,9 +1351,6 @@ void calculate_velocity_reference(double *v_ref, double *e_lat, double *e_lon,
     const double v = states[3];
     const double gamma = states[4];
     const double xi = states[5];
-    /*const double phi = states[6];
-    const double theta = states[7];
-    const double n_p = states[8];*/
     
     /* path reference */
     const double b_n = path_reference[0];

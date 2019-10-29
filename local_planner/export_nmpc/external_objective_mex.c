@@ -32,6 +32,7 @@ enum occ {
 };
 
 #define IDX_LEN_SW 10
+#define IDX_OD_OBJ 9
 
 /** Instance of the user data structure. */
 ACADOvariables acadoVariables;
@@ -336,13 +337,13 @@ void mexFunction(	int nlhs,
         aux_output[kHorizon * N_AUX + AUX_PRIO_R_FWD] = prio_r_fwd;
         
         /* log cost and jacobian */
-        acadoVariables.od[kHorizon * ACADO_NOD + 16] = sig_r_fwd;
-        acadoVariables.od[kHorizon * ACADO_NOD + 17] = jac_sig_r_fwd[0];
-        acadoVariables.od[kHorizon * ACADO_NOD + 18] = jac_sig_r_fwd[1];
-        acadoVariables.od[kHorizon * ACADO_NOD + 19] = jac_sig_r_fwd[2];
-        acadoVariables.od[kHorizon * ACADO_NOD + 20] = jac_sig_r_fwd[3];
-        acadoVariables.od[kHorizon * ACADO_NOD + 21] = jac_sig_r_fwd[4];
-        acadoVariables.od[kHorizon * ACADO_NOD + 22] = jac_sig_r_fwd[5];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+8] = sig_r_fwd;
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+9] = jac_sig_r_fwd[0];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+10] = jac_sig_r_fwd[1];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+11] = jac_sig_r_fwd[2];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+12] = jac_sig_r_fwd[3];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+13] = jac_sig_r_fwd[4];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+14] = jac_sig_r_fwd[5];
     }
     
     /* evaluate external objectives */
@@ -352,9 +353,9 @@ void mexFunction(	int nlhs,
         /* soft aoa constraint */
         calculate_aoa_objective(&sig_aoa, jac_sig_aoa, &prio_aoa, acadoVariables.x + (kHorizon * ACADO_NX), aoa_params);
                 
-        acadoVariables.od[kHorizon * ACADO_NOD + 8] = sig_aoa;
-        acadoVariables.od[kHorizon * ACADO_NOD + 9] = jac_sig_aoa[0];
-        acadoVariables.od[kHorizon * ACADO_NOD + 10] = jac_sig_aoa[1];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ] = sig_aoa;
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+1] = jac_sig_aoa[0];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+2] = jac_sig_aoa[1];
                 
         priorities[kHorizon * 3 + 0] = prio_aoa;
                 
@@ -363,11 +364,11 @@ void mexFunction(	int nlhs,
         calculate_height_objective(&sig_h, jac_sig_h, &prio_h, &h_terr, acadoVariables.x + (kHorizon * ACADO_NX), terr_params,
                 terr_local_origin_n, terr_local_origin_e, map_height, map_width, map_resolution, terr_map);
                 
-        acadoVariables.od[kHorizon * ACADO_NOD + 11] = sig_h;
-        acadoVariables.od[kHorizon * ACADO_NOD + 12] = jac_sig_h[0];
-        acadoVariables.od[kHorizon * ACADO_NOD + 13] = jac_sig_h[1];
-        acadoVariables.od[kHorizon * ACADO_NOD + 14] = jac_sig_h[2];
-        acadoVariables.od[kHorizon * ACADO_NOD + 15] = jac_sig_h[3];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+3] = sig_h;
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+4] = jac_sig_h[0];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+5] = jac_sig_h[1];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+6] = jac_sig_h[2];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+7] = jac_sig_h[3];
                 
         priorities[kHorizon * 3 + 1] = prio_h;
         
@@ -411,13 +412,13 @@ void mexFunction(	int nlhs,
         const double sig_r = sig_r_left + sig_r_right;
         
         /* add to objective cost / jacobian */
-        acadoVariables.od[kHorizon * ACADO_NOD + 16] += sig_r;
-        acadoVariables.od[kHorizon * ACADO_NOD + 17] += jac_sig_r[0];
-        acadoVariables.od[kHorizon * ACADO_NOD + 18] += jac_sig_r[1];
-        acadoVariables.od[kHorizon * ACADO_NOD + 19] += jac_sig_r[2];
-        acadoVariables.od[kHorizon * ACADO_NOD + 20] += jac_sig_r[3];
-        acadoVariables.od[kHorizon * ACADO_NOD + 21] += jac_sig_r[4];
-        acadoVariables.od[kHorizon * ACADO_NOD + 22] += jac_sig_r[5];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+8] += sig_r;
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+9] += jac_sig_r[0];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+10] += jac_sig_r[1];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+11] += jac_sig_r[2];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+12] += jac_sig_r[3];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+13] += jac_sig_r[4];
+        acadoVariables.od[kHorizon * ACADO_NOD + IDX_OD_OBJ+14] += jac_sig_r[5];
         
         aux_output[kHorizon * N_AUX + AUX_PRIO_R_FWD+1] = prio_r_left;
         aux_output[kHorizon * N_AUX + AUX_PRIO_R_FWD+2] = prio_r_right;

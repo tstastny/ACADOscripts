@@ -17,7 +17,8 @@ n_U = 3;
 n_X = 9; % number of nmpc states
 n_Y = 9;
 n_Z = 3;
-n_OD = 23;
+n_OD = 24;
+idx_OD_obj = 10;
 
 Ts_step = 0.1; % step size in nmpc
 Ts_nmpc = 0.1; % interval between nmpc calls
@@ -37,6 +38,9 @@ tau_phi = 0.5;
 tau_theta = 0.5;
 k_phi = 1.1;
 k_theta = 1.1;
+
+% throttle parameters
+tau_n_prop = 0.2;
 
 % path reference
 b_n = 0;
@@ -172,7 +176,7 @@ input.u = repmat(nmpc_ic.u, N,1);
 input.y = repmat([yref, zref], N,1);
 input.yN = yref;
 input.od = zeros(N+1,n_OD);
-input.od(:,1:8) = repmat([rho, w_n, w_e, w_d, tau_phi, tau_theta, k_phi, k_theta], N+1, 1);
+input.od(:,1:idx_OD_obj-1) = repmat([rho, w_n, w_e, w_d, tau_phi, tau_theta, k_phi, k_theta, tau_n_prop], N+1, 1);
 R_end = R_controls * 1e0;
 for i=0:N-1
     ww = i/(N-1);
@@ -319,16 +323,16 @@ for k = 1:len_t
         preeval_output = external_objective_mex(preeval_input);
         input.y = preeval_output.y;
         input.yN = preeval_output.yN;
-        input.od(:,[9:12, 17]) = preeval_output.od(:,[9:12, 17]);
-%         input.od(:,[9:12, 17]) = (preeval_output.od(:,[9:12, 17]) - input.od(:,[9:12, 17])) / tau_terr * Ts_nmpc + input.od(:,[9:12, 17]);
-        input.od(:,[13:16, 18:23]) = (preeval_output.od(:,[13:16, 18:23]) - input.od(:,[13:16, 18:23])) / tau_terr * Ts_nmpc + input.od(:,[13:16, 18:23]); %./ repmat([ones(20,1);linspace(1,5,21)'],1,10)
+        idx_obj = [idx_OD_obj:idx_OD_obj+3, idx_OD_obj+8];
+        idx_jac = [idx_OD_obj+4:idx_OD_obj+7, idx_OD_obj+9:idx_OD_obj+14];
+        input.od(:,idx_obj) = preeval_output.od(:,idx_obj);
+        input.od(:,idx_jac) = (preeval_output.od(:,idx_jac) - ...
+            input.od(:,idx_jac)) / tau_terr * Ts_nmpc + input.od(:,idx_jac);
 
         % update priorities
         prio_aoa = preeval_output.priorities(:,1);
         prio_h = preeval_output.priorities(:,2);
         prio_r = preeval_output.priorities(:,3);
-%         prio_h = constrain( (preeval_output.priorities(:,2) - prio_h) / tau_terr * Ts_nmpc + prio_h, 0, 1);
-%         prio_r = constrain( (preeval_output.priorities(:,3) - prio_r) / tau_terr * Ts_nmpc + prio_r, 0, 1);
         if ~use_occ_as_guidance
             prio_v = prio_h .* prio_r;
             for ii=0:N-1
