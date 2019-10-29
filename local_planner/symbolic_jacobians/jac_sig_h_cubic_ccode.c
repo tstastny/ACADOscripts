@@ -1,0 +1,13 @@
+const double t2 = 1.0/terr_dis; 
+const double t3 = de-1.0; 
+const double t6 = de*h34; 
+const double t7 = h12*t3; 
+const double t4 = delta_h+h_offset+r_d+t6-t7; 
+const double t5 = 1.0/(delta_h*delta_h*delta_h); 
+const double t8 = t4*t4; 
+const double t9 = cos(xi); 
+const double t10 = sin(xi); 
+jac[0] = t5*t8*(de*(h3*t2-h4*t2)-t3*(h1*t2-h2*t2))*-3.0; 
+jac[1] = t5*t8*(h12*t2-h34*t2)*-3.0; 
+jac[2] = t5*t8*3.0; 
+jac[3] = t5*t8*(de*(delta_y*h3*sgn_n*t2*t9-delta_y*h4*sgn_n*t2*t9)-t3*(delta_y*h1*sgn_n*t2*t9-delta_y*h2*sgn_n*t2*t9)-delta_y*h12*sgn_e*t2*t10+delta_y*h34*sgn_e*t2*t10)*-3.0; 
