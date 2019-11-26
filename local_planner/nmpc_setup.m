@@ -154,6 +154,9 @@ theta_lim_pos = deg2rad(25);
 theta_lim_neg = deg2rad(-15);
 
 ocp.subjectTo( f );
+
+% NOTE: in the case of non-hardcoded constraints, these values are only
+%       used for initializing the solver
 ocp.subjectTo( 0.0 <= u_T <= 1.0 );
 ocp.subjectTo( -phi_lim <= phi_ref <= phi_lim );
 ocp.subjectTo( theta_lim_neg <= theta_ref <= theta_lim_pos );
@@ -171,7 +174,7 @@ nmpc.set( 'QP_SOLVER', 'QP_QPOASES' );
 nmpc.set( 'MAX_NUM_QP_ITERATIONS', 500 );
 nmpc.set( 'HOTSTART_QP', 'YES' );
 nmpc.set( 'LEVENBERG_MARQUARDT', 1e-10 );
-nmpc.set( 'CG_HARDCODE_CONSTRAINT_VALUES', 'YES' );
+nmpc.set( 'CG_HARDCODE_CONSTRAINT_VALUES', 'NO' );
 nmpc.set( 'CG_USE_VARIABLE_WEIGHTING_MATRIX', 'YES' );
 nmpc.set( 'GENERATE_MAKE_FILE', 'NO' );
 nmpc.set( 'GENERATE_TEST_FILE', 'NO' );

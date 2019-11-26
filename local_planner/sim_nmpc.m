@@ -81,6 +81,11 @@ map_height = 57;
 map_width = 57;
 map_resolution = 5;
 
+% constraints
+phi_lim = deg2rad(35);
+theta_lim_pos = deg2rad(25);
+theta_lim_neg = deg2rad(-15);
+
 %% REFERENCES -------------------------------------------------------------
 
 v_ref = 14;
@@ -121,6 +126,10 @@ posk = x_init(1:3);
 
 % initial controls
 u_init = [0.5 0 deg2rad(3)]; % u_T, phi_ref, theta_ref
+
+% initial control constraints
+lb_ = [0 -phi_lim theta_lim_neg];
+ub_ = [1 phi_lim theta_lim_pos];
 
 % acado inputs
 nmpc_ic.x = x_init;
@@ -187,6 +196,8 @@ for i=0:N-1
 end
 % input.W     = diag([Q_output, R_controls]);
 input.WN    = diag(QN_output);
+input.lbValues = reshape(repmat(lb_, N, 1).',N*n_U,1);
+input.ubValues = reshape(repmat(ub_, N, 1).',N*n_U,1);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
