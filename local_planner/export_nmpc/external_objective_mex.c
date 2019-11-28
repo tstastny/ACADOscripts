@@ -201,8 +201,11 @@ void mexFunction(	int nlhs,
     /* path/guidance parameters */
     double path_reference[5];
     double guidance_params[4];
+    double path_type_double;
     getArray(1, src, 0, "path_reference", path_reference, 1, 5);
     getArray(1, src, 0, "guidance_params", guidance_params, 1, 4);
+    getArray(1, src, 0, "path_type", &path_type_double, 1, 1);
+    int path_type = path_type_double;
     
     /* sliding window array */
     int len_sliding_window = constrain_int(round(terr_params[IDX_LEN_SW]), 1, ACADO_N);
@@ -446,7 +449,7 @@ void mexFunction(	int nlhs,
         double v_ref[3];
         double e_lat, e_lon;
         calculate_velocity_reference(v_ref, &e_lat, &e_lon, acadoVariables.x + (kHorizon * ACADO_NX), path_reference, guidance_params,
-            speed_states, jac_sig_r, prio_r);
+            speed_states, jac_sig_r, prio_r, path_type);
                 
         if (kHorizon < ACADO_N) {
             acadoVariables.y[kHorizon * ACADO_NY + 0] = v_ref[0];

@@ -46,11 +46,16 @@ tau_n_prop = 0.2;
 delta_flaps = -0.5*deg2rad(5);
 
 % path reference
+% NOTE: when path_type=0: chi_p hijacked for signed radius at const alt
+%                         loiter, Gamma_p = 0
+%       when path_type=1: line following
+%       else: fly north..
+path_type = 0;
 b_n = 0;
 b_e = 0;
 b_d = -50;
 Gamma_p = deg2rad(5);
-chi_p = deg2rad(0);
+chi_p = 100;%deg2rad(0);
 
 % guidance
 T_b_lat = 5;
@@ -333,6 +338,7 @@ for k = 1:len_t
         preeval_input.terr_map = terrain_data;
         preeval_input.path_reference = path_reference;
         preeval_input.guidance_params = guidance_params;
+        preeval_input.path_type = path_type;
         preeval_input.occ_slw = preeval_output.occ_slw;
         preeval_output = external_objective_mex(preeval_input);
         input.y = preeval_output.y;
