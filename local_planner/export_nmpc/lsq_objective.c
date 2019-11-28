@@ -1382,7 +1382,7 @@ void calculate_velocity_reference(double *v_ref, double *e_lat, double *e_lon,
         
         /* loiter direction (hijack chi_p param) */
         const double loiter_dir = (path_reference[4] < 0.0) ? -1.0 : 1.0;
-        const double radius = fabs(path_reference[4]);
+        const double radius = (fabs(path_reference[4]) < 0.1) ? 0.1 : fabs(path_reference[4]);
         
         /* vector from circle center to aircraft */
         const double br_n = r_n-b_n;
