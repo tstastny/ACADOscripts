@@ -6,6 +6,7 @@
 #include "mex.h"
 #include "acado_common.h"
 #include "lsq_objective.c"
+#include "external_objectives.c"
 
 /* Define number of outputs */
 #define NOO 6
