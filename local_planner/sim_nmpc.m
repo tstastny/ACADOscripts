@@ -51,7 +51,7 @@ delta_flaps = -0.5*deg2rad(5);
 %       when path_type=1: line following
 %       else: fly north..
 path_type = 0;
-b_n = 0;
+b_n = 250;
 b_e = 0;
 b_d = -50;
 Gamma_p = deg2rad(5);
@@ -206,7 +206,7 @@ input.ubValues = reshape(repmat(ub_, N, 1).',N*n_U,1);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 40;
+Tf = 70;
 Ts = 0.01;
 time = T0:Ts:Tf;
 len_t = length(time);

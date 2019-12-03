@@ -20,10 +20,20 @@ alpha(surf1,0.5);
 alpha(surf2,0.5);
 
 % path
-len_path = 1500;
-plot3([b_e, b_e+len_path*sin(chi_p)*cos(Gamma_p)], ...
-    [b_n, b_n+len_path*cos(chi_p)*cos(Gamma_p)], ...
-    -[b_d, b_d-len_path*sin(Gamma_p)],'color',color_ref,'linewidth',1.5);
+if (path_type==0)
+    % loiter
+    ss = linspace(0,2*pi,501);
+    plot3(b_e+abs(chi_p)*sin(ss), b_n+abs(chi_p)*cos(ss), -b_d*ones(1,501),'color',color_ref,'linewidth',1.5);
+elseif (path_type==1)
+    % line
+    len_path = 500;
+    b_ed_e = b_e+len_path*sin(chi_p)*cos(Gamma_p);
+    b_ed_n = b_n+len_path*cos(chi_p)*cos(Gamma_p);
+    b_ed_d = b_d-len_path*sin(Gamma_p);
+    plot3([b_e, b_ed_e], ...
+        [b_n, b_ed_n], ...
+        -[b_d, b_ed_d],'color',color_ref,'linewidth',1.5);
+end
 
 % position horizons
 hor_int = round(1/Ts);
@@ -48,13 +58,20 @@ figure('color','w','name','Position 2');
 hold on; grid on; %axis equal;
 
 % path
-len_path = 500;
-b_ed_e = b_e+len_path*sin(chi_p)*cos(Gamma_p);
-b_ed_n = b_n+len_path*cos(chi_p)*cos(Gamma_p);
-b_ed_d = b_d-len_path*sin(Gamma_p);
-plot3([b_e, b_ed_e], ...
-    [b_n, b_ed_n], ...
-    -[b_d, b_ed_d],'color',color_ref,'linewidth',1.5);
+if (path_type==0)
+    % loiter
+    ss = linspace(0,2*pi,501);
+    plot3(b_e+abs(chi_p)*sin(ss), b_n+abs(chi_p)*cos(ss), -b_d*ones(1,501),'color',color_ref,'linewidth',1.5);
+elseif (path_type==1)
+    % line
+    len_path = 500;
+    b_ed_e = b_e+len_path*sin(chi_p)*cos(Gamma_p);
+    b_ed_n = b_n+len_path*cos(chi_p)*cos(Gamma_p);
+    b_ed_d = b_d-len_path*sin(Gamma_p);
+    plot3([b_e, b_ed_e], ...
+        [b_n, b_ed_n], ...
+        -[b_d, b_ed_d],'color',color_ref,'linewidth',1.5);
+end
 
 % position horizons
 hor_int = round(2/Ts);
