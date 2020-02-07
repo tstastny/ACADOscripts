@@ -51,7 +51,7 @@ delta_flaps = -0.5*deg2rad(5);
 %       when path_type=1: line following
 %       else: fly north..
 path_type = 0;
-b_n = 250;
+b_n = 300;
 b_e = 0;
 b_d = -50;
 Gamma_p = deg2rad(5);
@@ -116,21 +116,27 @@ shift_states_controls = false;
 output_objectives = true;
 
 % sliding window for terrain detections
-len_sliding_window = 10;
+len_sliding_window = 1;
 
 %% INITIALIZATION ---------------------------------------------------------
 
+load('init_xu.mat');
+
+% x_init_hor(1,:) = x_init_hor(1,1);
+
 % initial states
-x_init = [ ...
-    150, 100, -20, ... % r_n, r_e, r_d
-    14, deg2rad(0), deg2rad(-90), ... % v, gamma, xi
-    deg2rad(0), deg2rad(2), ... % phi, theta
-    104 ... % n_p
-    ];
+% x_init = [ ...
+%     150, 100, -20, ... % r_n, r_e, r_d
+%     14, deg2rad(0), deg2rad(-90), ... % v, gamma, xi
+%     deg2rad(0), deg2rad(2), ... % phi, theta
+%     104 ... % n_p
+%     ];
+x_init = x_init_hor(:,1)';
 posk = x_init(1:3);
 
 % initial controls
-u_init = [0.5 0 deg2rad(3)]; % u_T, phi_ref, theta_ref
+% u_init = [0.5 0 deg2rad(3)]; % u_T, phi_ref, theta_ref
+u_init = u_init_hor(:,1)';
 
 % initial control constraints
 lb_ = [0 -phi_lim theta_lim_neg];
@@ -145,8 +151,8 @@ zref = [0.5 0 deg2rad(3)];
 Q_scale = [1 1 1 1 1 1 1 1 1];
 R_scale = [0.1 deg2rad(1) deg2rad(1)];
 
-Q_output    = [1e4 1e4 1e6, 1e3 0*1e0 0*1e0, 1e8 1e7 1e7]./Q_scale.^2;
-QN_output   = [1e4 1e4 1e6, 1e3 0*1e0 0*1e0, 1e8 1e7 1e7]./Q_scale.^2;
+Q_output    = [1e4 1e4 1e6, 1e4 0*1e0 0*1e0, 1e8 1e7 1e7]./Q_scale.^2;
+QN_output   = [1e4 1e4 1e6, 1e4 0*1e0 0*1e0, 1e8 1e7 1e7]./Q_scale.^2;
 R_controls  = [1e3 1e1 1e3]./R_scale.^2;
 
 % weight dependent parameters
@@ -188,8 +194,8 @@ end
 terrain_constructor;
 
 % input struct
-input.x = repmat(nmpc_ic.x, N+1,1);
-input.u = repmat(nmpc_ic.u, N,1);
+input.x = x_init_hor';%repmat(nmpc_ic.x, N+1,1);
+input.u = u_init_hor';%repmat(nmpc_ic.u, N,1);
 input.y = repmat([yref, zref], N,1);
 input.yN = yref;
 input.od = zeros(N+1,n_OD);
@@ -206,7 +212,7 @@ input.ubValues = reshape(repmat(ub_, N, 1).',N*n_U,1);
 
 %% SIMULATION -------------------------------------------------------------
 T0 = 0;
-Tf = 70;
+Tf = 20;
 Ts = 0.01;
 time = T0:Ts:Tf;
 len_t = length(time);
