@@ -26,7 +26,6 @@ delta_r0 = sym('delta_r0','real'); % radial cost buffer params
 k_r_offset = sym('k_r_offset','real');
 k_delta_r = sym('k_delta_r','real');
 r_offset = sym('r_offset','real');
-log_sqrt_w_over_sig1_r = sym('log_sqrt_w_over_sig1_r','real');
 v_ray_n = sym('v_ray_n','real');
 v_ray_e = sym('v_ray_e','real');
 v_ray_h = sym('v_ray_h','real');
