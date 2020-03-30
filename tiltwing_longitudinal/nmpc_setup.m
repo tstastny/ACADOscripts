@@ -1,5 +1,5 @@
 % -------------------------------------------------------------------------
-% Fixed-wing Local Planning w/ Obstacle Avoidance
+% Tiltwing MPC
 % -------------------------------------------------------------------------
 clc;
 clear all;
@@ -27,11 +27,11 @@ Control theta_ref;
 m = 1.85;       % mass of the plane [kg]
 g = 9.81;       % gravity [m/s^2]
 rho = 1.225;    % density of air [kg/m^3]
-S_w = 0.0750;   % surface area of wing [m^2]
-k_T2L = 0.3;    % XXX: description / unit
-k = 1;          % XXX: description / unit
-tau_0 = 0.4;    % XXX: description / unit
-c_w = pi/40;    % XXX: description / unit
+S_w = 0.15;   % surface area of wing [m^2]
+k_T2L = 0.3;    % control augmented slipstream gain
+k = 1;          % control augmented atitude gain
+tau_0 = 0.4;    % control augmente time constant 
+c_w = pi/10;    % slew rate of the wing [rad/s]
 
 % intermediate states
 alpha = atan(v_z/v_x);
@@ -40,7 +40,7 @@ alpha = atan(v_z/v_x);
 dot_v_x = 1/m*(T_w*cos(zeta_w)-m*g*sin(theta)-k_T2L*T_w*sin(zeta_w)...
     +0.5*rho*(v_x^2+v_z^2)*S_w*(C_Ltotal(alpha+zeta_w)*sin(alpha)...
     -C_Dtotal(alpha+zeta_w)*cos(alpha)))+k*(theta_ref - theta)/tau_0*v_z;
-dot_v_z = 1/m*(-T_w*sin(zeta_w)-m*g*cos(theta)-k_T2L*T_w*cos(zeta_w)...
+dot_v_z = 1/m*(-T_w*sin(zeta_w)+m*g*cos(theta)-k_T2L*T_w*cos(zeta_w)...
     -0.5*rho*(v_x^2+v_z^2)*S_w*(C_Ltotal(alpha+zeta_w)*cos(alpha)...
     -C_Dtotal(alpha+zeta_w)*sin(alpha)))-k*(theta_ref - theta)/tau_0*v_x;
 dot_theta = k*(theta_ref - theta)/tau_0;
@@ -75,9 +75,13 @@ acadoSet('problemname', 'nmpc');
 ocp = acado.OCP( 0.0, N*Ts, N );
 
 % objective weight
-Q = eye(n_Ys+n_Tc,n_Ys+n_Yc);
+Q = eye(n_Ys+n_Yc,n_Ys+n_Yc);
+%Q(1,1) = 10.0;
+%Q(2,2) = 10.0;
 Q = acado.BMatrix(Q);
 QN = eye(n_Ys,n_Ys);
+%QN(1,1) = 10;
+%QN(2,2) = 10.0;
 QN = acado.BMatrix(QN);
 
 % objective function
@@ -92,6 +96,7 @@ ocp.subjectTo( f );
 ocp.subjectTo( 0.0 <= zeta_w <= pi/2);
 ocp.subjectTo( -1.0 <= delta_w <= 1.0 );
 ocp.subjectTo( 0.0 <= T_w <= 30.0 );
+ocp.subjectTo( deg2rad(-15) <= theta_ref <= deg2rad(25));
 
 % export settings
 nmpc = acado.OCPexport( ocp );
