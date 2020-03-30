@@ -9,7 +9,7 @@ addpath('functions');
 N = 20;
 n_U = 3;
 n_X = 4;
-n_Ys = 7;
+n_Ys = 4;
 n_Yc = 3;
 n_OD = 0;
 
@@ -24,14 +24,18 @@ shift_states_controls = false;
 %% INITIALIZATION - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 % initial states
-x_init = [0.0, 0.0, 0.0, 0.0]; % XXX: put something realistic here!
+x_init = [10.0, 2.0, 0.0, deg2rad(45)]; % XXX: put something realistic here!
 
 % initial controls
-u_init = [0.0, 0.0, 0.0]; % XXX: put something realistic here!
+u_init = [0.0, 15.0, 0.0]; % XXX: put something realistic here!
 
 % initial control constraints
-constraint_lb = [0.0, -1.0, 0.0];
-constraint_ub = [pi/2, 1.0, 30.0];
+constraints_lb = [-1.0, 0.0, deg2rad(-15)];
+constraints_ub = [1.0, 30.0, deg2rad(25)];
+
+% affine constraints
+constraint_lbA = 0;
+constraint_ubA = pi/2;
 
 % initial condition struct
 nmpc_ic.x = x_init;
@@ -40,19 +44,21 @@ nmpc_ic.u = u_init;
 % objective references -- these are where the NMPC will be attempting to
 %                         drive the objective states
 % XXX: define
-y_ref = [...
-    v_x_ref;
-    v_z_ref;
-    theta_ref;
-    zeta_w_ref;
-    delta_w;
-    T_w_ref;
-    theta_ref;
-    ];
+
+v_x_ref = 10;
+v_z_ref = -2.0;
+theta_ref = 0.0;
+zeta_w_ref = 0.0;
+delta_w_ref = 0.0;
+T_w_ref = 0.0;
+
+
+y_ref = [v_x_ref, v_z_ref,theta_ref, zeta_w_ref, delta_w_ref, T_w_ref, theta_ref,];
 
 % objective weights
-Q = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]; % XXX: put something realistic here
-QN = Q(1:n_Ys); % << only state dependent (no controls)!
+Q = [10, 10, 1, 1, 1.0, 1.0, 1.0]; % XXX: put something realistic here
+QN = [100, 100, 1, 1];% << only state dependent (no controls)!
+
 
 %% ACADO MEX INPUT STRUCTURE - - - - - - - - - - - - - - - - - - - - - - - 
 
@@ -69,12 +75,14 @@ QN = Q(1:n_Ys); % << only state dependent (no controls)!
 input.x = repmat(nmpc_ic.x, N+1,1);
 input.u = repmat(nmpc_ic.u, N,1);
 input.y = repmat(y_ref, N,1);
-input.yN = yref(1:n_Ys); % << only state dependent (no controls)!
+input.yN = y_ref(1:n_Ys); % << only state dependent (no controls)!
 % input.od = repmat(online_data, N+1, n_OD);
-input.W = diag(Q);
+input.W = repmat(diag(Q),N,1);
 input.WN = diag(QN);
 input.lbValues = reshape(repmat(constraints_lb, N, 1).',N*n_U,1);
 input.ubValues = reshape(repmat(constraints_ub, N, 1).',N*n_U,1);
+input.lbAValues = repmat(constraint_lbA, N,1);
+input.ubAValues = repmat(constraint_ubA, N,1);
 
 %% SIMULATION - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -89,7 +97,7 @@ len_nmpc = floor(len_t*Ts/Ts_nmpc); % if the MPC is running at a different rate 
 states = nmpc_ic.x;
 measurements = states;
 controls = nmpc_ic.u;
-[dstates,simout] = model_dynamics(0,measurements,controls,online_data,model_params); % XXX: define what actual inputs you use, 0 here is t=0
+[dstates,simout] = model_dynamics(0,measurements,controls); % XXX: define what actual inputs you use, 0 here is t=0
 
 % allocate timing arrays
 tsolve_k = 0;
@@ -107,7 +115,7 @@ nmpc_counter = 0;
 % allocate nmpc info
 len_nmpc_storage = floor(len_t/nmpc_counter_interval)+1;
 KKT_MPC = zeros(len_nmpc_storage,1);
-INFO_MPC(len_nmpc_storage) = struct('status',0,'cpuTime',0,'kktValue',0,'objValue',0,'QP_iter',0,'QP_violation',0);
+INFO_MPC(len_nmpc_storage) = struct('status',0,'cpuTime',0,'kktValue',0,'objValue',0,'nIterations',0);
 
 % allocate record struct
 rec.x = zeros(len_t,n_X);
@@ -172,7 +180,10 @@ for k = 1:len_t
     % END NMPC - - - - -
     
     % apply control
-    [dstates, simout]  = model_dynamics(time(k), states, controls, online_data, model_params);
+    [dstates, simout]  = model_dynamics(time(k), states, controls);
+    dstates;
+    states;
+    eval = cat(1,dstates, states)
 
     % integration (model propagation)
     states = states + dstates*Ts;
@@ -203,4 +214,25 @@ end
 
 %% PLOTTING - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-% XXX: make a plot script you can call here.
+figure
+subplot(7,1,1);
+plot(time,rec.x(:,1))
+title('v_x');
+subplot(7,1,2);
+plot(time,rec.x(:,2));
+title('v_z');
+subplot(7,1,3);
+plot(time,rad2deg(rec.x(:,3)));
+title('\theta');
+subplot(7,1,4);
+plot(time,rad2deg(rec.x(:,4)));
+title('\zeta_w');
+subplot(7,1,5)
+plot(time,rec.u(:,1));
+title('\delta_w');
+subplot(7,1,6)
+plot(time,rec.u(:,2));
+title('T_w');
+subplot(7,1,7)
+plot(time,rad2deg(rec.u(:,3)));
+title('\theta_{ref}');
