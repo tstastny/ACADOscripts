@@ -24,7 +24,7 @@ shift_states_controls = false;
 %% INITIALIZATION - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 % initial states
-x_init = [10.0, 2.0, 0.0, deg2rad(45)]; % XXX: put something realistic here!
+x_init = [2.0, 2.0, 0.0, deg2rad(45)]; % XXX: put something realistic here!
 
 % initial controls
 u_init = [0.0, 15.0, 0.0]; % XXX: put something realistic here!
@@ -45,19 +45,19 @@ nmpc_ic.u = u_init;
 %                         drive the objective states
 % XXX: define
 
-v_x_ref = 10;
-v_z_ref = -2.0;
+v_x_ref = 15;
+v_z_ref = -7.0;
 theta_ref = 0.0;
-zeta_w_ref = 0.0;
+zeta_w_ref = deg2rad(40);
 delta_w_ref = 0.0;
-T_w_ref = 0.0;
+T_w_ref = 10.0;
 
 
 y_ref = [v_x_ref, v_z_ref,theta_ref, zeta_w_ref, delta_w_ref, T_w_ref, theta_ref,];
 
 % objective weights
-Q = [10, 10, 1, 1, 1.0, 1.0, 1.0]; % XXX: put something realistic here
-QN = [100, 100, 1, 1];% << only state dependent (no controls)!
+Q = [10, 10, 10, 0, 10.0, 1.0, 10.0]; % XXX: put something realistic here
+QN = [10, 10, 10, 1];% << only state dependent (no controls)!
 
 
 %% ACADO MEX INPUT STRUCTURE - - - - - - - - - - - - - - - - - - - - - - - 
