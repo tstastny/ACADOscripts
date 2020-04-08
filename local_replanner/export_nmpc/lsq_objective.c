@@ -23,11 +23,6 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
 
     /* online data */
 
-    /* disturbances */
-    const double w_n = in[13-idx_shift];
-    const double w_e = in[14-idx_shift];
-    const double w_d = in[15-idx_shift];
-
     /* heading reference */
     const double heading_ref = in[22-idx_shift];
 
