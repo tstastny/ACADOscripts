@@ -24,7 +24,7 @@ shift_states_controls = false;
 %% INITIALIZATION - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 % initial states
-x_init = [2.0, 2.0, 0.0, deg2rad(45)]; % XXX: put something realistic here!
+x_init = [10.0, 2.0, 0.0, deg2rad(25)]; % XXX: put something realistic here!
 
 % initial controls
 u_init = [0.0, 15.0, 0.0]; % XXX: put something realistic here!
@@ -46,18 +46,21 @@ nmpc_ic.u = u_init;
 % XXX: define
 
 v_x_ref = 15;
-v_z_ref = -7.0;
+v_z_ref = -1.0;
 theta_ref = 0.0;
-zeta_w_ref = deg2rad(40);
-delta_w_ref = 0.0;
-T_w_ref = 10.0;
+zeta_w_ref = deg2rad(25);
+delta_ref_ref = 0.0;
+T_w_ref = 10;
 
 
-y_ref = [v_x_ref, v_z_ref,theta_ref, zeta_w_ref, delta_w_ref, T_w_ref, theta_ref,];
+y_ref = [v_x_ref, v_z_ref,theta_ref, zeta_w_ref, delta_ref_ref, T_w_ref, theta_ref,];
 
 % objective weights
-Q = [10, 10, 10, 0, 10.0, 1.0, 10.0]; % XXX: put something realistic here
-QN = [10, 10, 10, 1];% << only state dependent (no controls)!
+Q_scale = [100, 100, 0.1, 0, 10, 0.1, 0.5];
+Q_scale_N = [400, 400, 0.1, 0];
+
+Q = [1, 1, 2500, 280, 6.5, 25, 2500] .* Q_scale; % XXX: put something realistic here
+QN = [1, 1, 2500, 280] .* Q_scale_N;% << only state dependent (no controls)!
 
 
 %% ACADO MEX INPUT STRUCTURE - - - - - - - - - - - - - - - - - - - - - - - 
@@ -183,7 +186,7 @@ for k = 1:len_t
     [dstates, simout]  = model_dynamics(time(k), states, controls);
     dstates;
     states;
-    eval = cat(1,dstates, states)
+    eval = cat(1,dstates, states);
 
     % integration (model propagation)
     states = states + dstates*Ts;
