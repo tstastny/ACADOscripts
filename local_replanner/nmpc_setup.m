@@ -139,7 +139,7 @@ f.add(dot(prop_speed) == dot_prop_speed);
 % lengths
 n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
-n_Ys = 9;                   % state (only) objectives
+n_Ys = 10;                  % state (only) objectives
 n_Yc = 3;                   % control dependent objectives
 n_OD = 30;                  % online data
 
