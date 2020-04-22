@@ -76,7 +76,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OnlineData tau_prop; 
     OnlineData flaps; 
     OnlineData fpa_ref; 
-    OnlineData jac_fpa_ref; 
+    OnlineData jac_fpa_ref1; 
+    OnlineData jac_fpa_ref2; 
     OnlineData heading_ref; 
     OnlineData soft_airsp; 
     OnlineData jac_soft_airsp; 
@@ -117,12 +118,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     ocp1.subjectTo(0.00000000000000000000e+00 <= throt <= 1.00000000000000000000e+00);
     ocp1.subjectTo((-6.10865238198015303439e-01) <= roll_ref <= 6.10865238198015303439e-01);
     ocp1.subjectTo((-2.61799387799149407829e-01) <= pitch_ref <= 4.36332312998582383390e-01);
-    ocp1.setNOD( 30 );
+    ocp1.setNOD( 31 );
 
 
     ocp1.setNU( 3 );
     ocp1.setNP( 0 );
-    ocp1.setNOD( 30 );
+    ocp1.setNOD( 31 );
     OCPexport ExportModule1( ocp1 );
     ExportModule1.set( GENERATE_MATLAB_INTERFACE, 1 );
     uint options_flag;

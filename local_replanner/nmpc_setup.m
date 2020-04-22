@@ -52,7 +52,7 @@ OnlineData flaps;
 
 % flight path angle objective reference
 OnlineData fpa_ref;
-OnlineData jac_fpa_ref;
+OnlineData jac_fpa_ref(2);
 
 % heading objective reference
 OnlineData heading_ref;
@@ -141,7 +141,7 @@ n_X = length(diffStates);   % states
 n_U = length(controls);     % controls
 n_Ys = 10;                  % state (only) objectives
 n_Yc = 3;                   % control dependent objectives
-n_OD = 30;                  % online data
+n_OD = 31;                  % online data
 
 acadoSet('problemname', 'nmpc');
 
