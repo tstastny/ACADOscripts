@@ -91,7 +91,8 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
         const double jac_pos_e = 1.0;
         const double jac_pos_d = 1.0;
         const double jac_airsp = 1.0;
-        const double jac_fpa = -1.0;
+        const double jac_fpa_wrt_fpa = -1.0;
+        const double jac_fpa_wrt_pitch = -1.0;
         const double jac_heading = 1.0;
 
         /* lsq end term jacobian w.r.t. states */
@@ -135,10 +136,10 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
         out[47] = 0.0;
         out[48] = jac_fpa_ref[0];
         out[49] = jac_fpa_ref[1];
-        out[50] = jac_fpa;
+        out[50] = jac_fpa_wrt_fpa;
         out[51] = 0.0;
         out[52] = 0.0;
-        out[53] = 0.0;
+        out[53] = jac_fpa_wrt_pitch;
         out[54] = 0.0;
         out[55] = 0.0; /* - - - - - - - - - - - - - - - -d(heading)/d(x) */
         out[56] = 0.0;
@@ -193,7 +194,8 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
         const double jac_pos_e = 1.0;
         const double jac_pos_d = 1.0;
         const double jac_airsp = 1.0;
-        const double jac_fpa = -1.0;
+        const double jac_fpa_wrt_fpa = -1.0;
+        const double jac_fpa_wrt_pitch = -1.0;
         const double jac_heading = 1.0;
         const double jac_throt = 1.0;
         const double jac_pitch_ref = 1.0;
@@ -240,10 +242,10 @@ void lsq_obj_eval( const real_t *in, real_t *out, bool eval_end_term )
         out[50] = 0.0;
         out[51] = jac_fpa_ref[0];
         out[52] = jac_fpa_ref[1];
-        out[53] = jac_fpa;
+        out[53] = jac_fpa_wrt_fpa;
         out[54] = 0.0;
         out[55] = 0.0;
-        out[56] = 0.0;
+        out[56] = jac_fpa_wrt_pitch;
         out[57] = 0.0;
         out[58] = 0.0; /* - - - - - - - - - - - - - - - -d(heading)/d(x) */
         out[59] = 0.0;
