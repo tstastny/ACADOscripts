@@ -8,7 +8,7 @@ close all;
 addpath('functions');
 
 Ts = 0.1;   % model discretization step [0.1 s]
-N = 50;     % horizon
+N = 20;     % horizon
 
 % states
 DifferentialState v_x;

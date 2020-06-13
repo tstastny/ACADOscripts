@@ -6,7 +6,7 @@ clear; clc; close all;
 addpath('functions');
 
 %% NMPC SETUP - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-N = 50;
+N = 20;
 n_U = 3;
 n_X = 5;
 n_Ys = 5;
